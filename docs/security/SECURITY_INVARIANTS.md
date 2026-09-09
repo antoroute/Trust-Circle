@@ -1,7 +1,7 @@
 # Invariants de sécurité
 
 Statut : obligatoire pour toute modification
-Dernière mise à jour : 2026-08-23
+Dernière mise à jour : 2026-09-09
 
 Ces règles décrivent ce qui doit rester vrai indépendamment de l'interface ou de l'implémentation. Une tâche qui semble exiger leur violation doit s'arrêter et ouvrir une décision d'architecture.
 
@@ -47,7 +47,7 @@ Ces règles décrivent ce qui doit rester vrai indépendamment de l'interface ou
 
 ## Livraison et exploitation
 
-26. Aucun secret serveur ou `APP_SECRET` partagé n'est embarqué dans une application distribuée.
+26. Aucun secret serveur ou secret d'application partagé n'est embarqué dans une application distribuée. Cet invariant est appliqué par `TC-109`.
 27. Les builds release utilisent des identifiants, signatures et configurations propres à chaque environnement.
 28. Une action de production exige cible confirmée, accès minimal, sauvegarde restaurable, observabilité, rollback et approbation humaine explicite.
 29. Les sauvegardes sont chiffrées, leur accès est audité et leur restauration est testée périodiquement.

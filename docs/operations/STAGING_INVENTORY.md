@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
 Statut : opérationnel, accès local au LXC uniquement
-Dernier déploiement : 2026-09-09 (`TC-108`)
+Dernier déploiement : 2026-09-09 (`TC-109`)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `054eabdf65624d4c5db654742ba7ddf77e88a4cc` |
-| Release | `/opt/trust-circle-staging/releases/054eabdf65624d4c5db654742ba7ddf77e88a4cc` |
+| Commit source | `a55d8c5ecda649bb29096ea0f4301ad7bd14e888` |
+| Release | `/opt/trust-circle-staging/releases/a55d8c5ecda649bb29096ea0f4301ad7bd14e888` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Source Compose | `deploy/staging/compose.yml` |
@@ -25,8 +25,8 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-054eabdf6562` | image ID `655fa253dc3d`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-054eabdf6562` | image ID `86604fb06dc8`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-a55d8c5ecda6` | image ID `8cc808dca0fa`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-a55d8c5ecda6` | image ID `64fc1e7dae4e`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
 | Gateway | `nginx:stable-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
 
@@ -266,6 +266,32 @@ sous `staging.env.before-2ae191d79223`; celle précédant le smoke ACK final est
 sous `staging.env.before-054eabdf6562`. La release
 `9ffc84f36e47aee5d86eb03f14307c93f5ef02dd` reste le rollback complet
 pré-`TC-108`, sans restauration de données.
+
+Le redéploiement `TC-109` du 2026-09-09 a ensuite validé :
+
+1. retrait du secret partagé dans Flutter, Auth, Messaging, Socket.IO, CORS,
+   Compose, le générateur et le fichier privé actif du staging ;
+2. inscription, connexion puis refresh réels sans header caché, avec access
+   token renouvelé utilisé pour le reste du parcours ;
+3. refus `401` d'une route Messaging sans access token puis d'un refresh token
+   présenté comme access token ;
+4. preuve Ed25519 d'appareil, opérations cercle/message et ACK Socket.IO réels
+   sans secret partagé, tout en conservant les tests négatifs de token, preuve
+   et état d'appareil ;
+5. quatre services sains, labels sur le commit
+   `a55d8c5ecda649bb29096ea0f4301ad7bd14e888`, zéro redémarrage et aucune
+   correspondance `error|fatal|panic` dans la fenêtre post-déploiement ;
+6. sur quarante sondes via la gateway : Auth moyenne `1,110 ms`, maximum
+   `1,713 ms`, Messaging moyenne `1,110 ms`, maximum `1,619 ms` ; aucun appel
+   ni geste utilisateur n'a été ajouté au fonctionnement de l'application ;
+7. absence de migration ou changement de schéma. Les suites locales comptent
+   27 tests Auth, 90 Messaging et 39 Flutter tous réussis.
+
+La configuration privée antérieure au retrait est conservée en mode `0600`
+sous `staging.env.before-19aa30d0d087`; l'instantané nettoyé précédant le smoke
+final est sous `staging.env.before-a55d8c5ecda6`. La release
+`054eabdf65624d4c5db654742ba7ddf77e88a4cc` reste le rollback complet
+pré-`TC-109`, sans restauration de données.
 
 ## Limites assumées
 

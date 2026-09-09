@@ -1,6 +1,6 @@
 # TC-109 — Retirer le faux secret de l'application publique
 
-Statut : En cours — implémentation locale validée, staging à valider
+Statut : Terminée — client, backend et staging validés le 2026-09-09
 Priorité : P0 architecture de sécurité
 Dépendances : TC-101, TC-102 et TC-108 terminées
 
@@ -64,15 +64,51 @@ d'accès, ce qui crée une barrière illusoire et un secret opérationnel inutil
 
 ## Acceptation
 
-- [ ] Aucune valeur ou référence `APP_SECRET`/`X-App-Secret` ne subsiste dans
+- [x] Aucune valeur ou référence `APP_SECRET`/`X-App-Secret` ne subsiste dans
       le code distribué, le backend actif ou le staging déclaratif.
-- [ ] Inscription, connexion et refresh fonctionnent sans header caché.
-- [ ] Une route Messaging sans access token ou preuve active reste refusée.
-- [ ] Socket.IO accepte un appareil actif sans header secret et refuse token,
+- [x] Inscription, connexion et refresh fonctionnent sans header caché.
+- [x] Une route Messaging sans access token ou preuve active reste refusée.
+- [x] Socket.IO accepte un appareil actif sans header secret et refuse token,
       preuve ou appareil invalides.
-- [ ] CORS, quotas et limites de taille de `TC-107`/`TC-108` restent actifs.
-- [ ] Aucun aller-retour, délai ou geste utilisateur supplémentaire n'est créé.
-- [ ] Tests locaux, smoke staging, santé, logs et rollback sont documentés.
+- [x] CORS, quotas et limites de taille de `TC-107`/`TC-108` restent actifs.
+- [x] Aucun aller-retour, délai ou geste utilisateur supplémentaire n'est créé.
+- [x] Tests locaux, smoke staging, santé, logs et rollback sont documentés.
+
+## Réalisation
+
+- Auth et Messaging n'attendent plus de variable, middleware ou header secret
+  partagé ; le CORS ne l'annonce plus et Socket.IO conserve access JWT plus
+  preuve Ed25519 d'un appareil actif.
+- Flutter ne charge plus `.env`, ne distribue plus `flutter_dotenv` et ne pose
+  plus ce header sur HTTP ou Socket.IO. Les headers publics sont centralisés.
+- Compose, son générateur et son template n'injectent plus le secret. La ligne
+  historique a été retirée du fichier privé actif sans afficher sa valeur.
+- Le smoke persistant couvre désormais inscription, connexion, refresh,
+  refus Messaging sans access token et parcours Socket.IO authentifié sans
+  secret partagé.
+
+## Preuves
+
+- Commits : implémentation `19aa30d0d0873705579c1e7fb8ca9b841015dee8`,
+  smoke final `a55d8c5ecda649bb29096ea0f4301ad7bd14e888`.
+- Local : Auth `27/27`, Messaging `90/90`, Flutter `39/39` ; analyse Flutter
+  sans erreur ni avertissement bloquant (85 informations historiques).
+- Staging : quatre services sains, zéro redémarrage, aucun événement
+  `error|fatal|panic` sur la fenêtre post-déploiement et smoke complet réussi.
+- Quarante sondes via la gateway : Auth moyenne `1,110 ms`, maximum
+  `1,713 ms` ; Messaging moyenne `1,110 ms`, maximum `1,619 ms`.
+- Les noms de variables des conteneurs confirment l'absence du secret : Auth
+  conserve ses clés access/refresh serveur ; Messaging ne reçoit que la clé
+  publique access.
+
+## Rollback
+
+La release complète pré-`TC-109`
+`054eabdf65624d4c5db654742ba7ddf77e88a4cc` est conservée. La configuration
+privée antérieure au retrait est sauvegardée en mode `0600` sous
+`staging.env.before-19aa30d0d087`; l'instantané suivant, déjà nettoyé, est
+`staging.env.before-a55d8c5ecda6`. Aucune migration ou modification de schéma
+n'a été réalisée.
 
 ## Hors périmètre
 
