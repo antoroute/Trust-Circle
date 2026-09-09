@@ -6,6 +6,11 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
 
 - PostgreSQL dédié et volume `trust-circle-staging-postgres-data`.
 - Réseaux `trust-circle-staging-edge` et `trust-circle-staging-data`.
+- Réseau edge dédié et adressage statique : gateway `172.30.108.10`, Auth
+  `172.30.108.11`, Messaging `172.30.108.12` dans `172.30.108.0/24`.
+- Les services backend ne font confiance qu'à la gateway (`172.30.108.10/32`)
+  pour les en-têtes proxy ; aucune origine navigateur n'est autorisée tant que
+  le staging reste réservé aux clients natifs.
 - Redis absent : aucun code backend actuel ne l'utilise.
 - Auth/messaging non publiés sur l'hôte.
 - Gateway liée uniquement à `127.0.0.1:18080` sur le LXC tant que TLS et les premières corrections P0 ne sont pas terminés.
@@ -45,6 +50,12 @@ docker compose \
   --env-file /opt/trust-circle-staging/shared/staging.env \
   -f deploy/staging/compose.yml up -d --build
 ```
+
+Le passage à l'IPAM explicite recrée le réseau edge au premier déploiement de
+ce changement. Vérifier que la stack `trust-circle-staging` est la cible,
+arrêter uniquement cette stack puis la relancer sans `--volumes`; le volume
+PostgreSQL n'est pas concerné. Ne jamais supprimer un réseau ou volume partagé
+sans avoir démontré son absence d'usage.
 
 5. Attendre les healthchecks puis exécuter :
 

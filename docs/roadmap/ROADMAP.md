@@ -42,7 +42,7 @@ Objectif : empêcher l'usurpation, l'accès croisé et l'enregistrement illégit
 | TC-105 | Corriger l'atomicité des contrôles et écritures | TC-104 | Terminée |
 | TC-106 | Sécuriser preuve, approbation, rotation et révocation des clés d'appareil | TC-104 | Terminée — lots A à D validés sur staging |
 | TC-107 | Borner et valider tous les payloads, identifiants et tailles | TC-103 | Terminée — backend, Flutter, OpenAPI et staging validés |
-| TC-108 | Durcir CORS, rate limits, proxy trust et WebSocket | TC-102, TC-107 | À faire |
+| TC-108 | Durcir CORS, rate limits, proxy trust et WebSocket | TC-102, TC-107 | En cours — tests locaux réussis, staging à valider |
 | TC-109 | Retirer le faux secret partagé de l'application publique | TC-101 | À faire |
 | TC-110 | Mettre à jour les dépendances vulnérables avec tests | TC-111 | À faire |
 | TC-111 | Créer les tests négatifs auth/ACL/keys et PostgreSQL d'intégration | TC-004 | À faire |

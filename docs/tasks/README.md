@@ -22,6 +22,8 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 - [TC-104 — Matrice ACL cercle/conversation/rôle](TC-104-matrice-acl.md)
 - [TC-105 — Atomicité des contrôles et écritures](TC-105-atomicite-controles-ecritures.md)
 - [TC-106 — Cycle de confiance des appareils](TC-106-cycle-confiance-appareils.md)
+- [TC-107 — Bornes et validation des entrées](TC-107-borner-valider-entrees.md)
+- [TC-108 — Frontière réseau et WebSocket](TC-108-durcir-frontiere-reseau.md)
 - [TC-114 — Vérification avant utilisation](TC-114-verification-avant-utilisation.md)
 
 ## Format obligatoire des nouvelles fiches

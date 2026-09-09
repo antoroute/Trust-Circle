@@ -71,13 +71,16 @@ services:
       JWT_REFRESH_SECRET: "${TC_JWT_REFRESH_SECRET:?TC_JWT_REFRESH_SECRET is required}"
       APP_SECRET: "${TC_APP_SECRET:?TC_APP_SECRET is required}"
       DATABASE_URL: "postgresql://${TC_DB_USER}:${TC_DB_PASSWORD}@postgres:5432/${TC_DB_NAME}"
+      TRUSTED_PROXY_CIDRS: "172.30.108.10/32"
+      CORS_ALLOWED_ORIGINS: ""
     tmpfs:
       - /tmp:size=32m,mode=1777,noexec,nosuid,nodev
     expose:
       - "3000"
     networks:
-      - edge
-      - data
+      edge:
+        ipv4_address: 172.30.108.11
+      data: {}
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,13 +101,16 @@ services:
       JWT_ACCESS_PUBLIC_KEY_B64: "${TC_JWT_ACCESS_PUBLIC_KEY_B64:?TC_JWT_ACCESS_PUBLIC_KEY_B64 is required}"
       APP_SECRET: "${TC_APP_SECRET:?TC_APP_SECRET is required}"
       DATABASE_URL: "postgresql://${TC_DB_USER}:${TC_DB_PASSWORD}@postgres:5432/${TC_DB_NAME}"
+      TRUSTED_PROXY_CIDRS: "172.30.108.10/32"
+      CORS_ALLOWED_ORIGINS: ""
     tmpfs:
       - /tmp:size=32m,mode=1777,noexec,nosuid,nodev
     expose:
       - "3001"
     networks:
-      - edge
-      - data
+      edge:
+        ipv4_address: 172.30.108.12
+      data: {}
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,7 +128,8 @@ services:
       - /var/run:size=4m,uid=101,gid=101,mode=0755,noexec,nosuid,nodev
       - /tmp:size=8m,uid=101,gid=101,mode=1777,noexec,nosuid,nodev
     networks:
-      - edge
+      edge:
+        ipv4_address: 172.30.108.10
     depends_on:
       auth:
         condition: service_healthy
@@ -138,6 +145,9 @@ services:
 networks:
   edge:
     name: trust-circle-staging-edge
+    ipam:
+      config:
+        - subnet: 172.30.108.0/24
   data:
     name: trust-circle-staging-data
     internal: true

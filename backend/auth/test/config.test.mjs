@@ -30,6 +30,42 @@ test('accepts a complete synthetic configuration', () => {
   const config = loadConfig(validEnvironment());
   assert.equal(config.nodeEnv, 'test');
   assert.equal(config.port, 4300);
+  assert.deepEqual(config.corsAllowedOrigins, []);
+  assert.deepEqual(config.trustedProxyCidrs, []);
+});
+
+test('validates exact CORS origins and trusted proxy CIDRs', () => {
+  const config = loadConfig({
+    ...validEnvironment(),
+    CORS_ALLOWED_ORIGINS: 'https://app.example.test,http://localhost:3000',
+    TRUSTED_PROXY_CIDRS: '172.20.0.0/16,2001:db8::/32',
+  });
+  assert.deepEqual(config.corsAllowedOrigins, [
+    'https://app.example.test',
+    'http://localhost:3000',
+  ]);
+  assert.deepEqual(config.trustedProxyCidrs, ['172.20.0.0/16', '2001:db8::/32']);
+
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), CORS_ALLOWED_ORIGINS: 'https://app.example.test/path' }),
+    /CORS_ALLOWED_ORIGINS/,
+  );
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), CORS_ALLOWED_ORIGINS: 'http://app.example.test' }),
+    /CORS_ALLOWED_ORIGINS/,
+  );
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), TRUSTED_PROXY_CIDRS: '172.20.0.1' }),
+    /TRUSTED_PROXY_CIDRS/,
+  );
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), TRUSTED_PROXY_CIDRS: '172.20.0.0/33' }),
+    /TRUSTED_PROXY_CIDRS/,
+  );
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), NODE_ENV: 'staging' }),
+    /TRUSTED_PROXY_CIDRS/,
+  );
 });
 
 for (const name of [

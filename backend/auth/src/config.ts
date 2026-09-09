@@ -1,4 +1,5 @@
 import { createPrivateKey, createPublicKey } from 'node:crypto';
+import { isIP } from 'node:net';
 
 const SUPPORTED_ENVIRONMENTS = new Set(['development', 'test', 'staging', 'production']);
 const FORBIDDEN_SECRET_VALUES = new Set([
@@ -15,6 +16,8 @@ export interface ServiceConfig {
   appSecret: string;
   databaseUrl: string;
   port: number;
+  corsAllowedOrigins: readonly string[];
+  trustedProxyCidrs: readonly string[];
 }
 
 function requiredBase64(env: NodeJS.ProcessEnv, name: string): Buffer {
@@ -101,6 +104,66 @@ function port(env: NodeJS.ProcessEnv): number {
   return parsed;
 }
 
+function csv(env: NodeJS.ProcessEnv, name: string): string[] {
+  const value = env[name];
+  if (value === undefined || value === '') return [];
+  if (value !== value.trim()) {
+    throw new Error(`Invalid configuration: ${name} must not contain surrounding whitespace`);
+  }
+
+  const values = value.split(',');
+  if (values.some((entry) => entry.length === 0 || entry !== entry.trim())) {
+    throw new Error(`Invalid configuration: ${name} must be a comma-separated list without empty values`);
+  }
+  return values;
+}
+
+function corsAllowedOrigins(env: NodeJS.ProcessEnv, nodeEnv: string): string[] {
+  return csv(env, 'CORS_ALLOWED_ORIGINS').map((value) => {
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      throw new Error('Invalid configuration: CORS_ALLOWED_ORIGINS must contain exact HTTP(S) origins');
+    }
+    if (
+      !['http:', 'https:'].includes(parsed.protocol) ||
+      parsed.origin !== value ||
+      parsed.username ||
+      parsed.password ||
+      (parsed.protocol === 'http:' &&
+        !(
+          (nodeEnv === 'development' || nodeEnv === 'test') &&
+          ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+        ))
+    ) {
+      throw new Error('Invalid configuration: CORS_ALLOWED_ORIGINS must contain exact HTTP(S) origins');
+    }
+    return value;
+  });
+}
+
+function trustedProxyCidrs(env: NodeJS.ProcessEnv, nodeEnv: string): string[] {
+  const values = csv(env, 'TRUSTED_PROXY_CIDRS');
+  if ((nodeEnv === 'staging' || nodeEnv === 'production') && values.length === 0) {
+    throw new Error('Invalid configuration: TRUSTED_PROXY_CIDRS is required in staging and production');
+  }
+  for (const value of values) {
+    const slash = value.lastIndexOf('/');
+    if (slash <= 0 || slash === value.length - 1) {
+      throw new Error('Invalid configuration: TRUSTED_PROXY_CIDRS must contain IP CIDRs');
+    }
+    const address = value.slice(0, slash);
+    const prefix = value.slice(slash + 1);
+    const version = isIP(address);
+    const maximumPrefix = version === 4 ? 32 : version === 6 ? 128 : -1;
+    if (!/^(0|[1-9][0-9]*)$/.test(prefix) || Number(prefix) > maximumPrefix) {
+      throw new Error('Invalid configuration: TRUSTED_PROXY_CIDRS must contain IP CIDRs');
+    }
+  }
+  return values;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Readonly<ServiceConfig> {
   const nodeEnv = requiredValue(env, 'NODE_ENV');
   if (!SUPPORTED_ENVIRONMENTS.has(nodeEnv)) {
@@ -122,5 +185,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Readonly<Servi
     appSecret,
     databaseUrl: databaseUrl(env),
     port: port(env),
+    corsAllowedOrigins: Object.freeze(corsAllowedOrigins(env, nodeEnv)),
+    trustedProxyCidrs: Object.freeze(trustedProxyCidrs(env, nodeEnv)),
   });
 }

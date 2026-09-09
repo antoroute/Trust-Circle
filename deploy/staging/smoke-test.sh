@@ -24,9 +24,35 @@ assert_status() {
   fi
 }
 
+assert_no_cors_origin() {
+  local url=$1
+  local headers
+  headers=$(curl --silent --show-error --dump-header - --output /dev/null \
+    --header 'Origin: https://attacker.invalid' "$url")
+  if grep -qi '^access-control-allow-origin:' <<<"$headers"; then
+    echo "Unexpected permissive CORS header for $url" >&2
+    exit 1
+  fi
+}
+
 assert_status 200 "$base_url/healthz"
 assert_status 200 "$base_url/health/auth"
 assert_status 200 "$base_url/health/messaging"
+assert_no_cors_origin "$base_url/health/auth"
+assert_no_cors_origin "$base_url/health/messaging"
+blocked_socket_status=$(curl --silent --show-error --output /dev/null \
+  --write-out '%{http_code}' --header 'Origin: https://attacker.invalid' \
+  "$base_url/socket/?EIO=4&transport=polling")
+if [[ "$blocked_socket_status" != "403" ]]; then
+  echo "Untrusted Socket.IO Origin was not rejected: got $blocked_socket_status" >&2
+  exit 1
+fi
+native_socket_status=$(curl --silent --show-error --output /dev/null \
+  --write-out '%{http_code}' "$base_url/socket/?EIO=4&transport=polling")
+if [[ "$native_socket_status" != "200" ]]; then
+  echo "Native Socket.IO handshake did not reach the server: got $native_socket_status" >&2
+  exit 1
+fi
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 docker compose \
@@ -37,4 +63,4 @@ docker compose \
   -e TC_DEVICE_TRUST_SMOKE_BASE_URL=http://gateway:8080 \
   messaging node dist/tools/deviceTrustStagingSmoke.js
 
-echo "Smoke tests passed: health, TC-106 device trust and TC-107 input boundaries."
+echo "Smoke tests passed: health, TC-106 device trust, TC-107 input boundaries and TC-108 network boundary."

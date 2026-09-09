@@ -1,7 +1,7 @@
 # Architecture système
 
 Statut : état observé et cible V1 provisoire
-Dernière mise à jour : 2026-08-25
+Dernière mise à jour : 2026-09-09
 
 ## Vue logique
 
@@ -40,6 +40,9 @@ Le schéma est logique. L'inventaire réel du LXC et du staging est conservé da
 - PostgreSQL et l'opérateur peuvent voir les métadonnées stockées ; le contenu E2EE doit rester opaque.
 - Les notifications push transitent par des fournisseurs tiers et ne doivent contenir ni message ni secret.
 - L'appareil local est une zone sensible : les clés privées doivent utiliser le stockage sécurisé de l'OS et les caches doivent être chiffrés réellement.
+- Seul le CIDR explicitement configuré du gateway peut fournir l'adresse
+  client à Fastify. Une origine navigateur doit correspondre exactement à
+  l'allowlist ; l'absence d'`Origin` reste normale pour les clients natifs.
 
 ## Flux d'envoi cible
 

@@ -45,8 +45,13 @@ function bearerToken(header: string | undefined): string | null {
 }
 
 export default async function routes(app: FastifyInstance) {
+  app.addHook('onSend', async (_request, reply, payload) => {
+    reply.header('Cache-Control', 'no-store');
+    return payload;
+  });
 
   app.post('/register', {
+    config: { rateLimit: { max: 3, timeWindow: '1 hour' } },
     schema: { body: RegisterBody }
   }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { email, username, password } = req.body as any;
@@ -67,6 +72,7 @@ export default async function routes(app: FastifyInstance) {
   });
 
   app.post('/login', {
+    config: { rateLimit: { max: 10, timeWindow: '10 minutes' } },
     schema: { body: LoginBody }
   }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { email, password } = req.body as any;
@@ -93,7 +99,9 @@ export default async function routes(app: FastifyInstance) {
     return reply.send({ access, refresh, user: { id: row.id, email: row.email, username: row.username } });
   });
 
-  app.post('/refresh', {}, async (req: FastifyRequest, reply: FastifyReply) => {
+  app.post('/refresh', {
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+  }, async (req: FastifyRequest, reply: FastifyReply) => {
     const token = bearerToken(req.headers.authorization);
     if (!token) return reply.code(401).send({ error: 'no_token' });
 
@@ -121,7 +129,16 @@ export default async function routes(app: FastifyInstance) {
 
   app.post('/device-bootstrap-grant', {
     onRequest: [app.authenticate],
-    config: { rateLimit: { max: 5, timeWindow: '10 minutes' } },
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: '10 minutes',
+        keyGenerator: (request: FastifyRequest) => {
+          const userId = (request as any).user?.sub;
+          return typeof userId === 'string' ? `bootstrap:${userId}` : `ip:${request.ip}`;
+        },
+      },
+    },
     schema: {
       body: DeviceBootstrapGrantBody,
       response: {
@@ -186,7 +203,9 @@ export default async function routes(app: FastifyInstance) {
     };
   });
 
-  app.post('/logout', {}, async (req: FastifyRequest, reply: FastifyReply) => {
+  app.post('/logout', {
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+  }, async (req: FastifyRequest, reply: FastifyReply) => {
     const token = bearerToken(req.headers.authorization);
     if (!token) return reply.code(200).send({ ok: true });
 

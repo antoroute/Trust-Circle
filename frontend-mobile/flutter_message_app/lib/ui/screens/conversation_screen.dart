@@ -52,6 +52,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   // Timer pour les indicateurs de frappe
   Timer? _typingTimer;
+  bool _isTyping = false;
 
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -938,8 +939,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     }
 
     // Arrêter l'indicateur de frappe avant d'envoyer
-    _conversationProvider.stopTyping(widget.conversationId);
-    _typingTimer?.cancel();
+    _stopTyping();
 
     // 🚀 OPTIMISATION: Vider le champ immédiatement pour feedback UI instantané
     _textController.clear();
@@ -967,19 +967,29 @@ class _ConversationScreenState extends State<ConversationScreen> {
   /// Gère les événements de frappe
   void _onTextChanged(String text) {
     if (text.isNotEmpty) {
-      // Démarrer l'indicateur de frappe
-      _conversationProvider.startTyping(widget.conversationId);
+      // Un seul événement de début suffit jusqu'à la prochaine période
+      // d'inactivité. Cela garde l'indicateur instantané sans envoyer un
+      // événement réseau pour chaque caractère saisi.
+      if (!_isTyping) {
+        _isTyping = true;
+        _conversationProvider.startTyping(widget.conversationId);
+      }
 
       // Programmer l'arrêt de l'indicateur après 2 secondes d'inactivité
       _typingTimer?.cancel();
-      _typingTimer = Timer(const Duration(seconds: 2), () {
-        _conversationProvider.stopTyping(widget.conversationId);
-      });
+      _typingTimer = Timer(const Duration(seconds: 2), _stopTyping);
     } else {
       // Arrêter l'indicateur si le champ est vide
-      _conversationProvider.stopTyping(widget.conversationId);
-      _typingTimer?.cancel();
+      _stopTyping();
     }
+  }
+
+  void _stopTyping() {
+    _typingTimer?.cancel();
+    _typingTimer = null;
+    if (!_isTyping) return;
+    _isTyping = false;
+    _conversationProvider.stopTyping(widget.conversationId);
   }
 
   /// Construit l'indicateur de frappe
@@ -1035,7 +1045,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     _textController.dispose();
     _scrollController.dispose();
     _messageUpdateNotifier.dispose(); // Nettoyer le ValueNotifier
-    _typingTimer?.cancel(); // Annuler le timer de frappe
+    _stopTyping();
     _pendingScrollAdjustment = null; // Nettoyer l'ajustement en attente
     _removeScrollListener(); // S'assurer que le listener est retiré
     super.dispose();

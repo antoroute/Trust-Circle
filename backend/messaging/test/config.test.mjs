@@ -18,6 +18,8 @@ function validEnvironment() {
     APP_SECRET: 'synthetic-app-secret-material-0000000000000002',
     DATABASE_URL: 'postgresql://test_user:test_password@127.0.0.1:5432/test_db',
     PORT: '4301',
+    CORS_ALLOWED_ORIGINS: 'https://app.example.test,http://localhost:3000',
+    TRUSTED_PROXY_CIDRS: '127.0.0.1/32,::1/128',
   };
 }
 
@@ -48,6 +50,41 @@ test('rejects weak or whitespace-padded values without disclosing them', () => {
   } catch (error) {
     assert.doesNotMatch(String(error), new RegExp(paddedValue));
   }
+});
+
+test('rejects invalid CORS origins and proxy CIDRs', () => {
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), CORS_ALLOWED_ORIGINS: 'https://app.example.test/path' }),
+    /CORS_ALLOWED_ORIGINS/,
+  );
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), TRUSTED_PROXY_CIDRS: 'not-a-cidr' }),
+    /TRUSTED_PROXY_CIDRS/,
+  );
+});
+
+test('accepts an empty browser Origin allowlist for native-only staging', () => {
+  const config = loadConfig({ ...validEnvironment(), CORS_ALLOWED_ORIGINS: '' });
+  assert.deepEqual(config.corsAllowedOrigins, []);
+});
+
+test('defaults to no browser origins and no proxy trust outside staging', () => {
+  const env = validEnvironment();
+  delete env.CORS_ALLOWED_ORIGINS;
+  delete env.TRUSTED_PROXY_CIDRS;
+  const config = loadConfig(env);
+  assert.deepEqual(config.corsAllowedOrigins, []);
+  assert.deepEqual(config.trustedProxyCidrs, []);
+});
+
+test('requires an explicit trusted proxy in staging and refuses insecure browser origins', () => {
+  const env = { ...validEnvironment(), CORS_ALLOWED_ORIGINS: 'https://app.example.test' };
+  delete env.TRUSTED_PROXY_CIDRS;
+  assert.throws(() => loadConfig({ ...env, NODE_ENV: 'staging' }), /TRUSTED_PROXY_CIDRS/);
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), CORS_ALLOWED_ORIGINS: 'http://app.example.test' }),
+    /CORS_ALLOWED_ORIGINS/,
+  );
 });
 
 test('rejects a non-Ed25519 public key', () => {

@@ -334,6 +334,13 @@ Aucun `userId` fourni par ces événements ne fait autorité ; l'acteur est celu
 Socket.IO refuse en outre tout paquet dépassant 16 Kio. Les messages chiffrés
 continuent de transiter par REST, ce plafond ne ralentit donc pas leur chargement.
 
+Depuis `TC-108`, les abonnements renvoient aussi un ACK immédiat de succès ou
+d'erreur. Un socket est limité à 1 000 rooms conversation et les rafales
+d'abonnement/frappe sont bornées en mémoire sans déconnexion sur une frappe
+excessive. Flutter consolide les frappes en un début et une fin par séquence.
+La politique CORS et la topologie proxy sont détaillées dans
+[`NETWORK_BOUNDARY.md`](../security/NETWORK_BOUNDARY.md).
+
 ### Événements émis
 
 | Événement | Fonction |

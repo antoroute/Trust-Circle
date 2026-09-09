@@ -290,7 +290,6 @@ class WebSocketService {
           debugPrint(
             '⚠️ [WebSocket] Message reçu mais format invalide: ${data.runtimeType}',
           );
-          debugPrint('⚠️ [WebSocket] Données reçues: $data');
         }
 
         debugPrint(
@@ -658,11 +657,12 @@ class WebSocketService {
       },
     );
 
-    // ✅ CORRECTION: Timeout augmenté à 20 secondes et gestion améliorée
-    Future.delayed(const Duration(seconds: 20), () {
+    // Le serveur répond normalement immédiatement par ACK. Ce délai ne sert
+    // que de filet de sécurité en cas de rupture de transport.
+    Future.delayed(const Duration(seconds: 8), () {
       if (!completer.isCompleted) {
         timeoutOccurred = true;
-        debugPrint('⚠️ [WebSocket] Batch subscription timeout après 20s');
+        debugPrint('⚠️ [WebSocket] Batch subscription timeout après 8s');
         completer.completeError('Batch subscription timeout');
       }
     });

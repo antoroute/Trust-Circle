@@ -11,6 +11,7 @@ import dbPlugin from './plugins/db.js';
 import enforceVersion from './middlewares/enforceVersion.js';
 import validateAppSecret from './middlewares/validateAppSecret.js';
 import authRoutes from './routes/auth.js';
+import { corsOptions } from './httpSecurity.js';
 
 const AUTH_BODY_LIMIT_BYTES = 16 * 1024;
 
@@ -20,14 +21,20 @@ async function build() {
     logger: true,
     bodyLimit: AUTH_BODY_LIMIT_BYTES,
     ajv: { customOptions: { removeAdditional: false } },
+    trustProxy: config.trustedProxyCidrs.length > 0 ? [...config.trustedProxyCidrs] : false,
   });
 
   await app.register(fastifyHelmet, { contentSecurityPolicy: false });
-  await app.register(fastifyCors, { origin: true, credentials: true });
-  const rateLimitPlugin = rateLimit as unknown as FastifyPluginAsync<{ max: number; timeWindow: string }>;
+  await app.register(fastifyCors, corsOptions(config));
+  const rateLimitPlugin = rateLimit as unknown as FastifyPluginAsync<{
+    max: number;
+    timeWindow: string;
+    enableDraftSpec: boolean;
+  }>;
   await app.register(rateLimitPlugin, {
-    max: 100,
-    timeWindow: '1 minute'
+    max: 300,
+    timeWindow: '1 minute',
+    enableDraftSpec: true,
   });
 
   await registerJwt(

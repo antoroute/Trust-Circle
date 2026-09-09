@@ -4,12 +4,14 @@
 // – CORS/Helmet/Rate Limit conseillés (ajoute selon ton projet)
 // – Enregistre les routes et services (presence, ACL, messages v2, groups, conversations)
 
-import Fastify from 'fastify';
+import Fastify, { type FastifyPluginAsync } from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import { Server as IOServer } from 'socket.io';
 
 import { loadConfig } from './config.js';
+import { corsOptions } from './httpSecurity.js';
 import { assertAccessClaims, registerAccessJwt } from './security/jwt.js';
 import dbPlugin from './plugins/db.js';
 import enforceVersion from './middlewares/enforceVersion.js';
@@ -35,6 +37,13 @@ import groupsRoutes from './routes/groups.js';
 // Services 
 import { initPresenceService } from './services/presence.js';
 import { initAclService } from './services/acl.js';
+import {
+  MAX_CONVERSATION_ROOMS_PER_SOCKET,
+  SocketConnectionLimiter,
+  SocketEventQuotas,
+  socketAllowRequest,
+  createAckResponder,
+} from './security/socketSecurity.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -54,6 +63,7 @@ async function build() {
     logger: true,
     bodyLimit: MESSAGING_BODY_LIMIT_BYTES,
     ajv: { customOptions: { removeAdditional: false } },
+    trustProxy: [...config.trustedProxyCidrs],
   });
 
   // Pré-déclarer les décorateurs AVANT démarrage
@@ -62,7 +72,17 @@ async function build() {
 
   // Plugins Fastify
   await app.register(fastifyHelmet, { contentSecurityPolicy: false });
-  await app.register(fastifyCors, { origin: true, credentials: true });
+  await app.register(fastifyCors, corsOptions(config.corsAllowedOrigins));
+  const rateLimitPlugin = rateLimit as unknown as FastifyPluginAsync<{
+    max: number;
+    timeWindow: string;
+    enableDraftSpec: boolean;
+  }>;
+  await app.register(rateLimitPlugin, {
+    max: 600,
+    timeWindow: '1 minute',
+    enableDraftSpec: true,
+  });
   await registerAccessJwt(app, config.jwtAccessPublicKey);
 
   app.decorate('authenticate', async (req: any, reply: any) => {
@@ -98,8 +118,11 @@ async function build() {
   // Attacher Socket.IO au serveur natif Fastify
   const io = new IOServer(app.server, {
     path: '/socket',
-    cors: { origin: true, credentials: true },
+    cors: { origin: [...config.corsAllowedOrigins], credentials: false },
+    allowRequest: socketAllowRequest(config.corsAllowedOrigins),
     maxHttpBufferSize: SOCKET_PAYLOAD_LIMIT_BYTES,
+    pingInterval: 25_000,
+    pingTimeout: 20_000,
   });
 
   // NE PAS re-déclarer ici : on assigne sur les décorateurs déjà posés
@@ -112,10 +135,20 @@ async function build() {
   };
 
   // Auth WS + rooms
+  const socketConnectionLimiter = new SocketConnectionLimiter();
   io.use(socketAuth(app, config.appSecret));
+  io.use((socket, next) => {
+    const { userId, deviceId } = (socket as any).auth ?? {};
+    if (!userId || !deviceId || !socketConnectionLimiter.reserve(io, userId, deviceId)) {
+      return next(new Error('socket connection limit reached'));
+    }
+    next();
+  });
   io.on('connection', (socket) => {
-    const { userId } = (socket as any).auth;
+    const { userId, deviceId } = (socket as any).auth;
+    socketConnectionLimiter.release(userId, deviceId);
     socket.join(`user:${userId}`);
+    const quotas = new SocketEventQuotas();
     
     // Métriques de connexion
     app.log.info({ 
@@ -220,10 +253,15 @@ async function build() {
     }
 
     // Gestion des abonnements aux conversations
-    socket.on('conv:subscribe', async (data: unknown) => {
+    socket.on('conv:subscribe', async (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
+      const respond = createAckResponder(socket, 'conv:subscribe', ack);
+      if (!quotas.allowSubscription()) {
+        respond({ success: false, error: 'rate_limited' });
+        return;
+      }
       const convId = parseStrictConversationEvent(data);
       if (!convId) {
-        socket.emit('conv:subscribe', {
+        respond({
           success: false,
           error: 'invalid_payload',
         });
@@ -237,7 +275,7 @@ async function build() {
         'socket:subscribe',
       );
       if (!hasAccess) {
-        socket.emit('conv:subscribe', { success: false, error: 'forbidden' });
+        respond({ success: false, error: 'forbidden' });
         app.log.warn({ convId, userId }, 'Unauthorized conversation subscription attempt');
         return;
       }
@@ -246,12 +284,18 @@ async function build() {
       const room = app.io.sockets.adapter.rooms.get(roomName);
       if (room && room.has(socket.id)) {
         app.log.info({ convId, userId }, 'User already subscribed to conversation');
-        socket.emit('conv:subscribe', { success: true, convId, alreadySubscribed: true });
+        respond({ success: true, convId, alreadySubscribed: true });
+        return;
+      }
+
+      const currentConversationRooms = [...socket.rooms].filter((room) => room.startsWith('conv:')).length;
+      if (currentConversationRooms >= MAX_CONVERSATION_ROOMS_PER_SOCKET) {
+        respond({ success: false, error: 'conversation_room_limit' });
         return;
       }
 
       socket.join(roomName);
-      socket.emit('conv:subscribe', { success: true, convId });
+      respond({ success: true, convId });
       app.log.info({ convId, userId }, 'User subscribed to conversation');
 
       // ✅ OPTIMISÉ: Utiliser la fonction helper pour les événements de présence
@@ -259,13 +303,18 @@ async function build() {
     });
     
     // ✅ NOUVEAU: Endpoint batch pour abonner plusieurs conversations en une requête
-    socket.on('conv:subscribe:batch', async (data: unknown) => {
+    socket.on('conv:subscribe:batch', async (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
+      const respond = createAckResponder(socket, 'conv:subscribe:batch', ack);
       const convIds = parseStrictConversationBatch(data);
       if (!convIds) {
-        socket.emit('conv:subscribe:batch', {
+        respond({
           success: false,
           error: 'invalid_payload',
         });
+        return;
+      }
+      if (!quotas.allowSubscription(convIds.length)) {
+        respond({ success: false, error: 'rate_limited' });
         return;
       }
       
@@ -275,6 +324,15 @@ async function build() {
         await app.services.acl.listAccessibleConversationIds(userId, convIds);
       const unauthorizedCount = convIds.length - authorizedConvIds.length;
       
+      const currentConversationRooms = [...socket.rooms].filter((room) => room.startsWith('conv:')).length;
+      const newConversationRooms = authorizedConvIds.filter(
+        (convId) => !socket.rooms.has(`conv:${convId}`),
+      ).length;
+      if (currentConversationRooms + newConversationRooms > MAX_CONVERSATION_ROOMS_PER_SOCKET) {
+        respond({ success: false, error: 'conversation_room_limit' });
+        return;
+      }
+
       // Abonner à toutes les conversations autorisées
       const subscribed: string[] = [];
       const alreadySubscribed: string[] = [];
@@ -296,7 +354,7 @@ async function build() {
         await emitBatchPresenceEvents(socket, subscribed, userId, app);
       }
       
-      socket.emit('conv:subscribe:batch', {
+      respond({
         success: true,
         subscribed: subscribed.length,
         alreadySubscribed: alreadySubscribed.length,
@@ -312,10 +370,15 @@ async function build() {
       }, 'Batch subscription completed');
     });
     
-    socket.on('conv:unsubscribe', async (data: unknown) => {
+    socket.on('conv:unsubscribe', async (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
+      const respond = createAckResponder(socket, 'conv:unsubscribe', ack);
+      if (!quotas.allowSubscription()) {
+        respond({ success: false, error: 'rate_limited' });
+        return;
+      }
       const convId = parseStrictConversationEvent(data);
       if (!convId) {
-        socket.emit('conv:unsubscribe', {
+        respond({
           success: false,
           error: 'invalid_payload',
         });
@@ -330,6 +393,7 @@ async function build() {
         'socket:subscribe',
       ))) {
         app.log.warn({ convId, userId }, 'Conversation room left without presence emission after ACL refusal');
+        respond({ success: false, error: 'forbidden' });
         return;
       }
       app.log.info({ convId, userId }, 'User unsubscribed from conversation');
@@ -350,10 +414,15 @@ async function build() {
         conversationId: convId 
       });
       app.log.info({ convId, userId, isOnlineInConversation }, 'Presence updated on conversation unsubscribe');
+      respond({ success: true, convId });
     });
     
     // Gestion des indicateurs de frappe avec vérification de sécurité
     socket.on('typing:start', async (data: unknown) => {
+      if (!quotas.allowTyping()) {
+        socket.emit('typing:error', { error: 'rate_limited' });
+        return;
+      }
       const convId = parseStrictConversationEvent(data);
       if (convId) {
         const isInConversation =
@@ -374,6 +443,10 @@ async function build() {
     });
     
     socket.on('typing:stop', async (data: unknown) => {
+      if (!quotas.allowTyping()) {
+        socket.emit('typing:error', { error: 'rate_limited' });
+        return;
+      }
       const convId = parseStrictConversationEvent(data);
       if (convId) {
         const isInConversation =
