@@ -46,12 +46,12 @@ Cette matrice aide à retrouver rapidement le code réellement responsable d'un 
 
 | Responsabilité | Code | Données | Tâches |
 |---|---|---|---|
-| démarrage/configuration | [`index.ts`](../../backend/auth/src/index.ts), [`config.ts`](../../backend/auth/src/config.ts) | variables d'environnement, corps 16 Kio et objets stricts | `TC-101`, `TC-107`, `TC-108` |
+| démarrage/configuration | [`index.ts`](../../backend/auth/src/index.ts), [`config.ts`](../../backend/auth/src/config.ts) | variables d'environnement serveur, corps 16 Kio et objets stricts | `TC-101`, `TC-107` à `TC-109` |
 | routes compte/session | [`auth.ts`](../../backend/auth/src/routes/auth.ts) | entrées bornées, `users`, `refresh_tokens` | `TC-102`, `TC-107`, `TC-401` à `TC-408` |
 | réautorisation du premier appareil | [`auth.ts`](../../backend/auth/src/routes/auth.ts) | `device_bootstrap_grants`, empreinte SHA-256 | `TC-106` lot B |
 | JWT access/refresh | [`jwt.ts`](../../backend/auth/src/security/jwt.ts) | Ed25519/HS256 | `TC-102` terminé |
-| faux secret d'application | [`validateAppSecret.ts`](../../backend/auth/src/middlewares/validateAppSecret.ts) | en-tête client | `TC-109` |
 | version minimale | [`enforceVersion.ts`](../../backend/auth/src/middlewares/enforceVersion.ts) | en-têtes | `TC-107` |
+| frontière HTTP | [`httpSecurity.ts`](../../backend/auth/src/httpSecurity.ts) | CORS exact et headers publics | `TC-108`, retrait du faux secret `TC-109` |
 | PostgreSQL | [`db.ts`](../../backend/auth/src/plugins/db.ts) | pool SQL | `TC-201`, `TC-203` |
 
 ## Backend Messaging
@@ -59,7 +59,7 @@ Cette matrice aide à retrouver rapidement le code réellement responsable d'un 
 | Responsabilité | Code | Données/événements | Tâches |
 |---|---|---|---|
 | serveur HTTP et Socket.IO | [`index.ts`](../../backend/messaging/src/index.ts), [`input.schema.ts`](../../backend/messaging/src/schemas/input.schema.ts) | corps HTTP 256 Kio, paquets WS 16 Kio, événements entrants stricts | `TC-107` terminé, `TC-108`, `TC-505`, `TC-510` |
-| configuration | [`config.ts`](../../backend/messaging/src/config.ts) | variables d'environnement | `TC-101`, `TC-108` |
+| configuration | [`config.ts`](../../backend/messaging/src/config.ts) | variables d'environnement serveur | `TC-101`, `TC-108`, `TC-109` |
 | validation JWT et appareil HTTP/socket | [`jwt.ts`](../../backend/messaging/src/security/jwt.ts), [`deviceAuth.ts`](../../backend/messaging/src/middlewares/deviceAuth.ts), [`deviceAccess.ts`](../../backend/messaging/src/security/deviceAccess.ts), [`socketAuth.ts`](../../backend/messaging/src/middlewares/socketAuth.ts) | JWT access public-key-only + preuve Ed25519 liée au jti | `TC-102`, `TC-106` lot D |
 | transactions PostgreSQL | [`db.ts`](../../backend/messaging/src/plugins/db.ts) | connexion réservée, commit/rollback, retry borné | `TC-105` terminé |
 | registre et preuve d'identité d'appareil | [`account.devices.ts`](../../backend/messaging/src/routes/account.devices.ts), [`deviceProof.ts`](../../backend/messaging/src/security/deviceProof.ts) | `account_devices`, challenges, Ed25519 | `TC-106` lot B terminé |

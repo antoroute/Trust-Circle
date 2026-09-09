@@ -58,18 +58,17 @@ Fonctionnalités principales :
 ## 🔐 Sécurité & chiffrement
 
 - **Chiffrement de bout en bout (E2EE)**
-  - Clés RSA 2048 bits (une par utilisateur)
-  - Messages chiffrés avec AES-256, encapsulés RSA
+  - X25519 et HKDF-SHA256 pour envelopper les clés de message par appareil
+  - AES-256-GCM pour le contenu et Ed25519 pour authentifier l'enveloppe
   - Chiffrement/déchiffrement exclusivement côté client (Flutter)
   - Serveur ne stocke que des messages chiffrés
-- **JWT** : utilisé pour sécuriser API et WebSocket
-- **Middleware** de vérification des tokens
-- **Protection API** : CORS, CSP, rate-limiting, etc.
-- **App Secret** : Variable d'environnement `APP_SECRET` pour limiter l'accès à l'API à l'application officielle uniquement
-  - Définie dans le `.env` Docker (au même niveau que `docker-compose-app.yml`)
-  - Définie dans le `.env` Flutter (`frontend-mobile/flutter_message_app/.env`)
-  - Les deux doivent avoir la même valeur
-  - Voir `SECURITY.md` et `frontend-mobile/flutter_message_app/ENV_SETUP.md` pour plus de détails
+- **JWT** : access Ed25519 et refresh HS256 strictement séparés
+- **Appareils** : preuve Ed25519 liée à chaque access token et état de confiance serveur
+- **Protection API** : ACL, validation stricte, CORS exact, quotas HTTP/Socket.IO
+- Aucun secret partagé n'est embarqué pour prétendre reconnaître l'application officielle
+
+Le protocole actuel et ses limites sont documentés dans
+[`docs/security/CRYPTOGRAPHY_V2.md`](docs/security/CRYPTOGRAPHY_V2.md).
 
 ---
 

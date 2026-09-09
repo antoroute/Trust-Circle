@@ -134,7 +134,6 @@ class WebSocketService {
             .setPath('/socket')
             .setTransports(['websocket'])
             .setAuth(socketAuth)
-            .setExtraHeaders({'X-App-Secret': appSecret})
             .setTimeout(10000)
             .setReconnectionDelay(3000)
             .setReconnectionAttempts(5)

@@ -84,4 +84,5 @@ minimisation plus poussée des métadonnées de présence de `TC-510`.
 
 Les refus peuvent journaliser l'identifiant interne, l'adresse réseau, la
 route, le type d'erreur et des compteurs. Ils ne doivent jamais inclure jeton,
-preuve Ed25519, `APP_SECRET`, clé, payload Socket.IO ou contenu de message.
+preuve Ed25519, clé, payload Socket.IO ou contenu de message. Aucun secret
+partagé d'application n'existe depuis `TC-109`.

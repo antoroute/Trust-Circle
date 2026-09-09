@@ -1,7 +1,7 @@
 # Contrat des jetons d'authentification
 
-Statut : contrat initial appliqué par `TC-102`
-Dernière mise à jour : 2026-08-25
+Statut : contrat appliqué par `TC-102`, clarifié par `TC-109`
+Dernière mise à jour : 2026-09-09
 
 ## Séparation des usages
 
@@ -16,7 +16,7 @@ Dernière mise à jour : 2026-08-25
 | Durée | 15 minutes | 30 jours |
 | Stockage serveur | aucun | empreinte SHA-256 dans `refresh_tokens.token_hash` |
 
-Les clés sont obligatoires et générées par CSPRNG. La clé privée access est encodée dans `JWT_ACCESS_PRIVATE_KEY_B64` et n'est injectée que dans Auth. `JWT_ACCESS_PUBLIC_KEY_B64` est injectée dans Auth et Messaging ; elle permet de vérifier mais pas de signer. `APP_SECRET` est indépendant et temporaire jusqu'à `TC-109`.
+Les clés sont obligatoires et générées par CSPRNG. La clé privée access est encodée dans `JWT_ACCESS_PRIVATE_KEY_B64` et n'est injectée que dans Auth. `JWT_ACCESS_PUBLIC_KEY_B64` est injectée dans Auth et Messaging ; elle permet de vérifier mais pas de signer. Depuis `TC-109`, aucun secret d'application partagé n'est injecté ou embarqué ; l'identité repose sur les jetons et preuves d'appareil décrits ici.
 
 ## Grant opaque de bootstrap d'appareil
 

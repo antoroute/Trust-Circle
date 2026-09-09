@@ -15,7 +15,6 @@ function validEnvironment() {
   return {
     NODE_ENV: 'test',
     JWT_ACCESS_PUBLIC_KEY_B64: ACCESS_PUBLIC_KEY_B64,
-    APP_SECRET: 'synthetic-app-secret-material-0000000000000002',
     DATABASE_URL: 'postgresql://test_user:test_password@127.0.0.1:5432/test_db',
     PORT: '4301',
     CORS_ALLOWED_ORIGINS: 'https://app.example.test,http://localhost:3000',
@@ -29,7 +28,7 @@ test('accepts a complete synthetic configuration', () => {
   assert.equal(config.port, 4301);
 });
 
-for (const name of ['NODE_ENV', 'JWT_ACCESS_PUBLIC_KEY_B64', 'APP_SECRET', 'DATABASE_URL']) {
+for (const name of ['NODE_ENV', 'JWT_ACCESS_PUBLIC_KEY_B64', 'DATABASE_URL']) {
   test(`rejects a missing ${name}`, () => {
     const env = validEnvironment();
     delete env[name];
@@ -37,11 +36,7 @@ for (const name of ['NODE_ENV', 'JWT_ACCESS_PUBLIC_KEY_B64', 'APP_SECRET', 'DATA
   });
 }
 
-test('rejects weak or whitespace-padded values without disclosing them', () => {
-  const weak = validEnvironment();
-  weak.APP_SECRET = 'dev-secret';
-  assert.throws(() => loadConfig(weak), /APP_SECRET/);
-
+test('rejects whitespace-padded values without disclosing them', () => {
   const paddedValue = `${validEnvironment().JWT_ACCESS_PUBLIC_KEY_B64} `;
   const padded = { ...validEnvironment(), JWT_ACCESS_PUBLIC_KEY_B64: paddedValue };
   try {

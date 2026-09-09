@@ -9,7 +9,6 @@ import { loadConfig } from './config.js';
 import { assertAccessClaims, registerJwt } from './security/jwt.js';
 import dbPlugin from './plugins/db.js';
 import enforceVersion from './middlewares/enforceVersion.js';
-import validateAppSecret from './middlewares/validateAppSecret.js';
 import authRoutes from './routes/auth.js';
 import { corsOptions } from './httpSecurity.js';
 
@@ -58,7 +57,6 @@ async function build() {
   app.get('/health', async () => ({ ok: true }));
 
   await app.register(enforceVersion);
-  await app.register(validateAppSecret, { appSecret: config.appSecret });
   await app.register(authRoutes, { prefix: '/auth' });
 
   await app.listen({ port: config.port, host: '0.0.0.0' });

@@ -101,11 +101,7 @@ class AuthProvider extends ChangeNotifier {
     final previousUserId = userId;
     final http.Response response = await http.post(
       _loginUri,
-      headers: <String, String>{
-        'Content-Type': 'application/json',
-        'X-Client-Version': clientVersion,
-        'X-App-Secret': appSecret,
-      },
+      headers: baseRequestHeaders(),
       body: jsonEncode(<String, String>{'email': email, 'password': password}),
     );
 
@@ -142,11 +138,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> register(String email, String password, String username) async {
     final http.Response response = await http.post(
       _registerUri,
-      headers: <String, String>{
-        'Content-Type': 'application/json',
-        'X-Client-Version': clientVersion,
-        'X-App-Secret': appSecret,
-      },
+      headers: baseRequestHeaders(),
       body: jsonEncode(<String, String>{
         'email': email,
         'password': password,
@@ -280,10 +272,8 @@ class AuthProvider extends ChangeNotifier {
       final http.Response response = await http.post(
         _refreshUri,
         headers: <String, String>{
-          'Content-Type': 'application/json',
-          'X-Client-Version': clientVersion,
+          ...baseRequestHeaders(),
           'Authorization': 'Bearer $storedRefresh',
-          'X-App-Secret': appSecret,
         },
         body: '{}', // CORRECTION: Ajouter un body JSON vide
       );
@@ -398,10 +388,8 @@ class AuthProvider extends ChangeNotifier {
       }
     }
     final headers = <String, String>{
-      'Content-Type': 'application/json',
+      ...baseRequestHeaders(),
       'Authorization': 'Bearer $_token',
-      'X-Client-Version': clientVersion,
-      'X-App-Secret': appSecret,
     };
     final accountId = userId;
     final token = _token;

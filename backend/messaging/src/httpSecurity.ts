@@ -11,7 +11,6 @@ export function corsOptions(allowedOrigins: readonly string[]): FastifyCorsOptio
     allowedHeaders: [
       'Authorization',
       'Content-Type',
-      'X-App-Secret',
       'X-Client-Version',
       'X-Circlehaven-Device-Id',
       'X-Circlehaven-Device-Key-Version',

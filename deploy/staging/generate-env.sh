@@ -42,7 +42,6 @@ jwt_access_public_pem=$(printf '%s\n' "$jwt_access_private_pem" | openssl pkey -
 jwt_access_private_b64=$(printf '%s\n' "$jwt_access_private_pem" | openssl base64 -A)
 jwt_access_public_b64=$(printf '%s\n' "$jwt_access_public_pem" | openssl base64 -A)
 jwt_refresh_secret=$(openssl rand -hex 48)
-app_secret=$(openssl rand -hex 32)
 
 {
   printf 'TC_GIT_COMMIT=%s\n' "$git_commit"
@@ -55,7 +54,6 @@ app_secret=$(openssl rand -hex 32)
   printf 'TC_JWT_ACCESS_PRIVATE_KEY_B64=%s\n' "$jwt_access_private_b64"
   printf 'TC_JWT_ACCESS_PUBLIC_KEY_B64=%s\n' "$jwt_access_public_b64"
   printf 'TC_JWT_REFRESH_SECRET=%s\n' "$jwt_refresh_secret"
-  printf 'TC_APP_SECRET=%s\n' "$app_secret"
   printf 'TC_STAGING_HTTP_PORT=18080\n'
 } > "$env_file"
 

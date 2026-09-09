@@ -2,16 +2,9 @@ import { createPublicKey } from 'node:crypto';
 import { isIP } from 'node:net';
 
 const SUPPORTED_ENVIRONMENTS = new Set(['development', 'test', 'staging', 'production']);
-const FORBIDDEN_SECRET_VALUES = new Set([
-  'dev-secret',
-  'changeme',
-  'password',
-]);
-
 export interface ServiceConfig {
   nodeEnv: string;
   jwtAccessPublicKey: string;
-  appSecret: string;
   databaseUrl: string;
   port: number;
   corsAllowedOrigins: readonly string[];
@@ -45,17 +38,6 @@ function requiredValue(env: NodeJS.ProcessEnv, name: string): string {
   }
   if (value !== value.trim()) {
     throw new Error(`Invalid configuration: ${name} must not contain surrounding whitespace`);
-  }
-  return value;
-}
-
-function requiredSecret(env: NodeJS.ProcessEnv, name: string): string {
-  const value = requiredValue(env, name);
-  if (value.length < 32) {
-    throw new Error(`Invalid configuration: ${name} must contain at least 32 characters`);
-  }
-  if (FORBIDDEN_SECRET_VALUES.has(value.toLowerCase()) || value.toLowerCase().startsWith('kavalek_app_')) {
-    throw new Error(`Invalid configuration: ${name} uses a forbidden placeholder`);
   }
   return value;
 }
@@ -158,12 +140,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Readonly<Servi
   }
 
   const jwtAccessPublicKey = requiredAccessPublicKey(env);
-  const appSecret = requiredSecret(env, 'APP_SECRET');
-
   return Object.freeze({
     nodeEnv,
     jwtAccessPublicKey,
-    appSecret,
     databaseUrl: databaseUrl(env),
     port: port(env),
     corsAllowedOrigins: corsAllowedOrigins(env, nodeEnv),

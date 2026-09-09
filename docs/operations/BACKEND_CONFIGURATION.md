@@ -1,6 +1,6 @@
 # Configuration des services backend
 
-Statut : contrat opérationnel (`TC-101`, `TC-108`)
+Statut : contrat opérationnel (`TC-101`, `TC-108`, `TC-109`)
 Dernière mise à jour : 2026-09-09
 
 Les services Auth et Messaging valident toute leur configuration avant de créer le serveur Fastify ou d'écouter sur le réseau. Les valeurs réelles restent dans le mécanisme de secrets de chaque environnement et ne doivent jamais être affichées, copiées dans Git ou placées dans une commande susceptible d'être journalisée.
@@ -13,13 +13,15 @@ Les services Auth et Messaging valident toute leur configuration avant de créer
 | `JWT_ACCESS_PRIVATE_KEY_B64` | clé privée Ed25519 encodée | oui dans Auth seulement | base64 canonique d'une clé PKCS#8 correspondant à la clé publique |
 | `JWT_ACCESS_PUBLIC_KEY_B64` | clé publique Ed25519 encodée | oui | base64 canonique d'une clé SPKI Ed25519 ; vérification seule dans Messaging |
 | `JWT_REFRESH_SECRET` | secret serveur Auth uniquement | oui pour Auth | distinct de la clé access, mêmes contrôles minimaux |
-| `APP_SECRET` | secret partagé transitoire | oui jusqu'à `TC-109` | distinct des clés JWT, mêmes contrôles minimaux |
 | `DATABASE_URL` | secret serveur | oui | URL `postgres://` ou `postgresql://` avec hôte, base, utilisateur et mot de passe |
 | `PORT` | opérationnelle | non | entier de 1 à 65535 ; défaut interne 3000 pour Auth et 3001 pour Messaging |
 | `CORS_ALLOWED_ORIGINS` | sécurité réseau | non | liste CSV d'origines HTTPS exactes ; vide/absente interdit tout navigateur mais conserve les clients natifs |
 | `TRUSTED_PROXY_CIDRS` | sécurité réseau | oui en staging/production | liste CSV de CIDR exacts ; jamais `true`, joker ou nombre de sauts implicite |
 
-`APP_SECRET` ne prouve pas qu'une requête provient de l'application officielle : toute valeur embarquée dans un client public est extractible. Son maintien évite seulement de casser le prototype avant sa suppression complète dans `TC-109`.
+Depuis `TC-109`, aucun secret d'application partagé n'est attendu : une valeur
+embarquée dans un client public serait extractible et ne prouverait pas son
+origine. Les accès reposent sur les jetons JWT typés et, pour Messaging, sur la
+preuve Ed25519 d'un appareil actif.
 
 La clé privée access et la clé refresh ne sont jamais injectées dans Messaging : même une compromission de ce service ne lui donne pas la capacité de signer un access token ou d'accepter/émettre un refresh token. Le contrat complet est dans `docs/security/TOKEN_CONTRACT.md`.
 
@@ -28,11 +30,15 @@ La clé privée access et la clé refresh ne sont jamais injectées dans Messagi
 - Une variable obligatoire absente, vide ou invalide arrête le processus avec un code non nul avant l'écoute réseau.
 - Le message d'erreur nomme seulement la variable et la règle violée ; il ne reproduit jamais sa valeur.
 - Aucune configuration de développement implicite n'existe. Un développeur utilise exclusivement des valeurs synthétiques explicitement injectées.
-- La paire Ed25519 doit être valide et correspondante ; `JWT_REFRESH_SECRET` et `APP_SECRET` doivent être différents pendant leur coexistence dans Auth.
+- La paire Ed25519 doit être valide et correspondante.
 
 ## Staging
 
-Compose exige les variables `TC_DB_NAME`, `TC_DB_USER`, `TC_DB_PASSWORD`, `TC_JWT_ACCESS_PRIVATE_KEY_B64`, `TC_JWT_ACCESS_PUBLIC_KEY_B64`, `TC_JWT_REFRESH_SECRET` et `TC_APP_SECRET`, puis construit `DATABASE_URL` dans l'environnement du conteneur. Le fichier privé reste `/opt/trust-circle-staging/shared/staging.env`, mode `0600`.
+Compose exige les variables `TC_DB_NAME`, `TC_DB_USER`, `TC_DB_PASSWORD`,
+`TC_JWT_ACCESS_PRIVATE_KEY_B64`, `TC_JWT_ACCESS_PUBLIC_KEY_B64` et
+`TC_JWT_REFRESH_SECRET`, puis construit `DATABASE_URL` dans l'environnement du
+conteneur. Le fichier privé reste
+`/opt/trust-circle-staging/shared/staging.env`, mode `0600`.
 
 Compose injecte une liste CORS vide et l'adresse `/32` fixe de la gateway
 staging. La configuration est vérifiée sans résolution visible :

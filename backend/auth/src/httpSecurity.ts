@@ -6,7 +6,6 @@ const CORS_METHODS = ['GET', 'POST', 'OPTIONS'];
 const CORS_ALLOWED_HEADERS = [
   'Authorization',
   'Content-Type',
-  'X-App-Secret',
   'X-Client-Version',
   'X-Circlehaven-Device-Id',
   'X-Circlehaven-Device-Key-Version',

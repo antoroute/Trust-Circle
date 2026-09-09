@@ -33,6 +33,20 @@ test('CORS n’autorise que les origines exactes et laisse passer les clients na
   assert.equal(allowed.headers['access-control-allow-origin'], 'https://app.example.test');
   assert.equal(allowed.headers['access-control-allow-credentials'], undefined);
 
+  const preflight = await app.inject({
+    method: 'OPTIONS',
+    url: '/resource',
+    headers: {
+      origin: 'https://app.example.test',
+      'access-control-request-method': 'POST',
+    },
+  });
+  assert.equal(preflight.statusCode, 204);
+  assert.doesNotMatch(
+    String(preflight.headers['access-control-allow-headers']),
+    /x-app-secret/i,
+  );
+
   const refused = await app.inject({
     method: 'GET',
     url: '/resource',

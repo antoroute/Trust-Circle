@@ -18,7 +18,6 @@ function requiredEnvironmentValue(name: string): string {
   return value;
 }
 
-const appSecret = requiredEnvironmentValue('APP_SECRET');
 type JsonObject = Record<string, unknown>;
 type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
@@ -104,10 +103,7 @@ async function request(
     identity?: Identity;
   } = {},
 ): Promise<unknown> {
-  const headers: Record<string, string> = {
-    'x-app-secret': appSecret,
-    'x-client-version': clientVersion,
-  };
+  const headers: Record<string, string> = { 'x-client-version': clientVersion };
   if (options.body) headers['content-type'] = 'application/json';
   if (options.token) headers.authorization = `Bearer ${options.token}`;
   if (options.token && options.identity) {
@@ -140,10 +136,7 @@ async function socketPollingAck(
   identity: Identity,
   conversationId: string,
 ): Promise<void> {
-  const commonHeaders = {
-    'content-type': 'text/plain;charset=UTF-8',
-    'x-app-secret': appSecret,
-  };
+  const commonHeaders = { 'content-type': 'text/plain;charset=UTF-8' };
   const endpoint = `${baseUrl}/socket/?EIO=4&transport=polling`;
   const opening = await fetch(endpoint, { headers: commonHeaders });
   const openingBody = await opening.text();

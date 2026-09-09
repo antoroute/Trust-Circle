@@ -36,6 +36,7 @@ test('HTTP CORS exposes only exact origins and bounded methods/headers', async (
   assert.equal(allowed.headers['access-control-allow-origin'], 'https://app.example.test');
   assert.equal(allowed.headers['access-control-allow-credentials'], undefined);
   assert.match(allowed.headers['access-control-allow-methods'], /PATCH/);
+  assert.doesNotMatch(allowed.headers['access-control-allow-headers'], /x-app-secret/i);
 
   const refused = await app.inject({
     method: 'GET',

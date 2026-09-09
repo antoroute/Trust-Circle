@@ -15,7 +15,6 @@ import { corsOptions } from './httpSecurity.js';
 import { assertAccessClaims, registerAccessJwt } from './security/jwt.js';
 import dbPlugin from './plugins/db.js';
 import enforceVersion from './middlewares/enforceVersion.js';
-import validateAppSecret from './middlewares/validateAppSecret.js';
 import socketAuth from './middlewares/socketAuth.js';
 import { registerDeviceAuth } from './middlewares/deviceAuth.js';
 import type { AppDatabase } from './plugins/db.js';
@@ -102,7 +101,6 @@ async function build() {
   app.get('/health', async () => ({ ok: true }));
 
   await app.register(enforceVersion);
-  await app.register(validateAppSecret, { appSecret: config.appSecret });
 
   // Routes REST
   await app.register(keysDevicesRoutes);
@@ -136,7 +134,7 @@ async function build() {
 
   // Auth WS + rooms
   const socketConnectionLimiter = new SocketConnectionLimiter();
-  io.use(socketAuth(app, config.appSecret));
+  io.use(socketAuth(app));
   io.use((socket, next) => {
     const { userId, deviceId } = (socket as any).auth ?? {};
     if (!userId || !deviceId || !socketConnectionLimiter.reserve(io, userId, deviceId)) {

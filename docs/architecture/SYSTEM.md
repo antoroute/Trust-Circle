@@ -34,7 +34,8 @@ Le schéma est logique. L'inventaire réel du LXC et du staging est conservé da
 
 ## Frontières de confiance
 
-- Le client et toutes ses entrées sont non fiables pour le serveur, même s'il possède un `APP_SECRET` embarqué.
+- Le client et toutes ses entrées sont non fiables pour le serveur. Aucun
+  secret partagé embarqué ne peut prouver qu'il s'agit de l'application officielle.
 - Les jetons sont non fiables tant que signature, type, émetteur, audience, algorithme et expiration ne sont pas vérifiés.
 - Le service de messagerie ne doit jamais accepter `userId`, rôle ou appartenance comme preuve d'identité.
 - PostgreSQL et l'opérateur peuvent voir les métadonnées stockées ; le contenu E2EE doit rester opaque.

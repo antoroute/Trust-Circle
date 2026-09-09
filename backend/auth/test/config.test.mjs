@@ -20,7 +20,6 @@ function validEnvironment() {
     JWT_ACCESS_PRIVATE_KEY_B64: ACCESS_PRIVATE_KEY_B64,
     JWT_ACCESS_PUBLIC_KEY_B64: ACCESS_PUBLIC_KEY_B64,
     JWT_REFRESH_SECRET: 'synthetic-refresh-secret-material-0000000000002',
-    APP_SECRET: 'synthetic-app-secret-material-0000000000000003',
     DATABASE_URL: 'postgresql://test_user:test_password@127.0.0.1:5432/test_db',
     PORT: '4300',
   };
@@ -73,7 +72,6 @@ for (const name of [
   'JWT_ACCESS_PRIVATE_KEY_B64',
   'JWT_ACCESS_PUBLIC_KEY_B64',
   'JWT_REFRESH_SECRET',
-  'APP_SECRET',
   'DATABASE_URL',
 ]) {
   test(`rejects a missing ${name}`, () => {
@@ -83,14 +81,10 @@ for (const name of [
   });
 }
 
-test('rejects weak, reused or whitespace-padded secrets without disclosing them', () => {
+test('rejects weak or whitespace-padded secrets without disclosing them', () => {
   const weak = validEnvironment();
   weak.JWT_REFRESH_SECRET = 'dev-secret';
   assert.throws(() => loadConfig(weak), /JWT_REFRESH_SECRET/);
-
-  const reused = validEnvironment();
-  reused.JWT_REFRESH_SECRET = reused.APP_SECRET;
-  assert.throws(() => loadConfig(reused), /must be different/);
 
   const paddedValue = `${validEnvironment().JWT_ACCESS_PRIVATE_KEY_B64} `;
   const padded = { ...validEnvironment(), JWT_ACCESS_PRIVATE_KEY_B64: paddedValue };

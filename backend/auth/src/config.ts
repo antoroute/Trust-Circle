@@ -7,13 +7,11 @@ const FORBIDDEN_SECRET_VALUES = new Set([
   'changeme',
   'password',
 ]);
-
 export interface ServiceConfig {
   nodeEnv: string;
   jwtAccessPrivateKey: string;
   jwtAccessPublicKey: string;
   jwtRefreshSecret: string;
-  appSecret: string;
   databaseUrl: string;
   port: number;
   corsAllowedOrigins: readonly string[];
@@ -172,17 +170,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Readonly<Servi
 
   const accessKeys = accessKeyPair(env);
   const jwtRefreshSecret = requiredSecret(env, 'JWT_REFRESH_SECRET');
-  const appSecret = requiredSecret(env, 'APP_SECRET');
-  if (jwtRefreshSecret === appSecret) {
-    throw new Error('Invalid configuration: JWT_REFRESH_SECRET and APP_SECRET must be different');
-  }
 
   return Object.freeze({
     nodeEnv,
     jwtAccessPrivateKey: accessKeys.privateKey,
     jwtAccessPublicKey: accessKeys.publicKey,
     jwtRefreshSecret,
-    appSecret,
     databaseUrl: databaseUrl(env),
     port: port(env),
     corsAllowedOrigins: Object.freeze(corsAllowedOrigins(env, nodeEnv)),

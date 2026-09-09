@@ -24,6 +24,7 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 - [TC-106 — Cycle de confiance des appareils](TC-106-cycle-confiance-appareils.md)
 - [TC-107 — Bornes et validation des entrées](TC-107-borner-valider-entrees.md)
 - [TC-108 — Frontière réseau et WebSocket](TC-108-durcir-frontiere-reseau.md)
+- [TC-109 — Retrait du faux secret public](TC-109-retirer-secret-application-public.md)
 - [TC-114 — Vérification avant utilisation](TC-114-verification-avant-utilisation.md)
 
 ## Format obligatoire des nouvelles fiches

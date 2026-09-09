@@ -56,7 +56,7 @@ Le staging actuellement validé est isolé sur le loopback du LXC106. Le client 
 
 État observé :
 
-1. Flutter charge `.env`, impose l'orientation portrait et initialise les notifications locales, la locale française et les services cryptographiques.
+1. Flutter impose l'orientation portrait et initialise les notifications locales, la locale française et les services cryptographiques.
 2. `AuthProvider.tryAutoLogin()` lit uniquement l'access token du stockage sécurisé. S'il est absent ou expiré, l'utilisateur reste sur l'écran de connexion.
 3. Les providers Auth, Group et Conversation sont créés.
 4. Après authentification, l'application initialise la surveillance réseau, une base de queue locale, la présence, Socket.IO et les nettoyages de caches.
@@ -66,7 +66,7 @@ Le staging actuellement validé est isolé sur le loopback du LXC106. Le client 
 
 - L'orientation portrait est incompatible avec l'expérience Windows/macOS cible.
 - La queue locale est initialisée mais n'est pas intégrée au chemin d'envoi V2.
-- Les URL et le faux `APP_SECRET` public restent codés/configurés dans le client (`TC-109`).
+- Les URL publiques restent codées dans le client et devront être séparées par environnement avant les builds release.
 - L'auto-login ne tente pas directement un refresh expiré ; l'écran de connexion peut ensuite proposer la biométrie.
 
 ## Comptes et sessions
@@ -319,7 +319,11 @@ L'application n'est donc pas encore offline-first de façon fiable. La reprise s
 
 ### Authentification Socket.IO
 
-Le handshake exige l'access token strict et, transitoirement, le faux `APP_SECRET` public. Messaging dérive `userId` du token, rejoint `user:<id>` et les rooms des cercles présents en base.
+Le handshake exige l'access token strict et une preuve Ed25519 liée au `jti`
+du token, au compte, à l'appareil et à sa version de clé. Messaging relit
+l'appareil actif, dérive `userId` du token, puis rejoint `user:<id>` et les
+rooms des cercles présents en base. Depuis `TC-109`, aucun secret partagé
+extractible du client n'est demandé.
 
 ### Événements entrants du client
 
@@ -369,7 +373,10 @@ L'E2EE vise le contenu, pas l'anonymat ni la dissimulation du graphe social au s
 
 ## Inventaire des routes observées
 
-Toutes les routes métier exigent actuellement `X-Client-Version`, le faux `X-App-Secret` et, sauf inscription/login/refresh/logout selon leur contrat, un access token.
+Toutes les routes métier exigent `X-Client-Version` et, sauf
+inscription/login/refresh/logout selon leur contrat, un access token. Les
+routes Messaging privilégiées ajoutent la preuve de l'appareil actif. Aucun
+header secret commun au client et au serveur n'est utilisé.
 
 | Service | Route | Fonction |
 |---|---|---|

@@ -160,9 +160,9 @@ test('Socket.IO accepts access and rejects refresh tokens', async (t) => {
 
   const access = issuer.jwt.sign(payload());
   const refresh = refreshIssuer.jwt.sign(payload({ typ: 'refresh' }));
-  const authenticate = socketAuth(app, 'synthetic-app-secret-for-socket-test-000000000001');
+  const authenticate = socketAuth(app);
 
-  async function authenticateToken(token, includeDeviceProof = true) {
+  async function authenticateToken(token, includeDeviceProof = true, historicalHeaderValue) {
     const deviceProof = sign(
       null,
       createDeviceAccessTranscript({
@@ -187,7 +187,10 @@ test('Socket.IO accepts access and rejects refresh tokens', async (t) => {
               }
             : {}),
         },
-        headers: { 'x-app-secret': 'synthetic-app-secret-for-socket-test-000000000001' },
+        headers:
+          historicalHeaderValue === undefined
+            ? {}
+            : { 'x-app-secret': historicalHeaderValue },
       },
     };
     const error = await new Promise((resolve) => authenticate(socket, resolve));
@@ -201,6 +204,20 @@ test('Socket.IO accepts access and rejects refresh tokens', async (t) => {
     deviceId: DEVICE_ID,
     identityKeyVersion: 1,
   });
+
+  const ignoredHistoricalSecret = await authenticateToken(
+    access,
+    true,
+    'forged-or-historical-app-secret',
+  );
+  assert.equal(ignoredHistoricalSecret.error, undefined);
+
+  const forgedSecretDoesNotAuthenticate = await authenticateToken(
+    refresh,
+    true,
+    'forged-or-historical-app-secret',
+  );
+  assert.match(forgedSecretDoesNotAuthenticate.error.message, /invalid token/);
 
   const missingDevice = await authenticateToken(access, false);
   assert.match(missingDevice.error.message, /device authorization required/);
