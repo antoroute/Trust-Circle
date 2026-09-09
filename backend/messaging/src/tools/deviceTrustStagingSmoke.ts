@@ -135,6 +135,71 @@ async function request(
   return responseBody;
 }
 
+async function socketPollingAck(
+  account: Account,
+  identity: Identity,
+  conversationId: string,
+): Promise<void> {
+  const commonHeaders = {
+    'content-type': 'text/plain;charset=UTF-8',
+    'x-app-secret': appSecret,
+  };
+  const endpoint = `${baseUrl}/socket/?EIO=4&transport=polling`;
+  const opening = await fetch(endpoint, { headers: commonHeaders });
+  const openingBody = await opening.text();
+  if (!opening.ok || !openingBody.startsWith('0')) {
+    throw new Error(`Socket.IO polling open: unexpected status ${opening.status}`);
+  }
+  const openPacket = objectValue(
+    JSON.parse(openingBody.slice(1)),
+    'Socket.IO polling open packet',
+  );
+  const sid = stringValue(openPacket, 'sid', 'Socket.IO polling open packet');
+  const sessionEndpoint = `${endpoint}&sid=${encodeURIComponent(sid)}`;
+  const proofHeaders = deviceAccessHeaders(account.accessToken, identity);
+  const authPayload = {
+    token: account.accessToken,
+    deviceId: proofHeaders['x-circlehaven-device-id'],
+    deviceKeyVersion: Number(proofHeaders['x-circlehaven-device-key-version']),
+    deviceProof: proofHeaders['x-circlehaven-device-proof'],
+  };
+
+  const connect = await fetch(sessionEndpoint, {
+    method: 'POST',
+    headers: commonHeaders,
+    body: `40${JSON.stringify(authPayload)}`,
+  });
+  if (!connect.ok) throw new Error(`Socket.IO namespace connect: unexpected status ${connect.status}`);
+  const connected = await fetch(sessionEndpoint, { headers: commonHeaders });
+  const connectedBody = await connected.text();
+  if (!connected.ok || !connectedBody.split('\x1e').some((packet) => packet.startsWith('40'))) {
+    throw new Error(`Socket.IO namespace acknowledgement: unexpected status ${connected.status}`);
+  }
+
+  const subscribe = await fetch(sessionEndpoint, {
+    method: 'POST',
+    headers: commonHeaders,
+    body: `421["conv:subscribe",${JSON.stringify({ convId: conversationId })}]`,
+  });
+  if (!subscribe.ok) throw new Error(`Socket.IO subscribe: unexpected status ${subscribe.status}`);
+  const acknowledgement = await fetch(sessionEndpoint, { headers: commonHeaders });
+  const acknowledgementBody = await acknowledgement.text();
+  const ackPacket = acknowledgementBody
+    .split('\x1e')
+    .find((packet) => packet.startsWith('431'));
+  if (!ackPacket) throw new Error('Socket.IO subscribe: missing ACK packet');
+  const ackValues = JSON.parse(ackPacket.slice(3));
+  if (!Array.isArray(ackValues) || objectValue(ackValues[0], 'Socket.IO subscribe ACK').success !== true) {
+    throw new Error('Socket.IO subscribe: unsuccessful ACK');
+  }
+
+  await fetch(sessionEndpoint, {
+    method: 'POST',
+    headers: commonHeaders,
+    body: '41',
+  }).catch(() => undefined);
+}
+
 function createIdentity(): Identity {
   const keyPair = generateKeyPairSync('ed25519');
   const publicDer = keyPair.publicKey.export({ format: 'der', type: 'spki' });
@@ -666,6 +731,8 @@ if (
   throw new Error('message history: expected messages across key rotation');
 }
 
+await socketPollingAck(owner, firstIdentity, conversationId);
+
 const accessOnly = await createAccount('access-only');
 const attackerIdentity = createIdentity();
 const attackerChallenge = await registrationChallenge(
@@ -681,5 +748,5 @@ if (deniedBootstrap.error !== 'bootstrap_authorization_required') {
 }
 
 console.log(
-  'TC-106 lot D + TC-107 smoke passed: device trust transitions, strict objects, HTTP limits, collection bounds, cursor bounds and decoded ciphertext limit.',
+  'TC-106 lot D + TC-107 + TC-108 smoke passed: device trust transitions, strict objects, input bounds and Socket.IO subscription ACK.',
 );
