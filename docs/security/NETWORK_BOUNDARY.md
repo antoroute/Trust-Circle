@@ -1,6 +1,6 @@
 # Frontière réseau, CORS et quotas
 
-Statut : comportement implémenté par `TC-108`, validation staging en cours
+Statut : comportement implémenté et validé sur staging par `TC-108`
 Dernière mise à jour : 2026-09-09
 
 Ce document décrit la protection entre un client CircleHaven, le gateway Nginx

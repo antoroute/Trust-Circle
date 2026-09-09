@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
 Statut : opérationnel, accès local au LXC uniquement
-Dernier déploiement : 2026-09-08 (`TC-107`)
+Dernier déploiement : 2026-09-09 (`TC-108`)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `9ffc84f36e47aee5d86eb03f14307c93f5ef02dd` |
-| Release | `/opt/trust-circle-staging/releases/9ffc84f36e47aee5d86eb03f14307c93f5ef02dd` |
+| Commit source | `054eabdf65624d4c5db654742ba7ddf77e88a4cc` |
+| Release | `/opt/trust-circle-staging/releases/054eabdf65624d4c5db654742ba7ddf77e88a4cc` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Source Compose | `deploy/staging/compose.yml` |
@@ -25,8 +25,8 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-9ffc84f36e47` | image ID `13b3a3484258`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-9ffc84f36e47` | image ID `d9983b5e320c`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-054eabdf6562` | image ID `655fa253dc3d`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-054eabdf6562` | image ID `86604fb06dc8`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
 | Gateway | `nginx:stable-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
 
@@ -40,7 +40,8 @@ Les références tierces exactes observées au déploiement sont :
 - Gateway : `127.0.0.1:18080` sur le LXC uniquement.
 - Auth et messaging : aucune publication de port hôte.
 - PostgreSQL : aucune publication de port hôte, réseau interne `trust-circle-staging-data`.
-- Réseaux : `trust-circle-staging-edge` et `trust-circle-staging-data`.
+- Réseaux : `trust-circle-staging-edge` en `172.30.108.0/24` avec gateway
+  `.10`, Auth `.11` et Messaging `.12`, plus `trust-circle-staging-data`.
 - Volume : `trust-circle-staging-postgres-data`.
 - Aucun domaine, certificat, volume, réseau ou secret historique réutilisé.
 - Aucun e-mail ou fournisseur push configuré.
@@ -239,6 +240,32 @@ La configuration antérieure est conservée en mode `0600` sous
 `staging.env.before-9ffc84f36e47`. La release
 `9214b0a342cbcfccde4c6ed4fab04ec115d5311b` reste disponible pour rollback
 applicatif sans restauration de données.
+
+Le redéploiement `TC-108` du 2026-09-09 a ensuite validé :
+
+1. recréation des deux réseaux propres au projet, sans `--volumes`, avec
+   conservation du volume PostgreSQL et IP edge fixes `.10`, `.11`, `.12` ;
+2. confiance Auth/Messaging limitée au CIDR `172.30.108.10/32` et remplacement
+   par Nginx de toute chaîne `X-Forwarded-For` entrante ;
+3. absence d'en-tête CORS permissif pour une origine inconnue, refus `403` du
+   handshake Socket.IO portant cette origine et passage du client natif sans
+   `Origin` ;
+4. parcours réel avec compte et appareil synthétiques, preuve Ed25519,
+   connexion Socket.IO par polling et ACK positif de `conv:subscribe` ;
+5. quatre services sains, labels sur le commit
+   `054eabdf65624d4c5db654742ba7ddf77e88a4cc`, zéro redémarrage et zéro
+   correspondance sévère dans les logs Auth, Messaging et Gateway ;
+6. sur quarante appels de santé par service via la gateway : Auth moyenne
+   `1,074 ms`, maximum `1,604 ms`, Messaging moyenne `1,069 ms`, maximum
+   `1,666 ms` ; aucun aller-retour applicatif n'a été ajouté ;
+7. absence de migration ou changement de schéma. Les suites locales comptent
+   28 tests Auth, 91 Messaging et 38 Flutter tous réussis.
+
+La configuration précédant la frontière réseau est conservée en mode `0600`
+sous `staging.env.before-2ae191d79223`; celle précédant le smoke ACK final est
+sous `staging.env.before-054eabdf6562`. La release
+`9ffc84f36e47aee5d86eb03f14307c93f5ef02dd` reste le rollback complet
+pré-`TC-108`, sans restauration de données.
 
 ## Limites assumées
 

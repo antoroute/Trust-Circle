@@ -1,6 +1,6 @@
 # TC-108 — Durcir CORS, proxy de confiance, quotas et WebSocket
 
-Statut : En cours — implémentation par lots
+Statut : Terminée — validée localement et sur staging le 2026-09-09
 Priorité : P0 sécurité et disponibilité
 Dépendances : TC-102, TC-107 terminées
 
@@ -19,7 +19,7 @@ client de forger son adresse via `X-Forwarded-For`.
 - Autoriser les applications natives sans en-tête `Origin`, mais ne répondre
   en CORS qu'aux origines navigateur explicitement configurées.
 - Désactiver les credentials CORS inutiles et limiter méthodes/en-têtes.
-- Faire dériver `request.ip` d'un nombre explicite de proxies de confiance,
+- Faire dériver `request.ip` de CIDR explicites de proxies de confiance,
   jamais de toute la chaîne fournie par le client.
 - Borner les rafales HTTP, connexions Socket.IO et événements coûteux sans
   ralentir connexion, chargement normal, frappe ni reconnexion.
@@ -77,15 +77,41 @@ client de forger son adresse via `X-Forwarded-For`.
 
 ## Acceptation
 
-- [ ] Une origine inconnue ne reçoit aucun en-tête CORS permissif.
-- [ ] Une requête native sans `Origin` continue de fonctionner.
-- [ ] `request.ip` est correct derrière le nombre configuré de proxies et ne
+- [x] Une origine inconnue ne reçoit aucun en-tête CORS permissif.
+- [x] Une requête native sans `Origin` continue de fonctionner.
+- [x] `request.ip` est correct derrière les CIDR configurés et ne
       fait pas confiance à une chaîne arbitraire.
-- [ ] Les routes sensibles et Messaging répondent `429` avec reprise bornée.
-- [ ] Connexions et événements Socket.IO abusifs sont limités avant SQL/room.
-- [ ] La frappe normale et les reconnexions par lots restent transparentes.
-- [ ] Aucun nouveau stockage ou log de secret/payload n'est introduit.
-- [ ] Tests locaux, analyse Flutter et smoke/probes staging réussissent.
+- [x] Les routes sensibles et Messaging répondent `429` avec reprise bornée.
+- [x] Connexions et événements Socket.IO abusifs sont limités avant SQL/room.
+- [x] La frappe normale et les reconnexions par lots restent transparentes.
+- [x] Aucun nouveau stockage ou log de secret/payload n'est introduit.
+- [x] Tests locaux, analyse Flutter et smoke/probes staging réussissent.
+
+## Preuves de fermeture
+
+- Commit d'implémentation :
+  `2ae191d792237979a1bcb54d95c649a6bba150d5` ; extension du smoke ACK :
+  `054eabdf65624d4c5db654742ba7ddf77e88a4cc`.
+- Suites locales : Auth `28/28`, Messaging `91/91`, Flutter `38/38` ; analyse
+  Flutter sans erreur ni warning, avec 85 lints informatifs historiques.
+- Staging LXC106 : quatre services sains, zéro redémarrage, labels sur
+  `054eabdf65624d4c5db654742ba7ddf77e88a4cc`, aucun log sévère dans la
+  fenêtre post-déploiement.
+- Smoke réel : origines HTTP inconnues sans ACAO, handshake Socket.IO avec
+  origine inconnue refusé, client natif sans `Origin` admis, appareil actif
+  authentifié et ACK d'abonnement conversation reçu.
+- Latence de santé via la gateway sur 40 appels : Auth moyenne `1,074 ms`,
+  maximum `1,604 ms` ; Messaging moyenne `1,069 ms`, maximum `1,666 ms`.
+- Aucun schéma ni volume n'a changé. Le volume PostgreSQL a été conservé
+  pendant la recréation des réseaux.
+
+## Rollback
+
+La release précédant `TC-108`,
+`9ffc84f36e47aee5d86eb03f14307c93f5ef02dd`, reste disponible. La
+configuration antérieure est conservée en mode `0600` sous
+`/opt/trust-circle-staging/shared/staging.env.before-2ae191d79223`. Aucun
+rollback de base n'est nécessaire.
 
 ## Hors périmètre
 
