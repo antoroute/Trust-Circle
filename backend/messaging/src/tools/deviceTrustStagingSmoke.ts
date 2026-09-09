@@ -227,10 +227,15 @@ async function createAccount(label: string): Promise<Account> {
     }),
     'login',
   );
+  const refreshToken = stringValue(login, 'refresh', 'login');
+  const refreshed = objectValue(
+    await request('/auth/refresh', 'POST', 200, { token: refreshToken }),
+    'refresh',
+  );
   return {
     userId: stringValue(registration, 'id', 'registration'),
-    accessToken: stringValue(login, 'access', 'login'),
-    refreshToken: stringValue(login, 'refresh', 'login'),
+    accessToken: stringValue(refreshed, 'access', 'refresh'),
+    refreshToken,
     password,
   };
 }
@@ -463,6 +468,7 @@ const firstIdentity = createIdentity();
 await bootstrapFirstDevice(owner, firstIdentity);
 
 await request('/api/groups', 'GET', 403, { token: owner.accessToken });
+await request('/api/groups', 'GET', 401);
 await request('/api/groups', 'GET', 401, { token: owner.refreshToken });
 
 const secondIdentity = createIdentity();

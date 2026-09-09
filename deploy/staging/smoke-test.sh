@@ -63,4 +63,4 @@ docker compose \
   -e TC_DEVICE_TRUST_SMOKE_BASE_URL=http://gateway:8080 \
   messaging node dist/tools/deviceTrustStagingSmoke.js
 
-echo "Smoke tests passed: health, TC-106 device trust, TC-107 input boundaries and TC-108 network boundary."
+echo "Smoke tests passed: health, TC-106 device trust, TC-107 input boundaries, TC-108 network boundary and TC-109 no shared application secret."

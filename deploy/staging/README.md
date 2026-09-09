@@ -73,6 +73,10 @@ course entre publication et révocation globale. Il vérifie ensuite le blocage
 immédiat de l'appareil révoqué et la disponibilité des anciens messages. Il ne
 journalise aucun mot de passe, token, grant ou matériel privé.
 
+Le parcours crée et connecte ses comptes, renouvelle l'access token avec le
+refresh token, puis appelle Messaging sans aucun secret d'application partagé.
+Il vérifie également qu'une route Messaging reste refusée sans access token.
+
 Ne jamais exécuter `docker compose config` sans `--quiet` dans une sortie partagée : la configuration résolue contient des secrets.
 
 ## Inspection sûre
