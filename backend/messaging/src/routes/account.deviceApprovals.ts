@@ -35,6 +35,7 @@ const CanonicalEd25519Signature = Type.String({
   maxLength: 88,
   pattern: '^[A-Za-z0-9+/]{86}==$',
 });
+const ErrorReply = Type.Object({ error: Type.String() });
 
 const ApprovalChallengeRequest = Type.Object(
   {
@@ -139,6 +140,11 @@ export default async function accountDeviceApprovalRoutes(
               deviceName: Type.String(),
             }),
           }),
+          401: ErrorReply,
+          403: ErrorReply,
+          404: ErrorReply,
+          409: ErrorReply,
+          429: ErrorReply,
         },
       },
     },
@@ -346,6 +352,12 @@ export default async function accountDeviceApprovalRoutes(
               Type.Literal('revoked'),
             ]),
           }),
+          400: ErrorReply,
+          401: ErrorReply,
+          403: ErrorReply,
+          404: ErrorReply,
+          409: ErrorReply,
+          410: ErrorReply,
         },
       },
     },

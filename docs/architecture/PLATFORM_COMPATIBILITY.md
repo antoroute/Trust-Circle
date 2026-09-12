@@ -66,7 +66,7 @@ Les numéros ne sont pas des dépendances flottantes : toute montée de Flutter/
 | `mobile_scanner 3.5.7` | oui | oui | non | oui | ne jamais charger sur Windows ; invitation par lien/code dans `TC-704`; montée de version séparée |
 | `flutter_local_notifications 19.4.2` | oui | oui | oui | oui | le code actuel n'initialise que Android/iOS ; adapter Windows/macOS et tester MSIX/entitlements dans `TC-509`, `TC-705`, `TC-706` |
 | `connectivity_plus 6.1.5` | oui | oui | oui | oui | son état réseau n'est jamais une preuve d'accès Internet ; tester reprise réelle dans `TC-505`/`TC-508` |
-| `socket_io_client 2.0.3+1` | oui | oui | oui | oui | le client déclare Socket.IO serveur jusqu'à 4.6 alors que le backend utilise 4.7.5 ; mettre à niveau ou prouver le contrat dans `TC-505` |
+| `socket_io_client 2.0.3+1` | oui | oui | oui | oui | le backend utilise Socket.IO 4.8.3 depuis `TC-110` ; le polling/ACK est prouvé sur staging, mais la montée du client et les tests de reconnexion restent dans `TC-505` |
 | `cryptography 2.7.0` et primitives Dart | oui | oui | oui | oui | compatibilité source seulement ; choix, stockage de clés et vecteurs relèvent de `TC-306` à `TC-312` |
 
 Constats directs sur le dépôt :

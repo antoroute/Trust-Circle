@@ -15,13 +15,23 @@ import {
   strictObject,
 } from '../schemas/input.schema.js';
 
+const ErrorReply = Type.Object({ error: Type.String() });
+
 export default async function routes(app: FastifyInstance) {
   app.addHook('onRequest', app.authenticate);
   app.addHook('preHandler', app.requireActiveDevice);
 
   // POST /api/messages (V2 only)
   app.post('/api/messages', {
-    schema: { body: SendMessageV2Schema, response: { 201: SendMessageV2Reply } }
+    schema: {
+      body: SendMessageV2Schema,
+      response: {
+        201: SendMessageV2Reply,
+        400: ErrorReply,
+        403: ErrorReply,
+        409: ErrorReply,
+      },
+    }
   }, async (req, reply) => {
     const b = req.body as any;
     const senderUserId = authenticatedUserId(req);

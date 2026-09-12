@@ -27,6 +27,7 @@ const DeviceKey = strictObject(
     bindingSignature: CanonicalBase64Bytes64,
   },
 );
+const ErrorReply = Type.Object({ error: Type.String() });
 
 const DirectoryEntry = Type.Object({
   userId: Type.String({ format: 'uuid' }),
@@ -87,7 +88,7 @@ export default async function routes(app: FastifyInstance) {
     {
       schema: {
         params: strictObject({ groupId: Uuid }),
-        response: { 200: Type.Array(DirectoryEntry) },
+        response: { 200: Type.Array(DirectoryEntry), 403: ErrorReply },
       },
     },
     async (req, reply) => {
@@ -111,7 +112,7 @@ export default async function routes(app: FastifyInstance) {
     {
       schema: {
         params: strictObject({ groupId: Uuid }),
-        response: { 200: Type.Array(DirectoryEntry) },
+        response: { 200: Type.Array(DirectoryEntry), 403: ErrorReply },
       },
     },
     async (req, reply) => {
@@ -146,6 +147,9 @@ export default async function routes(app: FastifyInstance) {
             keyVersion: Type.Integer(),
             rotated: Type.Boolean(),
           }),
+          400: ErrorReply,
+          403: ErrorReply,
+          409: ErrorReply,
         },
       },
     },
