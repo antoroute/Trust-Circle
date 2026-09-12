@@ -289,9 +289,9 @@ le corps Auth l'est à 16 Kio.
 
 ### Nouveau message temps réel
 
-Messaging émet actuellement un ping minimal `message:new` contenant `convId` et `groupId`, pas le contenu. Si la conversation est ouverte, Flutter relit les derniers messages via REST et filtre ceux déjà connus.
+Messaging émet actuellement un ping minimal `message:new` contenant `convId` et `groupId`, pas le contenu. Flutter relit alors les derniers messages via REST et filtre ceux déjà connus, que la conversation soit ouverte ou non. Le ping seul ne pose aucun badge et un ping sans conversation précise est ignoré.
 
-Depuis `TC-114`, les chemins REST, Socket.IO, écran et caches passent par `decryptVerified`. Version, contexte, destinataire et appareil expéditeur sont contrôlés, puis Ed25519 est vérifié dans l'isolate avant toute ouverture exploitable. Le texte et la clé de message n'atteignent cache, UI et notification qu'après succès du tag AES-GCM.
+Depuis `TC-114`, les chemins REST, Socket.IO, écran et caches passent par `decryptVerified`. Version, contexte, destinataire et appareil expéditeur sont contrôlés, puis Ed25519 est vérifié dans l'isolate avant toute ouverture exploitable. Le texte et la clé de message n'atteignent cache, UI et notification qu'après succès du tag AES-GCM. Le chemin temps réel complet regroupe explicitement tous ses effets derrière `VerifiedMessageDelivery`, testée pour ne jamais appeler la remise lorsqu'une authentification échoue.
 
 La latence est limitée sans affaiblissement : priorité aux messages visibles dans la file crypto, clés publiques déjà validées en cache et aucun aller-retour réseau supplémentaire lorsque l'annuaire local est disponible. Les mesures finales sur Android et Windows restent attachées à `TC-114`.
 

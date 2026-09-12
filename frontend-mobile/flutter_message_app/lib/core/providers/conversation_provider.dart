@@ -21,6 +21,7 @@ import 'dart:convert';
 import 'package:flutter_message_app/core/crypto/message_cipher_v2.dart';
 import 'package:flutter_message_app/core/crypto/message_envelope_verifier.dart';
 import 'package:flutter_message_app/core/crypto/key_manager_final.dart';
+import 'package:flutter_message_app/core/security/verified_message_delivery.dart';
 import 'package:flutter_message_app/config/constants.dart';
 
 /// Gère l'état des conversations et des messages.
@@ -1989,6 +1990,22 @@ class ConversationProvider extends ChangeNotifier {
           );
           final senderUserId = (item.sender['userId'] as String?) ?? '';
 
+          // Le ping minimal ne produit aucun effet. Ceux-ci commencent ici,
+          // uniquement après vérification de l'enveloppe et ouverture AEAD.
+          if (senderUserId != myUserId) {
+            _unreadCounts[conversationId] =
+                (_unreadCounts[conversationId] ?? 0) + 1;
+            NotificationBadgeService().markConversationAsNew(
+              conversationId,
+              groupId: groupId,
+            );
+            await _showNotificationIfNeeded(
+              conversationId,
+              senderUserId,
+              decryptedText,
+            );
+          }
+
           // Créer le message
           final msg = Message(
             id: item.messageId,
@@ -2071,46 +2088,15 @@ class ConversationProvider extends ChangeNotifier {
             return;
           }
 
-          // Vérifier si l'utilisateur est déjà dans cette conversation
-          final tracker = NavigationTrackerService();
-          final isInThisConversation = tracker.isInConversation(convId);
-
-          if (!isInThisConversation) {
-            final badgeService = NotificationBadgeService();
-            badgeService.markConversationAsNew(convId, groupId: trustedGroupId);
-            debugPrint(
-              '🔔 [ConversationProvider] Conversation $convId marquée comme nouvelle (ping reçu)',
-            );
-          } else {
-            // Récupérer le nouveau message depuis le serveur quand l'utilisateur est dans la conversation
-            debugPrint(
-              '🔔 [ConversationProvider] Ping reçu pour conversation active $convId, récupération du nouveau message...',
-            );
-            _fetchNewMessageFromServer(convId).catchError((e) {
-              debugPrint(
-                '❌ [ConversationProvider] Erreur lors de la récupération du nouveau message: $e',
-              );
-            });
-          }
+          // Un ping n'est pas une preuve d'authenticité du message. Récupérer
+          // l'enveloppe et franchir la barrière cryptographique avant tout
+          // badge, cache, affichage ou notification.
+          await _fetchNewMessageFromServer(convId);
         } else {
-          // Fallback: si les identifiants ne sont pas présents, rafraîchir toutes les conversations
-          debugPrint(
-            '⚠️ [ConversationProvider] Ping reçu sans convId/groupId, rafraîchissement de toutes les conversations',
-          );
-          final tracker = NavigationTrackerService();
-          if (!tracker.isInAnyConversation()) {
-            await fetchConversations();
-            final badgeService = NotificationBadgeService();
-            for (final conv in _conversations) {
-              badgeService.markConversationAsNew(
-                conv.conversationId,
-                groupId: conv.groupId,
-              );
-            }
-          }
+          // Sans conversation précise, aucun message ne peut être authentifié
+          // et aucun indicateur de nouveau message ne doit être produit.
+          debugPrint('Ping WebSocket ignoré: conversation absente');
         }
-
-        notifyListeners();
         return;
       }
 
@@ -2161,82 +2147,50 @@ class ConversationProvider extends ChangeNotifier {
         '🔍 [ConversationProvider]   Sont-ils égaux? ${senderId == myUserId}',
       );
 
-      // 🚀 OPTIMISATION: Utiliser decryptFast() avec priorité haute pour affichage immédiat
-      // Les nouveaux messages WebSocket doivent apparaître instantanément
-      final fastResult = await MessageCipherV2.decryptFast(
-        groupId: trustedGroupId,
-        expectedConversationId: convId,
-        myUserId: myUserId,
-        myDeviceId: myDeviceId,
-        messageV2: payload,
-        keyDirectory: _keyDirectory,
-        priority: 1, // Haute priorité pour les nouveaux messages
+      await VerifiedMessageDelivery.authenticateThenDeliver<String>(
+        authenticate: () async {
+          final result = await MessageCipherV2.decryptFast(
+            groupId: trustedGroupId,
+            expectedConversationId: convId,
+            myUserId: myUserId,
+            myDeviceId: myDeviceId,
+            messageV2: payload,
+            keyDirectory: _keyDirectory,
+            priority: 1,
+          );
+          return utf8.decode(result['decryptedText'] as Uint8List);
+        },
+        deliver: (decryptedText) async {
+          if (senderId != myUserId) {
+            _unreadCounts[convId] = (_unreadCounts[convId] ?? 0) + 1;
+            NotificationBadgeService().markConversationAsNew(
+              convId,
+              groupId: trustedGroupId,
+            );
+            _notifyListenersBatched();
+            await _showNotificationIfNeeded(convId, senderId, decryptedText);
+          }
+
+          final msg = Message(
+            id: messageId,
+            conversationId: convId,
+            senderId: senderId,
+            encrypted: null,
+            iv: null,
+            encryptedKeys: const {},
+            signatureValid: true,
+            senderPublicKey: null,
+            timestamp: (payload['sentAt'] as num).toInt(),
+            v2Data: payload,
+            decryptedText: decryptedText,
+          );
+          LocalMessageStorage.instance.saveMessage(msg).catchError((error) {
+            debugPrint('Échec de sauvegarde locale du message vérifié');
+          });
+          _decryptedCache[messageId] = decryptedText;
+          addLocalMessage(msg);
+        },
       );
-
-      final decryptedText = utf8.decode(
-        fastResult['decryptedText'] as Uint8List,
-      );
-
-      // Incrémenter le compteur de messages non lus si ce n'est pas notre message
-      if (senderId != myUserId) {
-        _unreadCounts[convId] = (_unreadCounts[convId] ?? 0) + 1;
-
-        // ✅ CORRECTION: Marquer le badge AVANT d'afficher la notification
-        final badgeService = NotificationBadgeService();
-        badgeService.markConversationAsNew(convId, groupId: trustedGroupId);
-        debugPrint(
-          '🔔 [ConversationProvider] Badge marqué pour conversation $convId (groupe $groupId)',
-        );
-
-        // 🚀 OPTIMISATION: Batching pour les compteurs (non-critique)
-        _notifyListenersBatched();
-
-        // Afficher une notification si l'utilisateur n'est pas dans cette conversation
-        debugPrint(
-          '🔔 [ConversationProvider] Nouveau message reçu dans conversation $convId',
-        );
-
-        final tracker = NavigationTrackerService();
-        final isInConv = tracker.isInConversation(convId);
-        final currentScreen = tracker.currentScreen;
-        debugPrint(
-          '🔔 [ConversationProvider] Utilisateur dans conversation: $isInConv, Écran actuel: $currentScreen',
-        );
-
-        await _showNotificationIfNeeded(convId, senderId, decryptedText);
-      } else {
-        debugPrint(
-          '🔔 [ConversationProvider] Message ignoré (envoyé par nous-même)',
-        );
-      }
-
-      // Création du message avec texte déchiffré
-      final msg = Message(
-        id: messageId,
-        conversationId: convId,
-        senderId: senderId,
-        encrypted: null,
-        iv: null,
-        encryptedKeys: const {},
-        signatureValid: true,
-        senderPublicKey: null,
-        timestamp: (payload['sentAt'] as num).toInt(),
-        v2Data: payload, // Stocker les données V2 pour cohérence
-        decryptedText: decryptedText,
-      );
-
-      // 🚀 OPTIMISATION SIGNAL: Sauvegarder le message chiffré localement (non-bloquant)
-      LocalMessageStorage.instance.saveMessage(msg).catchError((saveError) {
-        debugPrint(
-          '⚠️ Erreur sauvegarde message local (non-bloquant): $saveError',
-        );
-      });
-
-      // Mettre en cache mémoire uniquement (session courante)
-      _decryptedCache[messageId] = decryptedText;
-
-      // Ajouter le message et notifier immédiatement pour affichage instantané
-      addLocalMessage(msg);
     } on MessageAuthenticationException catch (error) {
       // Un événement forgé ou non authentifiable ne produit ni bulle,
       // ni cache, ni notification.

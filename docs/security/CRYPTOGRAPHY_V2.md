@@ -259,6 +259,12 @@ Pour l'appareil local :
 
 Une signature absente, fausse ou invérifiable, un contexte inattendu, un appareil inactif, un wrap, nonce, sel ou tag altéré provoque un rejet sans texte, cache ou notification.
 
+Un ping Socket.IO `message:new` ne constitue pas une preuve d'authenticité. Il
+ne crée donc plus de badge à lui seul : Flutter récupère l'enveloppe par REST,
+la vérifie, l'ouvre, puis franchit une barrière structurelle unique avant tout
+effet d'affichage, cache, persistance ou notification. Un ping sans
+conversation précise est ignoré.
+
 `decryptVerified` est désormais le chemin unique. Les méthodes historiques `decrypt` et `decryptFast` ne sont que des alias vers cette méthode ; malgré son ancien nom, `decryptFast` ne saute plus la signature. Les anciens services génériques capables de déchiffrer sans preuve d'enveloppe ont été retirés.
 
 La réactivité est préservée par l'annuaire et les clés de message en cache après validation, ainsi que par une file d'isolate priorisant les messages visibles. Aucun aller-retour réseau supplémentaire n'est ajouté lorsque l'annuaire est disponible localement. Les mesures `message_signature_verify`, `message_decrypt_verified_cached`, `message_decrypt_verified_pipeline` et `message_receive_verified_total` exposent médiane/p95 sans journaliser le contenu.

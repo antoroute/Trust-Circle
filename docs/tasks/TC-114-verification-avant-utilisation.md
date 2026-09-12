@@ -74,10 +74,17 @@ Valider le budget de latence p95 par plateforme et l'état UI très bref à mont
 - Les trois anciens services de déchiffrement non authentifié, inutilisés, ont été supprimés.
 - Les logs contenant le texte envoyé, déchiffré ou le corps de notification ont été supprimés.
 - L'encodage à l'envoi utilise désormais UTF-8, y compris accents et emoji.
+- Un ping Socket.IO minimal ne pose plus de badge non authentifié : il récupère
+  le message par REST, et tous les effets du chemin temps réel complet sont
+  placés derrière `VerifiedMessageDelivery`.
 
 ## Validation exécutée
 
-- `flutter test --no-pub test/core/crypto/message_authentication_test.dart` : 13 tests réussis.
+- suite Flutter complète : `45/45` tests réussis avec la configuration staging
+  publique injectée ;
+- `message_authentication_test.dart` : 13 tests cryptographiques réussis ;
+- `verified_message_delivery_test.dart` démontre qu'une authentification qui
+  échoue produit exactement zéro bulle, écriture cache ou notification ;
 - Cas couverts : valide, vérification concurrente d'un même message, signature absente/altérée, contexte, destinataire, algorithme, appareil/version, wrap, nonce, sel HKDF et tag de contenu altérés.
 - `flutter analyze --no-pub` : aucune erreur de compilation ; 89 informations/avertissements non bloquants, dont l'asset `.env` volontairement absent du dépôt.
 - Recherche statique : aucun log de `plaintext`, `decryptedText`, `messageText` ou corps tronqué dans les chemins concernés.
