@@ -1,6 +1,6 @@
 # TC-114 — Vérifier tout message avant utilisation du texte clair
 
-Statut : En cours — validation Android/Windows requise
+Statut : En cours — staging TLS prêt, validation Android/Windows requise
 Priorité : P0 sécurité
 Décision : mainteneur
 Dépendances : TC-103

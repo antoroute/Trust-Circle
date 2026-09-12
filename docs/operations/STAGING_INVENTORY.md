@@ -1,12 +1,12 @@
 # Inventaire du staging backend
 
-Statut : opérationnel, bind interne filtré ; publication TLS en attente
-Dernier déploiement : 2026-09-12 (`TC-113` en cours)
+Statut : opérationnel, publication TLS restreinte
+Dernier déploiement : 2026-09-12 (`TC-113` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
 
-Le staging backend est une installation neuve et isolée des anciennes ressources supprimées. Il est destiné aux builds, smoke tests et futurs tests d'intégration automatisés. Il n'est pas un environnement de production et n'est pas exposé publiquement.
+Le staging backend est une installation neuve et isolée des anciennes ressources supprimées. Il est destiné aux builds, smoke tests et futurs tests d'intégration automatisés. Il n'est pas un environnement de production ; son domaine TLS est publié derrière une ACL NPM limitée aux VPN et appareils explicitement autorisés.
 
 ## Release
 
@@ -350,14 +350,29 @@ Le redéploiement préparatoire `TC-113` du 2026-09-12 a ensuite validé :
 6. sauvegarde préalable de NPM et de la configuration privée staging en mode
    `0600`, avec contrôle d'intégrité SQLite réussi.
 
-La tentative NPM vers le gateway reste refusée par OPNsense avant d'atteindre
-le filtre LXC. La règle inter-VLAN exacte, puis le proxy host TLS/ACL et ses
-tests restent donc nécessaires pour terminer `TC-113`.
+La fermeture de `TC-113` a ensuite validé :
+
+1. deux règles OPNsense journalisées et appairées, avant les blocages VLAN10 et
+   VLAN20, limitées à `TCP 10.0.10.20/32 → 10.0.20.20:18081` ;
+2. passage depuis NPM vers `/healthz`, `/health/auth`, `/health/messaging` et le
+   handshake Socket.IO, tous en `200` ;
+3. proxy NPM `85` pour `trust-circle.kavalek.fr`, upstream
+   `http://10.0.20.20:18081`, certificat wildcard `4` et ACL `1` ;
+4. redirection HTTP vers HTTPS, HSTS, HTTP/2, WebSocket et protection NPM des
+   exploits actifs ;
+5. refus `403` depuis LXC101 et LXC113, absents de l'ACL, et maintien du refus
+   local pour toute source autre que NPM ;
+6. smoke adversarial complet `TC-111` via le domaine HTTPS ;
+7. quatre conteneurs toujours sains et sans redémarrage après les tests ;
+8. sauvegardes NPM immédiatement antérieures sous
+   `/root/backups/trust-circle-staging/20260912T193948Z/`, et sauvegardes
+   OPNsense avant/après sous
+   `/root/homelab/sauvegardes/incidents/tc113-opnsense-20260912/`.
 
 ## Limites assumées
 
-- Domaine résolu mais pas encore de proxy host TLS : OPNsense bloque encore le
-  trajet NPM vers le port staging exact.
+- Le domaine staging est volontairement inaccessible hors de l'ACL NPM ; ce
+  refus ne doit pas être confondu avec une panne du backend.
 - Configuration de build Flutter staging prête ; validation physique Android
   et Windows encore requise par `TC-114`.
 - Pas encore d'outil de migrations ni de restauration complète du volume principal ; les migrations `TC-104` à `TC-106` et leurs rollbacks ont été exercés dans un environnement PostgreSQL isolé, mais appliqués manuellement au staging.
