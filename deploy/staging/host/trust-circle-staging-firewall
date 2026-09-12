@@ -1,0 +1,36 @@
+#!/bin/sh
+set -eu
+
+IPTABLES=/usr/sbin/iptables
+CHAIN=TRUST-CIRCLE-STAGING
+HOST_ADDRESS=10.0.20.20
+HOST_PORT=18081
+NPM_ADDRESS=10.0.10.20/32
+
+remove_jump() {
+  while "$IPTABLES" -C DOCKER-USER -p tcp -m conntrack \
+    --ctdir ORIGINAL --ctorigdst "$HOST_ADDRESS" --ctorigdstport "$HOST_PORT" \
+    -j "$CHAIN" 2>/dev/null; do
+    "$IPTABLES" -D DOCKER-USER -p tcp -m conntrack \
+      --ctdir ORIGINAL --ctorigdst "$HOST_ADDRESS" --ctorigdstport "$HOST_PORT" \
+      -j "$CHAIN"
+  done
+}
+
+if [ "${1:-start}" = "stop" ]; then
+  remove_jump
+  "$IPTABLES" -F "$CHAIN" 2>/dev/null || true
+  "$IPTABLES" -X "$CHAIN" 2>/dev/null || true
+  exit 0
+fi
+
+"$IPTABLES" -N "$CHAIN" 2>/dev/null || true
+"$IPTABLES" -F "$CHAIN"
+"$IPTABLES" -A "$CHAIN" -s "$NPM_ADDRESS" -j RETURN
+"$IPTABLES" -A "$CHAIN" -s "$HOST_ADDRESS/32" -j RETURN
+"$IPTABLES" -A "$CHAIN" -j DROP
+
+remove_jump
+"$IPTABLES" -I DOCKER-USER 1 -p tcp -m conntrack \
+  --ctdir ORIGINAL --ctorigdst "$HOST_ADDRESS" --ctorigdstport "$HOST_PORT" \
+  -j "$CHAIN"

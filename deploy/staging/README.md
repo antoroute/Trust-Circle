@@ -102,6 +102,12 @@ Pour documenter les variables, extraire uniquement leurs noms via `docker inspec
 
 La première livraison est volontairement locale au LXC. L'ajout d'un domaine staging TLS, d'une restriction d'accès et d'une configuration Flutter dédiée reste requis avant un test sur appareil physique. Aucun client ne doit utiliser les domaines de production historiques.
 
+Pour `TC-113`, le seul bind interne autorisé est `10.0.20.20:18081`. Installer
+au préalable les deux fichiers de `host/` dans `/usr/local/sbin` et
+`/etc/systemd/system`, puis activer le service. La chaîne `DOCKER-USER`
+n'autorise sur ce port que NPM `10.0.10.20` et l'hôte Docker lui-même. Le
+loopback historique `127.0.0.1:18080` n'est pas conservé simultanément.
+
 ## Destruction du staging
 
 La suppression du volume PostgreSQL est irréversible. Elle exige une autorisation explicite distincte et une résolution exacte du projet :

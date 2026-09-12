@@ -1,0 +1,14 @@
+[Unit]
+Description=Restrict CircleHaven staging gateway to Nginx Proxy Manager
+After=docker.service network-online.target
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/trust-circle-staging-firewall start
+ExecReload=/usr/local/sbin/trust-circle-staging-firewall start
+ExecStop=/usr/local/sbin/trust-circle-staging-firewall stop
+
+[Install]
+WantedBy=multi-user.target
