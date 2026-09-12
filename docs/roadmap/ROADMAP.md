@@ -44,7 +44,7 @@ Objectif : empêcher l'usurpation, l'accès croisé et l'enregistrement illégit
 | TC-107 | Borner et valider tous les payloads, identifiants et tailles | TC-103 | Terminée — backend, Flutter, OpenAPI et staging validés |
 | TC-108 | Durcir CORS, rate limits, proxy trust et WebSocket | TC-102, TC-107 | Terminée — frontière et ACK validés sur staging |
 | TC-109 | Retirer le faux secret partagé de l'application publique | TC-101 | Terminée — client, backend et staging validés sans secret partagé |
-| TC-110 | Mettre à jour les dépendances vulnérables avec tests | TC-111 | En cours — inventaire terminé |
+| TC-110 | Mettre à jour les dépendances vulnérables avec tests | TC-111 | Terminée — zéro avis npm, staging validé |
 | TC-111 | Créer les tests négatifs auth/ACL/keys et PostgreSQL d'intégration | TC-004 | Terminée — matrice locale et PostgreSQL staging validées |
 | TC-114 | Interdire affichage, cache et notification avant authentification du message | TC-103 | En cours |
 | TC-112 | Revue de sécurité de fermeture P1 | TC-101 à TC-111, TC-114 | À faire |

@@ -1,6 +1,6 @@
 # TC-110 — Mettre à jour les dépendances vulnérables
 
-Statut : En cours — inventaire terminé, mises à jour à appliquer
+Statut : Terminée — validée localement et sur staging le 2026-09-12
 Priorité : P0 chaîne logicielle
 Décision : mainteneur pour les versions correctives, propriétaire si une rupture produit est nécessaire
 Dépendance : TC-111 terminée
@@ -37,19 +37,49 @@ Windows, iOS ou macOS.
 
 ## Critères d'acceptation
 
-- [ ] `npm audit` et `npm audit --omit=dev` retournent zéro avis dans les deux services.
-- [ ] Les lockfiles sont régénérés normalement sans `npm audit fix --force`.
-- [ ] Auth `27/27` et Messaging `90/90` restent passants.
-- [ ] Le smoke `TC-111` passe sur PostgreSQL staging.
-- [ ] Quatre services sont sains, sans redémarrage ni erreur sévère.
-- [ ] Aucun contrat JWT, ACL, preuve d'appareil, quota ou limite d'entrée n'est affaibli.
-- [ ] L'inventaire Flutter obsolète est conservé comme travail futur de plateforme.
+- [x] `npm audit` et `npm audit --omit=dev` retournent zéro avis dans les deux services.
+- [x] Les lockfiles sont régénérés normalement sans `npm audit fix --force`.
+- [x] Auth `27/27` et Messaging `90/90` restent passants.
+- [x] Le smoke `TC-111` passe sur PostgreSQL staging.
+- [x] Quatre services sont sains, sans redémarrage ni erreur sévère.
+- [x] Aucun contrat JWT, ACL, preuve d'appareil, quota ou limite d'entrée n'est affaibli.
+- [x] L'inventaire Flutter obsolète est conservé comme travail futur de plateforme.
+
+## Réalisation et preuves
+
+Les dépendances directes de sécurité sont désormais verrouillées notamment sur
+Fastify `5.12.4`, `@fastify/jwt` `10.2.2`, `pg` `8.23.0`, `bcrypt` `6.0.0`
+et Socket.IO `4.8.3`. Les schémas de réponse Fastify ont été complétés pour
+les statuts d'erreur déjà émis par les routes appareil et message ; aucun
+contrat métier ni statut effectif n'a été modifié.
+
+- avant correction : Auth `14` avis, Messaging `15` avis ;
+- après correction : zéro avis dans les arbres complets et `--omit=dev` ;
+- tests propres après `npm ci` : Auth `27/27`, Messaging `90/90` ;
+- commit déployé : `68e324c71758d3843371904f0be8a8201b09a389` ;
+- images : Auth `sha256:ddbe0fb13b09`, Messaging `sha256:bb8760a501f3` ;
+- smoke PostgreSQL/Socket.IO `TC-111` intégral réussi ;
+- quatre healthchecks sains, zéro redémarrage et zéro correspondance
+  `fatal|panic|uncaught|unhandled` dans la fenêtre post-déploiement ;
+- 40 sondes par service : Auth moyenne `1,679 ms`, maximum `5,020 ms` ;
+  Messaging moyenne `1,536 ms`, maximum `3,448 ms`.
+
+`flutter pub outdated` a aussi été relevé. Les montées majeures de
+`flutter_secure_storage`, `local_auth` et `socket_io_client` restent affectées
+aux lots plateforme, car elles exigent des builds et essais Android, Windows,
+iOS et macOS ; elles ne correspondent pas à un avis de vulnérabilité démontré
+par l'outil Dart actuel.
 
 ## Rollback
 
 Conserver la release et la configuration staging pré-`TC-110`. Aucun changement
 de schéma n'est prévu. En cas d'incompatibilité, repointer vers la release
 `TC-111` et recréer uniquement les conteneurs du projet staging, sans volume.
+
+La release précédente est
+`1aeaccf31f13c31ad58ab9c332a5d4f0140c8b76`. La configuration précédente est
+conservée en mode `0600` sous `staging.env.before-68e324c71758`. Aucune
+migration SQL ni rotation de secret n'a eu lieu.
 
 ## Hors périmètre
 
