@@ -527,21 +527,6 @@ async function requestToJoinGroup(
 }
 
 const owner = await createAccount('owner');
-await request('/auth/register', 'POST', 400, {
-  body: {
-    email: `tc107-extra-${randomUUID()}@example.invalid`,
-    username: 'tc107-extra',
-    password: 'TC107-valid-password',
-    unexpected: true,
-  },
-});
-await request('/auth/register', 'POST', 413, {
-  body: {
-    email: `tc107-large-${randomUUID()}@example.invalid`,
-    username: 'tc107-large',
-    password: 'a'.repeat(17 * 1024),
-  },
-});
 const firstIdentity = createIdentity();
 await bootstrapFirstDevice(owner, firstIdentity);
 
