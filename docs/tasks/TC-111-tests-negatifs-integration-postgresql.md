@@ -1,6 +1,6 @@
 # TC-111 — Tests négatifs et intégration PostgreSQL
 
-Statut : En cours — matrice et couverture à compléter
+Statut : Terminée — suites locales et PostgreSQL staging validés le 2026-09-12
 Priorité : P0 filet de sécurité
 Décision : mainteneur pour l'implémentation, propriétaire pour tout changement de contrat
 Dépendances : TC-004, TC-102 à TC-109 terminées
@@ -37,15 +37,47 @@ les mises à jour de dépendances de `TC-110` et la revue de fermeture `TC-112`.
 
 ## Critères d'acceptation
 
-- [ ] La matrice est reliée à des tests nommés et reproductibles.
-- [ ] Les suites Auth et Messaging passent sans réseau externe.
-- [ ] Le parcours PostgreSQL réel couvre au minimum deux comptes isolés, deux
+- [x] La matrice est reliée à des tests nommés et reproductibles.
+- [x] Les suites Auth et Messaging passent sans réseau externe.
+- [x] Le parcours PostgreSQL réel couvre au minimum deux comptes isolés, deux
       rôles distincts, un appareil pending et un appareil révoqué.
-- [ ] Les refus critiques prouvent l'absence d'écriture et, quand applicable,
+- [x] Les refus critiques prouvent l'absence d'écriture et, quand applicable,
       l'absence d'événement Socket.IO.
-- [ ] Les tests n'affichent ni mot de passe, jeton, preuve ou clé privée.
-- [ ] Le staging reste sain, sans migration ni donnée non synthétique.
-- [ ] Les commandes, résultats, limites et rollback sont documentés.
+- [x] Les tests n'affichent ni mot de passe, jeton, preuve ou clé privée.
+- [x] Le staging reste sain, sans migration ni donnée non synthétique.
+- [x] Les commandes, résultats, limites et rollback sont documentés.
+
+## Résultat et preuves
+
+- Les tests locaux relient les refus aux suites `jwt`, `acl-routes`,
+  `identity`, `account-device-*`, `group-device-key-routes`, `atomic-routes`
+  et `socket-security`. Auth réussit `27/27` et Messaging `90/90`.
+- Le smoke black-box utilise trois comptes `example.invalid`, trois appareils
+  et les rôles propriétaire, administrateur et membre sur les vrais services,
+  la vraie gateway et PostgreSQL.
+- Il refuse access absent, refresh utilisé comme access, preuve altérée,
+  appareil pending/révoqué, accès croisés cercle/conversation/messages/clés,
+  expéditeur forgé, traitement d'adhésion par un membre et changement de rôle
+  par un administrateur.
+- Les listes de conversations, messages, clés, demandes et membres sont relues
+  après les refus critiques pour prouver l'absence d'écriture. Les suites
+  locales prouvent séparément l'absence d'émission avant commit et après
+  rollback.
+- Le premier essai a confirmé le quota de trois inscriptions par heure : deux
+  anciennes probes invalides consommaient le budget avant le troisième rôle.
+  Elles ont été retirées du smoke, sans modifier le quota, et restent couvertes
+  par les tests locaux de validation `TC-107`.
+- Release finale staging :
+  `1aeaccf31f13c31ad58ab9c332a5d4f0140c8b76`; quatre services sains, zéro
+  redémarrage, labels correspondants et aucun `fatal|panic|uncaught` observé.
+
+## Rollback exécutif
+
+La release pré-`TC-111`
+`a55d8c5ecda649bb29096ea0f4301ad7bd14e888` reste disponible. Les
+configurations antérieures sont conservées en mode `0600` sous
+`staging.env.before-d6da1cfa1423` et `staging.env.before-1aeaccf31f13`.
+Aucune migration ni suppression de donnée n'a été effectuée.
 
 ## Plan de réalisation
 

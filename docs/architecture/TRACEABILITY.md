@@ -1,7 +1,7 @@
 # Matrice de traçabilité fonctionnelle et sécurité
 
-Dernière mise à jour : 2026-09-08
-Code observé : branche `main`, changement `TC-107`
+Dernière mise à jour : 2026-09-12
+Code observé : branche `main`, changement `TC-111`
 
 Cette matrice aide à retrouver rapidement le code réellement responsable d'un comportement. Elle n'atteste ni la qualité ni la sécurité d'une fonction : consulter la référence fonctionnelle, les invariants et les tâches liées avant toute modification.
 

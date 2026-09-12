@@ -45,7 +45,7 @@ Objectif : empêcher l'usurpation, l'accès croisé et l'enregistrement illégit
 | TC-108 | Durcir CORS, rate limits, proxy trust et WebSocket | TC-102, TC-107 | Terminée — frontière et ACK validés sur staging |
 | TC-109 | Retirer le faux secret partagé de l'application publique | TC-101 | Terminée — client, backend et staging validés sans secret partagé |
 | TC-110 | Mettre à jour les dépendances vulnérables avec tests | TC-111 | À faire |
-| TC-111 | Créer les tests négatifs auth/ACL/keys et PostgreSQL d'intégration | TC-004 | En cours — matrice et couverture à compléter |
+| TC-111 | Créer les tests négatifs auth/ACL/keys et PostgreSQL d'intégration | TC-004 | Terminée — matrice locale et PostgreSQL staging validées |
 | TC-114 | Interdire affichage, cache et notification avant authentification du message | TC-103 | En cours |
 | TC-112 | Revue de sécurité de fermeture P1 | TC-101 à TC-111, TC-114 | À faire |
 | TC-113 | Exposer le staging par TLS et accès restreint après fermeture P1 | TC-112 | À faire |

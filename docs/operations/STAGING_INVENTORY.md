@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
 Statut : opérationnel, accès local au LXC uniquement
-Dernier déploiement : 2026-09-09 (`TC-109`)
+Dernier déploiement : 2026-09-12 (`TC-111`)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `a55d8c5ecda649bb29096ea0f4301ad7bd14e888` |
-| Release | `/opt/trust-circle-staging/releases/a55d8c5ecda649bb29096ea0f4301ad7bd14e888` |
+| Commit source | `1aeaccf31f13c31ad58ab9c332a5d4f0140c8b76` |
+| Release | `/opt/trust-circle-staging/releases/1aeaccf31f13c31ad58ab9c332a5d4f0140c8b76` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Source Compose | `deploy/staging/compose.yml` |
@@ -25,8 +25,8 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-a55d8c5ecda6` | image ID `8cc808dca0fa`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-a55d8c5ecda6` | image ID `64fc1e7dae4e`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-1aeaccf31f13` | image ID `a3f4099dbe6f`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-1aeaccf31f13` | image ID `2d33dd2d5881`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
 | Gateway | `nginx:stable-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
 
@@ -292,6 +292,29 @@ sous `staging.env.before-19aa30d0d087`; l'instantané nettoyé précédant le sm
 final est sous `staging.env.before-a55d8c5ecda6`. La release
 `054eabdf65624d4c5db654742ba7ddf77e88a4cc` reste le rollback complet
 pré-`TC-109`, sans restauration de données.
+
+Le redéploiement `TC-111` du 2026-09-12 a ensuite validé :
+
+1. `27/27` tests Auth et `90/90` tests Messaging sans réseau externe ;
+2. parcours black-box de trois comptes et appareils synthétiques sur Nginx,
+   Auth, Messaging, Socket.IO et PostgreSQL réels ;
+3. refus des access absents, refresh employés comme access, preuves d'appareil
+   altérées, appareils pending/révoqués et expéditeurs forgés ;
+4. isolation croisée des cercles, membres, conversations, messages et clés,
+   puis matrice propriétaire/administrateur/membre sur les demandes et rôles ;
+5. relecture après refus des collections PostgreSQL exposées par l'API pour
+   confirmer l'absence d'écriture, complétée par les assertions unitaires
+   d'absence d'événement avant commit/après rollback ;
+6. maintien du quota d'inscription à trois par heure : le test a été rendu
+   compatible sans relever ni contourner cette limite ;
+7. quatre services sains, labels sur
+   `1aeaccf31f13c31ad58ab9c332a5d4f0140c8b76`, zéro redémarrage et aucun
+   `fatal|panic|uncaught` dans la fenêtre post-déploiement.
+
+Les configurations antérieures sont conservées en mode `0600` sous
+`staging.env.before-d6da1cfa1423` et `staging.env.before-1aeaccf31f13`. La
+release `a55d8c5ecda649bb29096ea0f4301ad7bd14e888` reste le rollback complet
+pré-`TC-111`; aucune migration n'a été appliquée.
 
 ## Limites assumées
 
