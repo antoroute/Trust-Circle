@@ -77,6 +77,13 @@ Le parcours crée et connecte ses comptes, renouvelle l'access token avec le
 refresh token, puis appelle Messaging sans aucun secret d'application partagé.
 Il vérifie également qu'une route Messaging reste refusée sans access token.
 
+Depuis `TC-111`, il exerce aussi trois comptes réels et les rôles
+propriétaire/administrateur/membre : accès croisés cercle, conversation,
+messages et clés, preuve d'appareil altérée, appareil en attente ou révoqué,
+usurpation d'expéditeur, traitement d'adhésion et élévation de rôle. Les refus
+critiques sont suivis d'une lecture PostgreSQL via l'API afin de confirmer que
+l'état métier est resté inchangé.
+
 Ne jamais exécuter `docker compose config` sans `--quiet` dans une sortie partagée : la configuration résolue contient des secrets.
 
 ## Inspection sûre

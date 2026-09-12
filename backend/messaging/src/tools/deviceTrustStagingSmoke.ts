@@ -101,13 +101,20 @@ async function request(
     body?: JsonObject;
     token?: string;
     identity?: Identity;
+    invalidDeviceProof?: boolean;
   } = {},
 ): Promise<unknown> {
   const headers: Record<string, string> = { 'x-client-version': clientVersion };
   if (options.body) headers['content-type'] = 'application/json';
   if (options.token) headers.authorization = `Bearer ${options.token}`;
   if (options.token && options.identity) {
-    Object.assign(headers, deviceAccessHeaders(options.token, options.identity));
+    const proofHeaders = deviceAccessHeaders(options.token, options.identity);
+    if (options.invalidDeviceProof) {
+      const proof = proofHeaders['x-circlehaven-device-proof'];
+      proofHeaders['x-circlehaven-device-proof'] =
+        `${proof[0] === 'A' ? 'B' : 'A'}${proof.slice(1)}`;
+    }
+    Object.assign(headers, proofHeaders);
   }
 
   const response = await fetch(`${baseUrl}${path}`, {
@@ -129,6 +136,14 @@ async function request(
     );
   }
   return responseBody;
+}
+
+function arrayValue(value: unknown, context: string): JsonObject[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${context}: expected a JSON array`);
+  }
+  return value.map((entry, index) =>
+    objectValue(entry, `${context}[${index}]`));
 }
 
 async function socketPollingAck(
@@ -191,6 +206,47 @@ async function socketPollingAck(
     headers: commonHeaders,
     body: '41',
   }).catch(() => undefined);
+}
+
+async function socketPollingRejectsInvalidProof(
+  account: Account,
+  identity: Identity,
+): Promise<void> {
+  const commonHeaders = { 'content-type': 'text/plain;charset=UTF-8' };
+  const endpoint = `${baseUrl}/socket/?EIO=4&transport=polling`;
+  const opening = await fetch(endpoint, { headers: commonHeaders });
+  const openingBody = await opening.text();
+  if (!opening.ok || !openingBody.startsWith('0')) {
+    throw new Error(`Socket.IO negative open: unexpected status ${opening.status}`);
+  }
+  const openPacket = objectValue(
+    JSON.parse(openingBody.slice(1)),
+    'Socket.IO negative open packet',
+  );
+  const sid = stringValue(openPacket, 'sid', 'Socket.IO negative open packet');
+  const sessionEndpoint = `${endpoint}&sid=${encodeURIComponent(sid)}`;
+  const proofHeaders = deviceAccessHeaders(account.accessToken, identity);
+  const proof = proofHeaders['x-circlehaven-device-proof'];
+  const connect = await fetch(sessionEndpoint, {
+    method: 'POST',
+    headers: commonHeaders,
+    body: `40${JSON.stringify({
+      token: account.accessToken,
+      deviceId: proofHeaders['x-circlehaven-device-id'],
+      deviceKeyVersion: Number(
+        proofHeaders['x-circlehaven-device-key-version'],
+      ),
+      deviceProof: `${proof[0] === 'A' ? 'B' : 'A'}${proof.slice(1)}`,
+    })}`,
+  });
+  if (!connect.ok) {
+    throw new Error(`Socket.IO negative connect: unexpected status ${connect.status}`);
+  }
+  const denied = await fetch(sessionEndpoint, { headers: commonHeaders });
+  const deniedBody = await denied.text();
+  if (!denied.ok || !deniedBody.split('\x1e').some((packet) => packet.startsWith('44'))) {
+    throw new Error('Socket.IO accepted an altered device proof');
+  }
 }
 
 function createIdentity(): Identity {
@@ -448,6 +504,28 @@ function messageBody(input: {
   };
 }
 
+async function requestToJoinGroup(
+  account: Account,
+  identity: Identity,
+  groupId: string,
+): Promise<string> {
+  const response = objectValue(
+    await request(`/api/groups/${groupId}/join`, 'POST', 200, {
+      token: account.accessToken,
+      identity,
+      body: {
+        deviceId: identity.deviceId,
+        pk_sig: randomBytes(32).toString('base64'),
+        pk_kem: randomBytes(32).toString('base64'),
+        groupSigningPubKey: randomBytes(32).toString('base64'),
+        groupKEMPubKey: randomBytes(32).toString('base64'),
+      },
+    }),
+    'join request',
+  );
+  return stringValue(response, 'id', 'join request');
+}
+
 const owner = await createAccount('owner');
 await request('/auth/register', 'POST', 400, {
   body: {
@@ -473,6 +551,15 @@ await request('/api/groups', 'GET', 401, { token: owner.refreshToken });
 
 const secondIdentity = createIdentity();
 await registerFollowingDevice(owner, secondIdentity);
+await request('/api/groups', 'GET', 403, {
+  token: owner.accessToken,
+  identity: secondIdentity,
+});
+await request('/api/groups', 'GET', 403, {
+  token: owner.accessToken,
+  identity: firstIdentity,
+  invalidDeviceProof: true,
+});
 const pendingView = await request('/api/devices', 'GET', 200, {
   token: owner.accessToken,
   identity: secondIdentity,
@@ -522,6 +609,84 @@ const conversation = objectValue(
   'conversation creation',
 );
 const conversationId = stringValue(conversation, 'id', 'conversation creation');
+
+const outsider = await createAccount('outsider');
+const outsiderIdentity = createIdentity();
+await bootstrapFirstDevice(outsider, outsiderIdentity);
+await request(`/api/groups/${groupId}`, 'GET', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+});
+await request(`/api/groups/${groupId}/members`, 'GET', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+});
+await request(`/api/keys/group/${groupId}`, 'GET', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+});
+await request(`/api/conversations/${conversationId}`, 'GET', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+});
+await request(`/api/conversations/${conversationId}/messages`, 'GET', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+});
+const conversationsBeforeRefusal = arrayValue(
+  await request('/api/conversations', 'GET', 200, {
+    token: owner.accessToken,
+    identity: firstIdentity,
+  }),
+  'owner conversations before cross-account refusal',
+);
+await request('/api/conversations', 'POST', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+  body: {
+    groupId,
+    type: 'private',
+    memberIds: [outsider.userId],
+  },
+});
+const conversationsAfterRefusal = arrayValue(
+  await request('/api/conversations', 'GET', 200, {
+    token: owner.accessToken,
+    identity: firstIdentity,
+  }),
+  'owner conversations after cross-account refusal',
+);
+if (conversationsAfterRefusal.length !== conversationsBeforeRefusal.length) {
+  throw new Error('cross-account conversation refusal wrote a conversation');
+}
+const outsiderKeys = createCircleKeys();
+await request(`/api/keys/group/${groupId}/devices`, 'POST', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+  body: keyPublication(outsider, outsiderIdentity, groupId, 1, outsiderKeys),
+});
+const emptyDirectory = await request(`/api/keys/group/${groupId}`, 'GET', 200, {
+  token: owner.accessToken,
+  identity: firstIdentity,
+});
+if (arrayValue(emptyDirectory, 'directory after refused outsider key').length !== 0) {
+  throw new Error('cross-account key refusal changed the directory');
+}
+const outsiderJoinRequestId = await requestToJoinGroup(
+  outsider,
+  outsiderIdentity,
+  groupId,
+);
+await request(
+  `/api/groups/${groupId}/requests/${outsiderJoinRequestId}/accept`,
+  'POST',
+  200,
+  { token: owner.accessToken, identity: firstIdentity },
+);
+await request(`/api/groups/${groupId}/join-requests`, 'GET', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+});
 await request('/api/conversations', 'POST', 400, {
   token: owner.accessToken,
   identity: firstIdentity,
@@ -576,6 +741,44 @@ await request('/api/messages', 'POST', 201, {
     recipientKeyVersion: 1,
   }),
 });
+const messageCountBeforeForgery = arrayValue(
+  objectValue(
+    await request(`/api/conversations/${conversationId}/messages`, 'GET', 200, {
+      token: owner.accessToken,
+      identity: firstIdentity,
+    }),
+    'messages before sender forgery',
+  ).items,
+  'messages before sender forgery items',
+).length;
+const forgedSenderMessage = messageBody({
+  account: owner,
+  identity: firstIdentity,
+  groupId,
+  conversationId,
+  senderKeyVersion: 1,
+  recipientIdentity: firstIdentity,
+  recipientKeyVersion: 1,
+}) as { sender: { userId: string } } & JsonObject;
+forgedSenderMessage.sender.userId = outsider.userId;
+await request('/api/messages', 'POST', 403, {
+  token: owner.accessToken,
+  identity: firstIdentity,
+  body: forgedSenderMessage,
+});
+const messageCountAfterForgery = arrayValue(
+  objectValue(
+    await request(`/api/conversations/${conversationId}/messages`, 'GET', 200, {
+      token: owner.accessToken,
+      identity: firstIdentity,
+    }),
+    'messages after sender forgery',
+  ).items,
+  'messages after sender forgery items',
+).length;
+if (messageCountAfterForgery !== messageCountBeforeForgery) {
+  throw new Error('sender forgery refusal wrote a message');
+}
 const oversizedCiphertext = messageBody({
   account: owner,
   identity: firstIdentity,
@@ -731,6 +934,7 @@ if (
 }
 
 await socketPollingAck(owner, firstIdentity, conversationId);
+await socketPollingRejectsInvalidProof(owner, firstIdentity);
 
 const accessOnly = await createAccount('access-only');
 const attackerIdentity = createIdentity();
@@ -745,7 +949,90 @@ const deniedBootstrap = objectValue(
 if (deniedBootstrap.error !== 'bootstrap_authorization_required') {
   throw new Error('access-token-only bootstrap: unexpected denial');
 }
+await bootstrapFirstDevice(accessOnly, attackerIdentity);
+const accessOnlyJoinRequestId = await requestToJoinGroup(
+  accessOnly,
+  attackerIdentity,
+  groupId,
+);
+await request(`/api/groups/${groupId}/join-requests`, 'GET', 403, {
+  token: outsider.accessToken,
+  identity: outsiderIdentity,
+});
+await request(
+  `/api/groups/${groupId}/join-requests/${accessOnlyJoinRequestId}/handle`,
+  'POST',
+  403,
+  {
+    token: outsider.accessToken,
+    identity: outsiderIdentity,
+    body: { action: 'accept' },
+  },
+);
+const pendingRequests = arrayValue(
+  await request(`/api/groups/${groupId}/join-requests`, 'GET', 200, {
+    token: owner.accessToken,
+    identity: firstIdentity,
+  }),
+  'pending requests after member refusal',
+);
+if (!pendingRequests.some((entry) => entry.id === accessOnlyJoinRequestId)) {
+  throw new Error('member refusal consumed or hid the pending join request');
+}
+await request(
+  `/api/groups/${groupId}/members/${outsider.userId}/role`,
+  'PATCH',
+  200,
+  {
+    token: owner.accessToken,
+    identity: firstIdentity,
+    body: { role: 'admin' },
+  },
+);
+const adminRequests = arrayValue(
+  await request(`/api/groups/${groupId}/join-requests`, 'GET', 200, {
+    token: outsider.accessToken,
+    identity: outsiderIdentity,
+  }),
+  'admin join requests',
+);
+if (!adminRequests.some((entry) => entry.id === accessOnlyJoinRequestId)) {
+  throw new Error('promoted admin cannot see the pending join request');
+}
+await request(
+  `/api/groups/${groupId}/join-requests/${accessOnlyJoinRequestId}/handle`,
+  'POST',
+  200,
+  {
+    token: outsider.accessToken,
+    identity: outsiderIdentity,
+    body: { action: 'accept' },
+  },
+);
+await request(
+  `/api/groups/${groupId}/members/${accessOnly.userId}/role`,
+  'PATCH',
+  403,
+  {
+    token: outsider.accessToken,
+    identity: outsiderIdentity,
+    body: { role: 'admin' },
+  },
+);
+const membersAfterRoleRefusal = arrayValue(
+  await request(`/api/groups/${groupId}/members`, 'GET', 200, {
+    token: owner.accessToken,
+    identity: firstIdentity,
+  }),
+  'members after admin role escalation refusal',
+);
+const accessOnlyMembership = membersAfterRoleRefusal.find(
+  (entry) => entry.userId === accessOnly.userId,
+);
+if (!accessOnlyMembership || accessOnlyMembership.role !== 'member') {
+  throw new Error('admin role escalation refusal changed the target role');
+}
 
 console.log(
-  'TC-106 lot D + TC-107 + TC-108 smoke passed: device trust transitions, strict objects, input bounds and Socket.IO subscription ACK.',
+  'TC-111 security integration passed: JWT/device negatives, cross-account ACL, roles, keys, messages, PostgreSQL transactions and Socket.IO.',
 );
