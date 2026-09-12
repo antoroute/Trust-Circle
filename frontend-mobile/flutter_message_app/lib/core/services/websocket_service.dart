@@ -129,7 +129,7 @@ class WebSocketService {
 
     try {
       _socket = IO.io(
-        'https://api.kavalek.fr',
+        socketBase,
         IO.OptionBuilder()
             .setPath('/socket')
             .setTransports(['websocket'])

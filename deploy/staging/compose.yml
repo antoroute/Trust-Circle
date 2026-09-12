@@ -118,7 +118,7 @@ services:
     image: "${TC_NGINX_IMAGE:?TC_NGINX_IMAGE must be pinned by digest}"
     user: "101:101"
     ports:
-      - "127.0.0.1:${TC_STAGING_HTTP_PORT:-18080}:8080"
+      - "${TC_STAGING_BIND_ADDRESS:-127.0.0.1}:${TC_STAGING_HTTP_PORT:-18080}:8080"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     tmpfs:

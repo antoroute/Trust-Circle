@@ -53,9 +53,9 @@ class AuthProvider extends ChangeNotifier {
   bool get canUseMessaging =>
       isAuthenticated && _deviceTrustState == DeviceTrustState.active;
 
-  final Uri _loginUri = Uri.parse('https://auth.kavalek.fr/auth/login');
-  final Uri _refreshUri = Uri.parse('https://auth.kavalek.fr/auth/refresh');
-  final Uri _registerUri = Uri.parse('https://auth.kavalek.fr/auth/register');
+  final Uri _loginUri = Uri.parse('$authBase/login');
+  final Uri _refreshUri = Uri.parse('$authBase/refresh');
+  final Uri _registerUri = Uri.parse('$authBase/register');
 
   /// Retourne l'ID de l'utilisateur extrait du JWT (claim "id").
   String? get userId {

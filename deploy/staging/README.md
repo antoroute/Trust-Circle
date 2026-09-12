@@ -13,7 +13,9 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
   le staging reste réservé aux clients natifs.
 - Redis absent : aucun code backend actuel ne l'utilise.
 - Auth/messaging non publiés sur l'hôte.
-- Gateway liée uniquement à `127.0.0.1:18080` sur le LXC tant que TLS et les premières corrections P0 ne sont pas terminés.
+- Gateway liée par défaut uniquement à `127.0.0.1:18080`. Une adresse interne
+  différente exige `TC_STAGING_BIND_ADDRESS`, un port dédié, un filtrage réseau
+  limité à NPM et la procédure `TC-113` ; ne jamais utiliser `0.0.0.0`.
 - Secrets générés hors dépôt dans un fichier `0600`.
 - Images backend étiquetées avec le commit et la version de staging.
 - Images PostgreSQL/Nginx fournies par digest dans le fichier d'environnement privé.
