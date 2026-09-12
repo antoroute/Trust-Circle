@@ -28,7 +28,9 @@ Le premier accès à un cercle sans annuaire local est mesuré séparément : il
 Depuis `frontend-mobile/flutter_message_app`, avec l'appareil visible par `flutter devices` :
 
 ```bash
-flutter run -d <identifiant-android>
+flutter run -d <identifiant-android> \
+  --dart-define=TC_ENVIRONMENT=staging \
+  --dart-define=TC_API_BASE_URL=https://trust-circle.kavalek.fr
 ```
 
 Ouvrir la conversation une première fois avec les nouveaux messages, puis une seconde fois pour exercer le cache persistant. Dans la sortie debug, relever uniquement les lignes agrégées du rapport pour :
@@ -43,7 +45,9 @@ Ouvrir la conversation une première fois avec les nouveaux messages, puis une s
 Dans PowerShell, depuis le même dossier :
 
 ```powershell
-flutter run -d windows
+flutter run -d windows `
+  --dart-define=TC_ENVIRONMENT=staging `
+  --dart-define=TC_API_BASE_URL=https://trust-circle.kavalek.fr
 ```
 
 Répéter le scénario Android et relever les mêmes agrégats.

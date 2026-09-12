@@ -1,16 +1,17 @@
 # TC-113 — Exposer le staging par TLS avec accès restreint
 
-Statut : En cours — configuration client préparée, changement réseau non appliqué
+Statut : En cours — client et filtrage LXC prêts, routage OPNsense/NPM restant
 Priorité : P0 exposition
 Décision : propriétaire pour l'ouverture réseau, mainteneur pour le client
 Dépendances : corrections P1 implémentées ; revue finale `TC-112`
 
 ## Contexte
 
-Le gateway staging écoute uniquement sur le loopback de LXC106. Ce choix était
-nécessaire pendant les corrections P0, mais empêche les validations physiques
-Android et Windows de `TC-114`. Le client contient encore les anciens domaines
-de production en dur, ce qui interdit de l'utiliser pour un test staging sûr.
+Le gateway staging écoutait uniquement sur le loopback de LXC106. Le client
+utilise désormais une configuration publique injectée au build et ne contient
+plus les anciens domaines de production. Le bind interne a été ouvert après
+installation d'un filtrage hôte limité à NPM ; OPNsense bloque encore le trajet
+inter-VLAN tant que sa règle exacte n'est pas créée.
 
 Le domaine provisoire décidé est exactement `trust-circle.kavalek.fr`. Il ne
 doit pas devenir un accès public général : Nginx Proxy Manager termine TLS et
@@ -33,11 +34,12 @@ une ACL limite les sources aux VPN et appareils explicitement autorisés.
 - [x] le build staging porte un bandeau visible et aucune valeur secrète.
 - [x] le bind Compose reste loopback par défaut et n'accepte une adresse interne
   qu'au moyen d'un paramètre staging explicite.
-- [ ] le gateway écoute sur une adresse interne joignable uniquement par NPM.
+- [x] le gateway écoute sur une adresse interne filtrée pour NPM uniquement.
 - [ ] NPM force TLS/HSTS, autorise WebSocket et applique l'ACL retenue.
-- [ ] le chemin réseau NPM vers LXC106 est limité au port staging exact.
+- [ ] le chemin réseau NPM vers LXC106 est limité au port staging exact
+  (filtre LXC actif ; règle OPNsense exacte encore absente).
 - [ ] les tests HTTPS autorisés/refusés et le smoke REST/Socket.IO réussissent.
-- [ ] l'inventaire et le rollback sont documentés sans secret.
+- [x] l'inventaire et le rollback sont documentés sans secret.
 
 ## Commande de build staging
 
@@ -60,3 +62,38 @@ host, remettre le bind gateway sur `127.0.0.1`, redéployer uniquement la stack
 
 La production et les anciens domaines `api.kavalek.fr`/`auth.kavalek.fr` sont
 strictement hors périmètre.
+
+## État appliqué et preuves
+
+- release active : `e6dce1bfe3920fd91621acf0875a25e89a4d4731` ;
+- gateway : `10.0.20.20:18081`, sans écoute simultanée sur l'ancien
+  `127.0.0.1:18080` ;
+- service `trust-circle-staging-firewall.service` activé et actif ;
+- chaîne `DOCKER-USER` : seul NPM `10.0.10.20/32` et l'hôte LXC peuvent
+  atteindre le port publié, toute autre source est rejetée ;
+- tentative depuis un autre LXC du VLAN staging refusée et compteur de rejet
+  incrémenté ;
+- les quatre conteneurs sont sains, sans redémarrage ni log sévère détecté ;
+- smoke REST/PostgreSQL/Socket.IO passé via l'adresse interne après le
+  redéploiement.
+
+Sauvegardes préalables vérifiées, en mode `0600` :
+
+- NPM LXC300 :
+  `/root/backups/trust-circle-staging/20260912T154428Z/database.sqlite` et
+  `nginx.tar.gz` ;
+- staging LXC106 :
+  `/opt/trust-circle-staging/shared/staging.env.before-e6dce1bfe392`.
+
+## Étape réseau restante
+
+Créer dans OPNsense une règle **TCP** strictement limitée à : source
+`10.0.10.20` (NPM), destination `10.0.20.20`, port destination `18081`, avec
+journalisation et placement avant le blocage inter-VLAN. Description proposée :
+`REMOTE-IN-ALLOW-NPM-TO-TRUST-CIRCLE-STAGING-18081`.
+
+Après application, vérifier depuis LXC300 que le gateway répond, puis créer le
+proxy host NPM pour `trust-circle.kavalek.fr` avec le certificat wildcard
+existant et l'ACL `Interne - VPN et 3 appareils Bbox`. Forcer SSL/HSTS, activer
+WebSocket et conserver l'upstream HTTP interne `10.0.20.20:18081`. La tâche ne
+sera terminée qu'après tests HTTPS autorisé, HTTPS refusé et Socket.IO réel.

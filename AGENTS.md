@@ -45,9 +45,13 @@ Backend, dans chacun des dossiers `backend/auth` et `backend/messaging` :
 ```bash
 npm ci
 npm run build
+npm test
+npm audit --omit=dev
+npm audit
 ```
 
-Il n'existe pas encore de scripts de lint ou de test backend : leur absence est un risque connu, pas une validation réussie.
+Les deux backends utilisent le runner de test natif Node. Ne pas lui transmettre
+d'option propre à Jest telle que `--runInBand`.
 
 Application Flutter, dans `frontend-mobile/flutter_message_app` :
 

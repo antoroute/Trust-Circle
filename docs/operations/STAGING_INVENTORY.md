@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
-Statut : opérationnel, accès local au LXC uniquement
-Dernier déploiement : 2026-09-12 (`TC-110`)
+Statut : opérationnel, bind interne filtré ; publication TLS en attente
+Dernier déploiement : 2026-09-12 (`TC-113` en cours)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `68e324c71758d3843371904f0be8a8201b09a389` |
-| Release | `/opt/trust-circle-staging/releases/68e324c71758d3843371904f0be8a8201b09a389` |
+| Commit source | `e6dce1bfe3920fd91621acf0875a25e89a4d4731` |
+| Release | `/opt/trust-circle-staging/releases/e6dce1bfe3920fd91621acf0875a25e89a4d4731` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Source Compose | `deploy/staging/compose.yml` |
@@ -25,8 +25,8 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-68e324c71758` | image ID `ddbe0fb13b09`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-68e324c71758` | image ID `bb8760a501f3`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-e6dce1bfe392` | image ID `3a31eda18215`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-e6dce1bfe392` | image ID `c34d313a362c`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
 | Gateway | `nginx:stable-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
 
@@ -37,7 +37,9 @@ Les références tierces exactes observées au déploiement sont :
 
 ## Isolation
 
-- Gateway : `127.0.0.1:18080` sur le LXC uniquement.
+- Gateway : `10.0.20.20:18081`, filtrée sur l'hôte pour NPM
+  `10.0.10.20/32` uniquement ; aucun bind `0.0.0.0` ni ancien loopback
+  simultané.
 - Auth et messaging : aucune publication de port hôte.
 - PostgreSQL : aucune publication de port hôte, réseau interne `trust-circle-staging-data`.
 - Réseaux : `trust-circle-staging-edge` en `172.30.108.0/24` avec gateway
@@ -334,12 +336,33 @@ La configuration précédente est conservée en mode `0600` sous
 `1aeaccf31f13c31ad58ab9c332a5d4f0140c8b76` reste le rollback applicatif
 pré-`TC-110`, sans restauration de données.
 
+Le redéploiement préparatoire `TC-113` du 2026-09-12 a ensuite validé :
+
+1. build et déploiement Auth/Messaging depuis
+   `e6dce1bfe3920fd91621acf0875a25e89a4d4731` ;
+2. passage du gateway de `127.0.0.1:18080` à l'adresse interne exacte
+   `10.0.20.20:18081`, sans exposition des autres services ;
+3. installation d'un service de filtrage persistant dans `DOCKER-USER`,
+   autorisant uniquement NPM `10.0.10.20/32` et l'hôte sur ce port ;
+4. refus confirmé depuis un autre LXC du VLAN et compteur de rejet incrémenté ;
+5. smoke complet via l'adresse interne, quatre conteneurs sains, zéro
+   redémarrage et aucun log sévère dans la fenêtre inspectée ;
+6. sauvegarde préalable de NPM et de la configuration privée staging en mode
+   `0600`, avec contrôle d'intégrité SQLite réussi.
+
+La tentative NPM vers le gateway reste refusée par OPNsense avant d'atteindre
+le filtre LXC. La règle inter-VLAN exacte, puis le proxy host TLS/ACL et ses
+tests restent donc nécessaires pour terminer `TC-113`.
+
 ## Limites assumées
 
-- Pas de domaine ni TLS : accès volontairement local jusqu'à la revue de fermeture de Phase 1.
-- Pas encore de build Flutter ciblant le staging.
+- Domaine résolu mais pas encore de proxy host TLS : OPNsense bloque encore le
+  trajet NPM vers le port staging exact.
+- Configuration de build Flutter staging prête ; validation physique Android
+  et Windows encore requise par `TC-114`.
 - Pas encore d'outil de migrations ni de restauration complète du volume principal ; les migrations `TC-104` à `TC-106` et leurs rollbacks ont été exercés dans un environnement PostgreSQL isolé, mais appliqués manuellement au staging.
-- Les principaux scénarios d'autorisation croisée cercle/conversation/clé de `TC-104` sont couverts ; l'élargissement de la suite d'intégration PostgreSQL et des tests négatifs reste suivi par `TC-111`.
+- Les scénarios d'autorisation croisée cercle/conversation/clé sont couverts
+  par `TC-111` et le smoke adversarial courant.
 - Images backend locales non publiées dans un registre ; l'image ID et les labels assurent la traçabilité locale, pas une provenance distante.
 - Le LXC reste partagé et privilégié.
 

@@ -1,7 +1,7 @@
 # Roadmap de développement vers la V1
 
 Statut : plan directeur initial
-Dernière mise à jour : 2026-08-28
+Dernière mise à jour : 2026-09-12
 
 ## Mode d'emploi
 
@@ -47,8 +47,8 @@ Objectif : empêcher l'usurpation, l'accès croisé et l'enregistrement illégit
 | TC-110 | Mettre à jour les dépendances vulnérables avec tests | TC-111 | Terminée — zéro avis npm, staging validé |
 | TC-111 | Créer les tests négatifs auth/ACL/keys et PostgreSQL d'intégration | TC-004 | Terminée — matrice locale et PostgreSQL staging validées |
 | TC-114 | Interdire affichage, cache et notification avant authentification du message | TC-103 | En cours |
-| TC-112 | Revue de sécurité de fermeture P1 | TC-101 à TC-111, TC-114 | À faire |
-| TC-113 | Exposer le staging par TLS et accès restreint après fermeture P1 | TC-112 | À faire |
+| TC-112 | Revue de sécurité de fermeture P1 | TC-101 à TC-111, TC-114 | Terminée — Go avec réserves tracées |
+| TC-113 | Exposer le staging par TLS et accès restreint après fermeture P1 | TC-112 | En cours — filtre LXC actif, routage OPNsense/NPM restant |
 
 Porte de sortie : tests d'usurpation et accès croisé tous négatifs, aucun secret par défaut/embarqué, aucune vulnérabilité critique/haute exploitable acceptée silencieusement.
 
