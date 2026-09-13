@@ -78,6 +78,11 @@ Porte de sortie : environnement reproductible, migrations versionnées, restaura
 
 ## Phase 3 — Protocole E2EE V3 et multi-appareil
 
+La direction de l'ADR-0003 a été acceptée par anticipation le 2026-09-13 :
+MLS 1.0 via OpenMLS en Rust. Cela ne démarre pas l'implémentation de cette phase
+et ne clôt pas `TC-301` : prototypes, stockage crash-safe et benchmarks sur les
+quatre OS restent obligatoires après la Phase 2.
+
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |

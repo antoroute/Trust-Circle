@@ -1,7 +1,7 @@
 # Matrice de traçabilité fonctionnelle et sécurité
 
-Dernière mise à jour : 2026-09-12
-Code observé : branche `main`, changement `TC-111`
+Dernière mise à jour : 2026-09-13
+Code observé : branche `main`, changement `TC-114`
 
 Cette matrice aide à retrouver rapidement le code réellement responsable d'un comportement. Elle n'atteste ni la qualité ni la sécurité d'une fonction : consulter la référence fonctionnelle, les invariants et les tâches liées avant toute modification.
 
@@ -17,6 +17,7 @@ Cette matrice aide à retrouver rapidement le code réellement responsable d'un 
 | génération et stockage des clés | [`key_manager_final.dart`](../../frontend-mobile/flutter_message_app/lib/core/crypto/key_manager_final.dart), [`secure_string_store.dart`](../../frontend-mobile/flutter_message_app/lib/core/services/secure_string_store.dart) | secure storage, chargement fail-closed et versions historiques | `TC-106` lots A/D, `TC-303`, `TC-306` |
 | annuaire de clés publiques | [`key_directory_service.dart`](../../frontend-mobile/flutter_message_app/lib/core/services/key_directory_service.dart) | Messaging API, cache mémoire/SQLite versionné et invalidation temps réel | `TC-106` lot D, `TC-303` |
 | enveloppe E2EE V2 | [`message_cipher_v2.dart`](../../frontend-mobile/flutter_message_app/lib/core/crypto/message_cipher_v2.dart), [`message_envelope_verifier.dart`](../../frontend-mobile/flutter_message_app/lib/core/crypto/message_envelope_verifier.dart), [`message_v2.dart`](../../frontend-mobile/flutter_message_app/lib/core/models/message_v2.dart) | JSON V2 | `TC-114`, `TC-301` à `TC-312` |
+| cible E2EE V3 (non implémentée) | [`ADR-0003`](../adr/ADR-0003-protocole-crypto-v3.md), [rapport de décision](../security/CRYPTOGRAPHY_V3_DECISION.md) | MLS 1.0/OpenMLS, moteur Rust local, backend relais opaque | `TC-301` en cours, puis `TC-302` à `TC-312` |
 | calculs cryptographiques hors UI | [`crypto_isolate_service.dart`](../../frontend-mobile/flutter_message_app/lib/core/crypto/crypto_isolate_service.dart), [`crypto_isolate_worker.dart`](../../frontend-mobile/flutter_message_app/lib/core/crypto/crypto_isolate_worker.dart) | isolates Flutter | `TC-114`, tests performance |
 | orchestration messages/conversations | [`conversation_provider.dart`](../../frontend-mobile/flutter_message_app/lib/core/providers/conversation_provider.dart) | REST, Socket.IO, caches | `TC-104`/`TC-105` terminés, `TC-114`, Phase 5 |
 | barrière de remise après authentification | [`verified_message_delivery.dart`](../../frontend-mobile/flutter_message_app/lib/core/security/verified_message_delivery.dart) | bulle, cache, persistance et notification | `TC-114` |

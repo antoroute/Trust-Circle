@@ -1,7 +1,7 @@
 # Modèle de menace
 
 Statut : baseline V1, document vivant
-Dernière mise à jour : 2026-08-25
+Dernière mise à jour : 2026-09-13
 
 ## Périmètre et objectifs
 
@@ -67,7 +67,12 @@ Il ne promet pas l'anonymat, la résistance à un appareil déjà compromis, la 
 - Un membre autorisé peut recopier ce qu'il voit.
 - Un appareil compromis pendant son utilisation peut exposer contenu et clés.
 - La disponibilité dépend de l'infrastructure auto-hébergée et de ses sauvegardes.
-- Le protocole V2 actuel n'offre pas les garanties modernes attendues tant que l'ADR crypto V3 n'est pas clôturée et implémentée.
+- L'ADR-0003 retient désormais MLS 1.0/OpenMLS, mais le protocole V2 actuel
+  n'offre pas les garanties modernes attendues tant que la V3 n'est pas
+  implémentée, testée et auditée.
+- Même avec MLS, un service d'authentification compromis peut tenter d'ajouter
+  un appareil fantôme tant que la liaison des credentials, la transparence des
+  clés et les vérifications hors bande de `TC-303` ne sont pas démontrées.
 
 ## Entretien
 

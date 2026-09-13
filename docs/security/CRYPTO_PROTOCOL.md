@@ -1,7 +1,7 @@
 # Protocole cryptographique
 
-Statut : synthèse V2 observée, V3 à décider
-Dernière mise à jour : 2026-08-25
+Statut : synthèse V2 observée et direction V3 acceptée
+Dernière mise à jour : 2026-09-13
 
 Ce document donne l'orientation de sécurité. La description champ par champ du code actuel, des clés, octets signés, caches et métadonnées est dans [`CRYPTOGRAPHY_V2.md`](CRYPTOGRAPHY_V2.md).
 
@@ -36,10 +36,22 @@ Cette liste d'algorithmes ne suffit pas à démontrer un protocole sûr. La sér
 - Plan de coexistence/migration des enveloppes V2 sans déchiffrement serveur.
 - Revue par un spécialiste indépendant avant la promesse publique.
 
-## Décision ouverte
+## Décision V3 acceptée
 
-`ADR-0003` compare l'adoption d'un standard de messagerie de groupe, notamment MLS via une bibliothèque mûre, avec un protocole interne V3 minimal. Le choix dépendra de la maturité des bibliothèques Flutter/desktop, de l'interopérabilité, du coût de migration et de la capacité à auditer/maintenir la solution.
+L'[ADR-0003](../adr/ADR-0003-protocole-crypto-v3.md) retient MLS 1.0
+(RFC 9420/RFC 9750) avec OpenMLS en Rust et la suite obligatoire
+`MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519`. Un appareil actif devient un
+membre MLS distinct ; le backend reste un Delivery Service sans secret de
+groupe. La comparaison, les limites d'audit, l'architecture de performance et
+les sources sont dans
+[CRYPTOGRAPHY_V3_DECISION.md](CRYPTOGRAPHY_V3_DECISION.md).
 
-Tant que cette décision n'est pas clôturée, ne pas étendre le protocole V2 à de nouveaux types de contenu et ne pas publier de revendication de sécurité avancée.
+Cette décision fixe la cible, pas une propriété déjà fournie par l'application.
+`TC-301` reste en cours jusqu'aux prototypes et mesures sur Android, iOS,
+Windows et macOS. Les spécifications, migrations, tests négatifs et l'audit
+complet restent `TC-302` à `TC-312`.
+
+Ne pas étendre le protocole V2 à de nouveaux types de contenu. Ne pas publier de
+revendication FS/PCS avant l'implémentation et l'audit de la V3.
 
 Le format V2 historique ne doit pas être modifié silencieusement. Tout durcissement immédiat doit rester lisible de manière versionnée, et toute donnée non authentifiable doit être rejetée plutôt que présentée comme fiable.

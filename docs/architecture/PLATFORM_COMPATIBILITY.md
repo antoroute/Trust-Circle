@@ -1,7 +1,7 @@
 # Registre de compatibilité des plateformes
 
-Statut : baseline technique V1 acceptée, preuves de plateforme non encore exécutées
-Dernière vérification : 2026-08-24
+Statut : baseline technique V1 acceptée, preuves Android/Windows partielles et Apple en attente
+Dernière vérification : 2026-09-13
 Tâche : `TC-006`
 
 Ce registre fixe les cibles de conception et distingue une compatibilité déclarée d'une compatibilité réellement testée. Une ligne « compatible » ne devient une preuve de publication qu'après build, installation et test sur la matrice définie dans `docs/quality/TEST_STRATEGY.md`.
@@ -68,6 +68,7 @@ Les numéros ne sont pas des dépendances flottantes : toute montée de Flutter/
 | `connectivity_plus 6.1.5` | oui | oui | oui | oui | son état réseau n'est jamais une preuve d'accès Internet ; tester reprise réelle dans `TC-505`/`TC-508` |
 | `socket_io_client 2.0.3+1` | oui | oui | oui | oui | le backend utilise Socket.IO 4.8.3 depuis `TC-110` ; le polling/ACK est prouvé sur staging, mais la montée du client et les tests de reconnexion restent dans `TC-505` |
 | `cryptography 2.7.0` et primitives Dart | oui | oui | oui | oui | compatibilité source seulement ; choix, stockage de clés et vecteurs relèvent de `TC-306` à `TC-312` |
+| OpenMLS/Rust + pont FFI (non intégrés) | build annoncé | build annoncé | testé en CI amont | testé en CI amont | cible acceptée par ADR-0003 ; aucun support CircleHaven n'est prouvé avant prototype et benchmark sur chaque OS dans `TC-301`/`TC-306` |
 
 Constats directs sur le dépôt :
 

@@ -1,7 +1,7 @@
 # Spécification du chiffrement V2 observé
 
 Statut : description du code existant, **pas** spécification d'un protocole approuvé
-Dernière mise à jour : 2026-08-25
+Dernière mise à jour : 2026-09-13
 Code observé : branche `main`, changement `TC-106` lot D
 Implémentation principale : `lib/core/crypto/message_cipher_v2.dart`
 
@@ -356,7 +356,12 @@ Le JWT autorise une requête ; il ne prouve pas à lui seul l'authenticité cryp
 
 ## Cible V3 et règles d'évolution
 
-L'ADR [`ADR-0003-protocole-crypto-v3.md`](../adr/ADR-0003-protocole-crypto-v3.md) définit la direction : protocole formalisé, octets signés canoniques, preuve d'appareil, rotation, révocation, vecteurs interopérables et migration explicite.
+L'ADR [`ADR-0003-protocole-crypto-v3.md`](../adr/ADR-0003-protocole-crypto-v3.md)
+retient désormais MLS 1.0 via OpenMLS en Rust. La décision, ses sources et ses
+limites sont détaillées dans
+[`CRYPTOGRAPHY_V3_DECISION.md`](CRYPTOGRAPHY_V3_DECISION.md). Cette cible n'est
+pas encore implémentée : le comportement décrit dans le présent document reste
+celui du V2 observé.
 
 Toute modification doit :
 
@@ -388,3 +393,4 @@ Toute modification doit :
 - [`THREAT_MODEL.md`](THREAT_MODEL.md)
 - [`DATA_MAP.md`](../compliance/DATA_MAP.md)
 - [`ADR-0003-protocole-crypto-v3.md`](../adr/ADR-0003-protocole-crypto-v3.md)
+- [`CRYPTOGRAPHY_V3_DECISION.md`](CRYPTOGRAPHY_V3_DECISION.md)
