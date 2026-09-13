@@ -69,7 +69,8 @@ PostgreSQL utilise un volume inscriptible, des limites de ressources, un healthc
 - Schéma construit exclusivement par le plan Sqitch ; `init.sql` n'est plus
   monté ni exécuté.
 - 17 tables publiques observées ; `user_groups.role` reste contraint à `admin` ou `member`, et le propriétaire reste dérivé de `groups.creator_id`.
-- Données uniquement synthétiques, créées par les smoke tests.
+- Aucune donnée métier persistante après `TC-202` ; les fixtures synthétiques
+  du smoke final ont été supprimées après validation.
 - Six changements sont enregistrés dans `trust_circle_sqitch`. Les anciens
   scripts manuels restent des archives d'audit non exécutées.
 
@@ -84,9 +85,11 @@ Le redéploiement `TC-202` du 2026-09-13 a validé :
 4. job non-root, en lecture seule, sans capability et limité au réseau data ;
 5. `check`, six `verify`, assertions de catalogue et deux déploiements sans
    effet réussis ;
-6. smoke adversarial TC-111 réussi, quatre services sains, zéro redémarrage et
-   aucun log Auth/Messaging de niveau erreur/fatal ;
-7. réponse HTTP 200 depuis NPM sur le seul port autorisé `18081`.
+6. smoke adversarial TC-111 réussi, puis suppression de toutes ses fixtures et
+   vérification de zéro ligne dans chacune des 17 tables publiques ;
+7. quatre services sains, zéro redémarrage et aucun log Auth/Messaging de
+   niveau erreur/fatal ;
+8. réponse HTTP 200 depuis NPM sur le seul port autorisé `18081`.
 
 ## Validations exécutées
 

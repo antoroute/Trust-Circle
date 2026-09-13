@@ -88,8 +88,9 @@ OPNsense, ni les secrets JWT/PostgreSQL existants.
   seule, `cap_drop=ALL`, réseau interne `trust-circle-staging-data` uniquement ;
 - `sqitch check`, les six scripts `verify` et les assertions de catalogue ont
   réussi ;
-- smoke TC-111 complet réussi, puis état synthétique attendu de 3 comptes,
-  1 cercle, 1 conversation et 2 messages ;
+- smoke TC-111 complet réussi avec l'état synthétique attendu de 3 comptes,
+  1 cercle, 1 conversation et 2 messages, puis suppression de toutes ses
+  fixtures ; l'état final contient zéro ligne dans les 17 tables publiques ;
 - deux nouveaux lancements du job ont répondu `Nothing to deploy
   (up-to-date)` ;
 - PostgreSQL, Auth, Messaging et Gateway sont sains, à zéro redémarrage et au
