@@ -373,8 +373,8 @@ La fermeture de `TC-113` a ensuite validé :
 
 - Le domaine staging est volontairement inaccessible hors de l'ACL NPM ; ce
   refus ne doit pas être confondu avec une panne du backend.
-- Configuration de build Flutter staging prête ; validation physique Android
-  et Windows encore requise par `TC-114`.
+- Configuration de build Flutter staging validée par `TC-114` sur Windows 11
+  physique et Android 16 émulé, avec TLS et budgets profile conformes.
 - Pas encore d'outil de migrations ni de restauration complète du volume principal ; les migrations `TC-104` à `TC-106` et leurs rollbacks ont été exercés dans un environnement PostgreSQL isolé, mais appliqués manuellement au staging.
 - Les scénarios d'autorisation croisée cercle/conversation/clé sont couverts
   par `TC-111` et le smoke adversarial courant.

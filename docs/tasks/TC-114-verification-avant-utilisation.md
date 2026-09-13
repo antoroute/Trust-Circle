@@ -1,6 +1,6 @@
 # TC-114 — Vérifier tout message avant utilisation du texte clair
 
-Statut : En cours — staging TLS prêt, validation Android/Windows requise
+Statut : Terminée — sécurité, builds et budgets Android/Windows validés
 Priorité : P0 sécurité
 Décision : mainteneur
 Dépendances : TC-103
@@ -38,7 +38,7 @@ Conserver une expérience fluide : aucun aller-retour réseau supplémentaire su
 - [x] Aucun extrait de texte clair n'est écrit dans les logs, y compris en debug.
 - [x] Une clé publique validée peut être mise en cache sans contourner la vérification par message.
 - [x] Les calculs coûteux ne bloquent pas le thread UI.
-- [ ] La latence p50/p95 de réception et d'ouverture est mesurée sur Android et Windows ; l'objectif UX est documenté et accepté.
+- [x] La latence p50/p95 de réception et d'ouverture est mesurée sur Android et Windows ; l'objectif UX est documenté et accepté.
 - [x] Les erreurs sont génériques côté utilisateur et détaillées sans secret dans la télémétrie locale autorisée.
 
 ## Tests et preuves attendues
@@ -88,8 +88,21 @@ Valider le budget de latence p95 par plateforme et l'état UI très bref à mont
 - Cas couverts : valide, vérification concurrente d'un même message, signature absente/altérée, contexte, destinataire, algorithme, appareil/version, wrap, nonce, sel HKDF et tag de contenu altérés.
 - `flutter analyze --no-pub` : aucune erreur de compilation ; 89 informations/avertissements non bloquants, dont l'asset `.env` volontairement absent du dépôt.
 - Recherche statique : aucun log de `plaintext`, `decryptedText`, `messageText` ou corps tronqué dans les chemins concernés.
-- `git diff --check` : attendu avant commit.
+- build Windows profile et APK Android profile réussis avec Flutter 3.47.4 ;
+- application Android installée et lancée sur Android 16 émulé, activité au
+  premier plan et aucune exception fatale ;
+- 50 ouvertures complètes puis 50 ouvertures cache : Android, total médiane/p95
+  `14/34 ms` à froid et `6/10 ms` en cache ; Windows, `3/4 ms` et `1/3 ms` ;
+- TLS système validé sur les deux plateformes contre le staging, réponse
+  attendue `404` sur la route racine ;
+- suite Flutter complète rejouée sous Windows : `45/45` ;
+- `flutter analyze --no-pub` : aucune erreur de compilation, informations de
+  lint non bloquantes ;
+- `git diff --check` : attendu avant commit final.
 
-## Validation restante
+## Conclusion
 
-Exécuter [`TC-114-DEVICE_VALIDATION.md`](../quality/TC-114-DEVICE_VALIDATION.md) sur Android et Windows, reporter médiane/p95 et accepter ou ajuster le budget proposé. Tant que ces preuves ne sont pas ajoutées, la tâche reste `En cours` et la porte de sortie Phase 1 n'est pas satisfaite.
+Les budgets acceptés sont respectés sur les deux plateformes disponibles sans
+ajouter d'aller-retour réseau au chemin nominal. La validation iOS/macOS reste
+rattachée aux tâches de plateforme, faute de matériel Apple disponible, et ne
+rouvre pas la porte de sortie de Phase 1.

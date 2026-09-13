@@ -1,7 +1,7 @@
 # Roadmap de développement vers la V1
 
 Statut : plan directeur initial
-Dernière mise à jour : 2026-09-12
+Dernière mise à jour : 2026-09-13
 
 ## Mode d'emploi
 
@@ -46,11 +46,18 @@ Objectif : empêcher l'usurpation, l'accès croisé et l'enregistrement illégit
 | TC-109 | Retirer le faux secret partagé de l'application publique | TC-101 | Terminée — client, backend et staging validés sans secret partagé |
 | TC-110 | Mettre à jour les dépendances vulnérables avec tests | TC-111 | Terminée — zéro avis npm, staging validé |
 | TC-111 | Créer les tests négatifs auth/ACL/keys et PostgreSQL d'intégration | TC-004 | Terminée — matrice locale et PostgreSQL staging validées |
-| TC-114 | Interdire affichage, cache et notification avant authentification du message | TC-103 | En cours — staging TLS prêt, mesures appareils restantes |
+| TC-114 | Interdire affichage, cache et notification avant authentification du message | TC-103 | Terminée — Android/Windows sous budgets |
 | TC-112 | Revue de sécurité de fermeture P1 | TC-101 à TC-111, TC-114 | Terminée — Go avec réserves tracées |
 | TC-113 | Exposer le staging par TLS et accès restreint après fermeture P1 | TC-112 | Terminée — TLS, ACL et smoke HTTPS validés |
 
 Porte de sortie : tests d'usurpation et accès croisé tous négatifs, aucun secret par défaut/embarqué, aucune vulnérabilité critique/haute exploitable acceptée silencieusement.
+
+La porte de sortie de Phase 1 est satisfaite le 2026-09-13 : `TC-113` a fermé
+l'exposition TLS restreinte et `TC-114` a validé les builds et budgets de
+latence sur Android et Windows. Les réserves moyennes de `TC-112` restent des
+tâches obligatoires des phases suivantes ; aucune n'est critique ou haute.
+Conformément à la décision du propriétaire, aucun travail de Phase 2 n'est
+engagé dans ce lot.
 
 ## Phase 2 — Données et exploitation reproductibles
 

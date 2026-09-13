@@ -1,6 +1,6 @@
 # TC-112 — Revue de sécurité de fermeture de la phase 1
 
-Statut : Terminée — Go avec réserves ; portes TC-113/TC-114 encore ouvertes
+Statut : Terminée — Go avec réserves, portes TC-113/TC-114 fermées
 Priorité : P0 gate
 Décision : mainteneur, propriétaire pour toute acceptation de risque
 Dépendances : `TC-101` à `TC-111` terminées, `TC-114` implémentée
@@ -60,6 +60,11 @@ Aucune vulnérabilité critique ou haute exploitable n'a été trouvée dans le
 périmètre revu. Cette conclusion n'autorise ni le passage en Phase 2, ni une
 publication : `TC-113` doit encore fermer le chemin TLS et `TC-114` doit encore
 recevoir ses mesures Android/Windows.
+
+Mise à jour du 2026-09-13 : `TC-113` est terminée et `TC-114` a produit ses
+mesures Android/Windows sous les budgets acceptés. Le Go avec réserves ferme
+donc la porte de Phase 1 ; les réserves ci-dessous restent obligatoires avant
+publication.
 
 | Invariants | Résultat | Preuves principales |
 |---|---|---|
