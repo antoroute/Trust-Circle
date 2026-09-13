@@ -1,11 +1,13 @@
 # Modèle de données
 
-Statut : photographie V2 et contraintes cibles
-Dernière mise à jour : 2026-08-25
+Statut : baseline V2 versionnée et contraintes cibles
+Dernière mise à jour : 2026-09-13
 
 ## Modèle observé
 
-Le script `infrastructure/postgres/init.sql` définit :
+Le plan `infrastructure/postgres/sqitch.plan` est la source de vérité. Il
+reconstruit la baseline V2 historique puis les cinq changements de TC-104 à
+TC-106. Son état final définit :
 
 - `users` : compte, e-mail, hash de mot de passe, nom ;
 - `device_bootstrap_grants`, `account_devices`, `device_registration_challenges`, `device_approval_challenges` : autorisation de réauthentification hachée, identité Ed25519 de compte/appareil, état de confiance, preuves de possession et décisions signées à usage unique ;
@@ -17,18 +19,28 @@ Le script `infrastructure/postgres/init.sql` définit :
 - `refresh_tokens` : sessions renouvelables ;
 - `notifications` : événements applicatifs utilisateur.
 
-Le staging neuf a été recréé à partir du script courant et validé par `TC-004`. `TC-104` ajoute le premier couple SQL montant/descendant pour le rôle. `TC-105` ajoute le second : un index unique partiel sur `(group_id, user_id)` lorsque `join_requests.status = 'pending'`. Les lots B/C/D de `TC-106` ajoutent les troisième, quatrième et cinquième couples pour le registre, les preuves, les décisions signées, la liaison et l'historique des clés. Ces scripts restent à reprendre dans l'outil et la baseline qui seront choisis par `TC-201`.
+Le staging neuf a été recréé à partir de `init.sql` et validé par `TC-004`.
+`TC-201` a repris l'état antérieur comme `v2_baseline`, puis les cinq évolutions
+dans Sqitch avec scripts transactionnels `deploy`, `revert` et `verify`.
+`init.sql` reste une compatibilité transitoire pour le volume existant ; il
+n'est plus la source de vérité et sera retiré du chemin de création lors de la
+réconciliation `TC-202`.
 
 La circulation de ces données par parcours est décrite dans [`FUNCTIONAL_REFERENCE.md`](FUNCTIONAL_REFERENCE.md), et les fichiers responsables dans [`TRACEABILITY.md`](TRACEABILITY.md).
 
 ## Problèmes structurels à résoudre
 
-- Pas encore d'outil, de registre appliqué ni de baseline globale de migrations ; les changements `TC-104`, `TC-105` et `TC-106` possèdent des scripts SQL versionnés mais sont encore appliqués manuellement.
+- Le plan Sqitch et la baseline sont validés sur PostgreSQL 16 jetable, mais le
+  registre n'est pas encore adopté par les bases existantes ; cette opération
+  contrôlée appartient à `TC-202`.
 - Le stockage des rôles est explicite, mais le transfert de propriété et l'interface complète de gestion restent à concevoir.
 - Le rattachement, les preuves de possession et d'accès, l'approbation/refus/révocation, la rotation et l'historique signés sont implémentés par les lots B/C/D de `TC-106`.
 - Horodatages mêlant `timestamp` et `timestamptz`.
 - Énumérations métier parfois représentées par texte libre.
 - Messages sans séquence serveur/cursor robuste pour la synchronisation.
+- Pas d'index couvrant `messages(conversation_id, sent_at, id)` pour le
+  chargement paginé ; ce point doit être mesuré avec des données synthétiques
+  avant une évolution de schéma dédiée.
 - Notifications JSON génériques sans classification de sensibilité/version.
 - Absence de tables explicites pour vérification e-mail, récupération, suppression, signalement/blocage et journal de sécurité minimal.
 
@@ -52,5 +64,9 @@ La circulation de ces données par parcours est décrite dans [`FUNCTIONAL_REFER
 3. Les migrations destructrices exigent sauvegarde, test de restauration et approbation humaine.
 4. La compatibilité avec les enveloppes cryptographiques historiques est explicitement testée.
 5. Une migration ne journalise aucune donnée de message, clé ou jeton.
+6. Chaque changement Sqitch possède un déploiement, une réversion et une
+   vérification ; les bases persistantes privilégient un correctif compatible
+   vers l'avant plutôt qu'une réversion destructive.
 
-Le choix de l'outil de migration sera pris dans la phase `TC-201`; ce document ne l'impose pas encore.
+Le choix Sqitch 1.6.1 et ses limites sont consignés dans
+[`ADR-0006`](../adr/ADR-0006-migrations-postgresql.md).

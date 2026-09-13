@@ -1,0 +1,92 @@
+services:
+  database:
+    image: "${TC_MIGRATION_TEST_POSTGRES_IMAGE:?pin the PostgreSQL test image}"
+    environment:
+      POSTGRES_DB: trust_circle_migration_test
+      POSTGRES_USER: trust_circle_migrator
+      POSTGRES_PASSWORD: "${TC_MIGRATION_TEST_PASSWORD:?set an ephemeral test password}"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U trust_circle_migrator -d trust_circle_migration_test
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - migration_test
+
+  sqitch:
+    image: "${TC_MIGRATION_TEST_SQITCH_IMAGE:?pin the Sqitch test image}"
+    working_dir: /repo
+    entrypoint: ["sqitch"]
+    environment:
+      PGPASSWORD: "${TC_MIGRATION_TEST_PASSWORD:?set an ephemeral test password}"
+    volumes:
+      - .:/repo:ro
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - migration_test
+
+  auth:
+    build:
+      context: ../../backend/auth
+    user: node
+    environment:
+      NODE_ENV: test
+      PORT: "3000"
+      JWT_ACCESS_PRIVATE_KEY_B64: "${TC_MIGRATION_TEST_ACCESS_PRIVATE_KEY_B64:?generate an ephemeral private key}"
+      JWT_ACCESS_PUBLIC_KEY_B64: "${TC_MIGRATION_TEST_ACCESS_PUBLIC_KEY_B64:?generate an ephemeral public key}"
+      JWT_REFRESH_SECRET: "${TC_MIGRATION_TEST_REFRESH_SECRET:?generate an ephemeral refresh secret}"
+      DATABASE_URL: "postgresql://trust_circle_migrator:${TC_MIGRATION_TEST_PASSWORD}@database:5432/trust_circle_migration_test"
+      TRUSTED_PROXY_CIDRS: ""
+      CORS_ALLOWED_ORIGINS: ""
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - migration_test
+
+  messaging:
+    build:
+      context: ../../backend/messaging
+    user: node
+    environment:
+      NODE_ENV: test
+      PORT: "3001"
+      JWT_ACCESS_PUBLIC_KEY_B64: "${TC_MIGRATION_TEST_ACCESS_PUBLIC_KEY_B64:?generate an ephemeral public key}"
+      DATABASE_URL: "postgresql://trust_circle_migrator:${TC_MIGRATION_TEST_PASSWORD}@database:5432/trust_circle_migration_test"
+      TRUSTED_PROXY_CIDRS: ""
+      CORS_ALLOWED_ORIGINS: ""
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - migration_test
+
+  gateway:
+    image: "${TC_MIGRATION_TEST_NGINX_IMAGE:?pin the Nginx test image}"
+    user: "101:101"
+    volumes:
+      - ../../deploy/staging/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    tmpfs:
+      - /var/cache/nginx:size=32m,uid=101,gid=101,mode=0755
+      - /var/run:size=4m,uid=101,gid=101,mode=0755
+      - /tmp:size=8m,uid=101,gid=101,mode=1777
+    depends_on:
+      auth:
+        condition: service_healthy
+      messaging:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/healthz"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - migration_test
+
+networks:
+  migration_test:
+    internal: true

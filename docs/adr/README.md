@@ -9,6 +9,7 @@ Une ADR capture une décision durable, ses alternatives et ses conséquences. Le
 | [ADR-0003](ADR-0003-protocole-crypto-v3.md) | MLS 1.0 / OpenMLS pour la V3 | Acceptée |
 | [ADR-0004](ADR-0004-nom-produit.md) | Nom public CircleHaven — Trust Circle | Acceptée |
 | [ADR-0005](ADR-0005-confiance-appareil-compte.md) | Ancrage de confiance des appareils | Acceptée |
+| [ADR-0006](ADR-0006-migrations-postgresql.md) | Gestion des migrations PostgreSQL avec Sqitch | Acceptée |
 
 ## Format
 

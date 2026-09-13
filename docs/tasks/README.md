@@ -31,6 +31,10 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 - [TC-113 — Staging TLS restreint](TC-113-staging-tls-restreint.md)
 - [TC-114 — Vérification avant utilisation](TC-114-verification-avant-utilisation.md)
 
+## Index Phase 2
+
+- [TC-201 — Outil de migration et baseline PostgreSQL](TC-201-migrations-baseline.md)
+
 ## Index Phase 3
 
 - [TC-301 — Choix et prototype du protocole V3](TC-301-choix-protocole-v3.md)

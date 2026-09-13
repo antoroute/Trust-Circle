@@ -1,0 +1,10 @@
+%syntax-version=1.0.0
+%project=trust-circle
+%uri=https://github.com/Kavalek/Trust-Circle
+
+v2_baseline 2026-09-13T16:40:00Z Trust Circle maintainers <maintainers@trust-circle.invalid> # Create the historical V2 schema baseline
+group_member_role [v2_baseline] 2026-09-13T16:41:00Z Trust Circle maintainers <maintainers@trust-circle.invalid> # Add explicit group membership roles
+unique_pending_join_request [group_member_role] 2026-09-13T16:42:00Z Trust Circle maintainers <maintainers@trust-circle.invalid> # Enforce one pending join request per group and user
+account_device_trust [unique_pending_join_request] 2026-09-13T16:43:00Z Trust Circle maintainers <maintainers@trust-circle.invalid> # Add account-level device identity and proof challenges
+device_approvals [account_device_trust] 2026-09-13T16:44:00Z Trust Circle maintainers <maintainers@trust-circle.invalid> # Add signed device approval challenges
+device_key_propagation [device_approvals] 2026-09-13T16:45:00Z Trust Circle maintainers <maintainers@trust-circle.invalid> # Add signed key bindings, rotation and immutable key history

@@ -63,7 +63,7 @@ engagé dans ce lot.
 
 | ID | Tâche | Dépend de |
 |---|---|---|
-| TC-201 | Choisir l'outil de migration et créer une baseline | TC-002, TC-004 |
+| TC-201 | Choisir l'outil de migration et créer une baseline — Terminée, Sqitch 1.6.1 | TC-002, TC-004 |
 | TC-202 | Réconcilier le schéma de production avec la baseline | TC-201 |
 | TC-203 | Séparer comptes DB, secrets et privilèges par service | TC-201 |
 | TC-204 | Durcir images/conteneurs, utilisateurs, systèmes de fichiers et ressources | TC-004 |
