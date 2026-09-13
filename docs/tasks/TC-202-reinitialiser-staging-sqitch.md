@@ -1,6 +1,6 @@
 # TC-202 — Réinitialiser le schéma staging et adopter Sqitch
 
-Statut : En cours
+Statut : Terminée
 Priorité : P0 exploitation et intégrité des données
 Décision : propriétaire — aucune donnée staging à conserver
 Dépendance : TC-201
@@ -40,18 +40,18 @@ changements et démontrer le fonctionnement complet du staging.
 
 ## Critères d'acceptation
 
-- [ ] La cible, le projet, le volume et leur usage exclusif sont revérifiés.
-- [ ] L'ancien amorçage `init.sql` est retiré du Compose staging.
-- [ ] L'image Sqitch 1.6.1 est imposée par digest et s'exécute non-root.
-- [ ] Auth et Messaging attendent la réussite du job de migration.
-- [ ] Le seul volume PostgreSQL staging est supprimé puis recréé.
-- [ ] Une base vide reçoit exactement les six changements Sqitch et 17 tables
+- [x] La cible, le projet, le volume et leur usage exclusif sont revérifiés.
+- [x] L'ancien amorçage `init.sql` est retiré du Compose staging.
+- [x] L'image Sqitch 1.6.1 est imposée par digest et s'exécute non-root.
+- [x] Auth et Messaging attendent la réussite du job de migration.
+- [x] Le seul volume PostgreSQL staging est supprimé puis recréé.
+- [x] Une base vide reçoit exactement les six changements Sqitch et 17 tables
   publiques, sans donnée métier avant le smoke test.
-- [ ] Les quatre services sont sains et le smoke adversarial complet réussit.
-- [ ] Un second `compose up` rejoue un déploiement Sqitch sans effet et reste
+- [x] Les quatre services sont sains et le smoke adversarial complet réussit.
+- [x] Un second `compose up` rejoue un déploiement Sqitch sans effet et reste
   sain.
-- [ ] Aucun secret n'est affiché, régénéré ou ajouté au dépôt.
-- [ ] L'inventaire, la procédure de déploiement et la traçabilité sont à jour.
+- [x] Aucun secret n'est affiché, régénéré ou ajouté au dépôt.
+- [x] L'inventaire, la procédure de déploiement et la traçabilité sont à jour.
 
 ## Risques et retour arrière
 
@@ -73,6 +73,46 @@ OPNsense, ni les secrets JWT/PostgreSQL existants.
 5. healthchecks et smoke test complet ;
 6. second déploiement sans effet et contrôle des journaux ;
 7. mise à jour de la documentation et livraison Git.
+
+## Résultat et preuves
+
+- release déployée : `bb4ce6da93839d9db253e3505d41060023416006` ;
+- cible préalablement vérifiée : l'unique consommateur du volume était le
+  service PostgreSQL du projet `trust-circle-staging` ;
+- ancien volume supprimé et volume de même nom recréé vide ; les 57 comptes,
+  16 conversations et 26 messages synthétiques ont été abandonnés comme
+  autorisé ;
+- état avant smoke : 17 tables publiques, 6 changements Sqitch et zéro ligne
+  dans `users`, `groups`, `conversations` et `messages` ;
+- job `migrate` : code `0`, utilisateur `sqitch` UID 1024, rootfs en lecture
+  seule, `cap_drop=ALL`, réseau interne `trust-circle-staging-data` uniquement ;
+- `sqitch check`, les six scripts `verify` et les assertions de catalogue ont
+  réussi ;
+- smoke TC-111 complet réussi, puis état synthétique attendu de 3 comptes,
+  1 cercle, 1 conversation et 2 messages ;
+- deux nouveaux lancements du job ont répondu `Nothing to deploy
+  (up-to-date)` ;
+- PostgreSQL, Auth, Messaging et Gateway sont sains, à zéro redémarrage et au
+  bon label de révision ; zéro log Auth/Messaging de niveau 50/60 observé ;
+- chemin NPM `10.0.10.20 -> 10.0.20.20:18081` : HTTP 200 ; le bind Docker reste
+  limité à `10.0.20.20:18081` ;
+- secrets JWT et PostgreSQL conservés sans affichage ; copie privée de la
+  configuration précédente : `staging.env.before-bb4ce6da9383`, mode `0600`.
+
+## Validations non exécutées
+
+- Aucune restauration des anciennes données : elles étaient synthétiques et
+  leur abandon a été explicitement décidé.
+- Aucun changement ni test de production : aucune cible de production n'était
+  autorisée ou nécessaire pour cette tâche.
+
+## Risques résiduels
+
+- Le même compte PostgreSQL réalise actuellement DDL et requêtes applicatives ;
+  sa séparation appartient à `TC-203`.
+- Le job Sqitch est intégré au staging, mais la procédure générale de promotion,
+  sauvegarde et rollback restera à éprouver en `TC-210` après les autres travaux
+  d'exploitation de la phase 2.
 
 ## Prochaine tâche
 

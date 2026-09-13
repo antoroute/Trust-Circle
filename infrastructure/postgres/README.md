@@ -2,9 +2,9 @@
 
 La source de vérité du schéma est le plan Sqitch `sqitch.plan`. Il reconstruit
 la baseline V2 historique puis les cinq changements appliqués pendant TC-104 à
-TC-106. Le fichier `init.sql` reste uniquement pour la stack staging existante
-jusqu'à sa réconciliation par TC-202 ; ne pas l'utiliser pour une nouvelle
-base.
+TC-106. Depuis `TC-202`, le staging est lui aussi construit exclusivement par
+Sqitch. Le fichier `init.sql` est une archive historique : ne pas l'utiliser
+pour une nouvelle base.
 
 ## Règles
 
@@ -46,7 +46,6 @@ base jetable puis le redéploiement. Le volume et le secret éphémère sont
 supprimés à la fin.
 
 Pour une cible réelle, injecter les informations de connexion au runtime selon
-la documentation Sqitch. La première adoption du staging/production est
-strictement réservée à TC-202 : comparer le catalogue, sauvegarder, corriger les
-écarts puis enregistrer l'état. Ne jamais rejouer cette baseline sur une base
-non vide.
+la documentation Sqitch. Le staging a été recréé à vide et adopté par `TC-202`.
+Ne jamais rejouer cette baseline sur une base non vide ou adopter une autre base
+persistante sans procédure dédiée.

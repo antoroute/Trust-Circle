@@ -55,7 +55,7 @@ Cette matrice aide à retrouver rapidement le code réellement responsable d'un 
 | version minimale | [`enforceVersion.ts`](../../backend/auth/src/middlewares/enforceVersion.ts) | en-têtes | `TC-107` |
 | frontière HTTP | [`httpSecurity.ts`](../../backend/auth/src/httpSecurity.ts) | CORS exact et headers publics | `TC-108`, retrait du faux secret `TC-109` |
 | PostgreSQL | [`db.ts`](../../backend/auth/src/plugins/db.ts) | pool SQL | `TC-201`, `TC-203` |
-| migrations PostgreSQL | [`sqitch.plan`](../../infrastructure/postgres/sqitch.plan), [`README`](../../infrastructure/postgres/README.md) | Sqitch, scripts deploy/revert/verify et registre dédié | `TC-201` terminé, `TC-202` adoption |
+| migrations PostgreSQL | [`sqitch.plan`](../../infrastructure/postgres/sqitch.plan), [`README`](../../infrastructure/postgres/README.md) | Sqitch, scripts deploy/revert/verify et registre dédié | `TC-201`/`TC-202` terminés |
 
 ## Backend Messaging
 

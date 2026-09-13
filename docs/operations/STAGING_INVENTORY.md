@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
 Statut : opérationnel, publication TLS restreinte
-Dernier déploiement : 2026-09-12 (`TC-113` terminée)
+Dernier déploiement : 2026-09-13 (`TC-202` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `e6dce1bfe3920fd91621acf0875a25e89a4d4731` |
-| Release | `/opt/trust-circle-staging/releases/e6dce1bfe3920fd91621acf0875a25e89a4d4731` |
+| Commit source | `bb4ce6da93839d9db253e3505d41060023416006` |
+| Release | `/opt/trust-circle-staging/releases/bb4ce6da93839d9db253e3505d41060023416006` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Source Compose | `deploy/staging/compose.yml` |
@@ -25,15 +25,17 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-e6dce1bfe392` | image ID `3a31eda18215`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-e6dce1bfe392` | image ID `c34d313a362c`, label revision complet | sain, 0 redémarrage |
-| PostgreSQL | `postgres:16-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
-| Gateway | `nginx:stable-alpine` résolue par digest | digest conservé dans le fichier privé | sain |
+| Auth | `trust-circle-staging-auth:staging-bb4ce6da9383` | image ID `0fb7cca5e880`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-bb4ce6da9383` | image ID `23f9ee2782b6`, label revision complet | sain, 0 redémarrage |
+| PostgreSQL | `postgres:16-alpine` résolue par digest | image ID `75f5a96988cd` | sain, 0 redémarrage |
+| Migration | Sqitch 1.6.1 résolue par digest | image ID `44f627f9a86a`, utilisateur `sqitch` | terminé, code 0 |
+| Gateway | `nginx:stable-alpine` résolue par digest | image ID `6e01bfae6f79` | sain, 0 redémarrage |
 
 Les références tierces exactes observées au déploiement sont :
 
 - PostgreSQL : `postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685` ;
-- Nginx : `nginx@sha256:97d490c12ba55b4946b01546d1c3ed324e8d41ab1c9fcb2a616aa470620e5b46`.
+- Nginx : `nginx@sha256:97d490c12ba55b4946b01546d1c3ed324e8d41ab1c9fcb2a616aa470620e5b46` ;
+- Sqitch : `sqitch/sqitch@sha256:f247ab0e0b66e9c2d09a400864f7314358893f5cf209cddcc4f213f7d5bfe4d3`.
 
 ## Isolation
 
@@ -42,6 +44,8 @@ Les références tierces exactes observées au déploiement sont :
   simultané.
 - Auth et messaging : aucune publication de port hôte.
 - PostgreSQL : aucune publication de port hôte, réseau interne `trust-circle-staging-data`.
+- Migration : aucune publication de port, réseau `trust-circle-staging-data`
+  uniquement ; elle termine avant le démarrage des backends.
 - Réseaux : `trust-circle-staging-edge` en `172.30.108.0/24` avec gateway
   `.10`, Auth `.11` et Messaging `.12`, plus `trust-circle-staging-data`.
 - Volume : `trust-circle-staging-postgres-data`.
@@ -53,17 +57,36 @@ Les tests backend sont exécutés via `pct exec 106` et la gateway loopback. Tou
 
 ## Durcissement appliqué
 
-Auth, messaging et gateway utilisent : utilisateur non-root, rootfs en lecture seule, `no-new-privileges`, toutes les capabilities supprimées, limites CPU/mémoire/PID, init, délai d'arrêt et journald avec tag staging.
+Auth, messaging, gateway et le job Sqitch utilisent : utilisateur non-root,
+rootfs en lecture seule, `no-new-privileges`, toutes les capabilities supprimées,
+limites CPU/mémoire/PID, init, délai d'arrêt et journald avec tag staging.
 
 PostgreSQL utilise un volume inscriptible, des limites de ressources, un healthcheck et un réseau interne. Son image officielle n'est pas encore durcie avec un utilisateur/jeu de capabilities Compose spécifique ; ce point appartient à `TC-204`.
 
 ## Schéma et données
 
-- Base PostgreSQL 16 neuve.
-- `infrastructure/postgres/init.sql` monté en lecture seule pour la première initialisation.
+- Base PostgreSQL 16 recréée à vide pendant `TC-202`.
+- Schéma construit exclusivement par le plan Sqitch ; `init.sql` n'est plus
+  monté ni exécuté.
 - 17 tables publiques observées ; `user_groups.role` reste contraint à `admin` ou `member`, et le propriétaire reste dérivé de `groups.creator_id`.
 - Données uniquement synthétiques, créées par les smoke tests.
-- Cinq migrations SQL réversibles sont conservées dans `infrastructure/postgres/migrations/` et appliquées manuellement pour `TC-104` à `TC-106`. Les trois dernières ajoutent le registre/preuve, les challenges d'approbation, puis la liaison signée et l'historique versionné des clés de cercle. Le choix et l'automatisation d'un véritable outil de migration restent suivis par `TC-201`.
+- Six changements sont enregistrés dans `trust_circle_sqitch`. Les anciens
+  scripts manuels restent des archives d'audit non exécutées.
+
+Le redéploiement `TC-202` du 2026-09-13 a validé :
+
+1. abandon explicitement autorisé des seules données synthétiques, après
+   confirmation de l'unique consommateur du volume ;
+2. recréation du volume exact `trust-circle-staging-postgres-data`, sans toucher
+   aux autres stacks, volumes, réseaux ou secrets ;
+3. six changements Sqitch et 17 tables publiques sur base vide, avec zéro
+   donnée métier avant smoke ;
+4. job non-root, en lecture seule, sans capability et limité au réseau data ;
+5. `check`, six `verify`, assertions de catalogue et deux déploiements sans
+   effet réussis ;
+6. smoke adversarial TC-111 réussi, quatre services sains, zéro redémarrage et
+   aucun log Auth/Messaging de niveau erreur/fatal ;
+7. réponse HTTP 200 depuis NPM sur le seul port autorisé `18081`.
 
 ## Validations exécutées
 

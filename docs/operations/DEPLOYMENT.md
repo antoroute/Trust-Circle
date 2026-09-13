@@ -1,6 +1,6 @@
 # Déploiement
 
-Statut : garde-fous définis, baseline Sqitch validée, intégration staging à faire
+Statut : garde-fous définis, baseline Sqitch intégrée au staging
 Dernière mise à jour : 2026-09-13
 
 ## Préconditions
@@ -50,7 +50,8 @@ Noms réels des stacks et services, domaines assainis, réseau/proxy, registre d
 - Source : `deploy/staging/compose.yml` et `deploy/staging/README.md`.
 - Releases immuables sous `/opt/trust-circle-staging/releases/<commit>`.
 - Secrets persistants hors release sous `/opt/trust-circle-staging/shared/staging.env`.
-- Gateway loopback seulement ; aucun déploiement production automatisé.
+- Gateway liée à `10.0.20.20:18081`, filtrée pour NPM uniquement selon
+  `TC-113` ; aucun déploiement production automatisé.
 - Inventaire et preuves : `docs/operations/STAGING_INVENTORY.md`.
 
 ## Gestion du schéma
@@ -62,8 +63,9 @@ Noms réels des stacks et services, domaines assainis, réseau/proxy, registre d
 - Secrets : URI et mot de passe injectés uniquement à l'exécution.
 - Concurrence : un seul job est orchestré ; le verrou PostgreSQL de Sqitch
   protège aussi contre un second lancement accidentel.
-- Transition : la base existante n'est pas encore enregistrée. `TC-202` doit
-  comparer et réconcilier son catalogue avant adoption ; le déploiement naïf de
-  la baseline sur une base non vide est interdit.
+- Staging : volume recréé à vide et registre adopté par `TC-202` ; Auth et
+  Messaging attendent la fin réussie du job `migrate`.
+- Toute autre base persistante exige une procédure d'adoption distincte ; le
+  déploiement naïf de la baseline sur une base non vide reste interdit.
 - Test jetable : `bash infrastructure/postgres/test-migrations.sh` depuis la
   racine du dépôt ou `bash test-migrations.sh` depuis son répertoire.

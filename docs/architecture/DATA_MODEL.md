@@ -19,20 +19,19 @@ TC-106. Son état final définit :
 - `refresh_tokens` : sessions renouvelables ;
 - `notifications` : événements applicatifs utilisateur.
 
-Le staging neuf a été recréé à partir de `init.sql` et validé par `TC-004`.
 `TC-201` a repris l'état antérieur comme `v2_baseline`, puis les cinq évolutions
 dans Sqitch avec scripts transactionnels `deploy`, `revert` et `verify`.
-`init.sql` reste une compatibilité transitoire pour le volume existant ; il
-n'est plus la source de vérité et sera retiré du chemin de création lors de la
-réconciliation `TC-202`.
+`TC-202` a supprimé le volume staging historique et l'a reconstruit depuis ce
+seul plan. `init.sql` n'est plus monté ni exécuté et reste uniquement une
+archive historique jusqu'à sa suppression dédiée.
 
 La circulation de ces données par parcours est décrite dans [`FUNCTIONAL_REFERENCE.md`](FUNCTIONAL_REFERENCE.md), et les fichiers responsables dans [`TRACEABILITY.md`](TRACEABILITY.md).
 
 ## Problèmes structurels à résoudre
 
-- Le plan Sqitch et la baseline sont validés sur PostgreSQL 16 jetable, mais le
-  registre n'est pas encore adopté par les bases existantes ; cette opération
-  contrôlée appartient à `TC-202`.
+- Le staging possède désormais son registre Sqitch ; toute autre base
+  persistante devra être créée ou adoptée par une procédure explicitement
+  contrôlée.
 - Le stockage des rôles est explicite, mais le transfert de propriété et l'interface complète de gestion restent à concevoir.
 - Le rattachement, les preuves de possession et d'accès, l'approbation/refus/révocation, la rotation et l'historique signés sont implémentés par les lots B/C/D de `TC-106`.
 - Horodatages mêlant `timestamp` et `timestamptz`.

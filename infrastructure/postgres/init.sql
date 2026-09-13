@@ -1,3 +1,5 @@
+-- ARCHIVE HISTORIQUE V2 — NE PLUS EXECUTER.
+-- La source de vérité est sqitch.plan ; le staging utilise Sqitch depuis TC-202.
 -- infrastructure/postgres/init.sql  (V2)
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
