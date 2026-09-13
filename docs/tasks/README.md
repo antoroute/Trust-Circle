@@ -34,6 +34,7 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 ## Index Phase 2
 
 - [TC-201 — Outil de migration et baseline PostgreSQL](TC-201-migrations-baseline.md)
+- [TC-202 — Réinitialiser le schéma staging et adopter Sqitch](TC-202-reinitialiser-staging-sqitch.md)
 
 ## Index Phase 3
 

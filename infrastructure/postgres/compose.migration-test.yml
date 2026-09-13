@@ -17,12 +17,19 @@ services:
 
   sqitch:
     image: "${TC_MIGRATION_TEST_SQITCH_IMAGE:?pin the Sqitch test image}"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     working_dir: /repo
     entrypoint: ["sqitch"]
     environment:
       PGPASSWORD: "${TC_MIGRATION_TEST_PASSWORD:?set an ephemeral test password}"
     volumes:
       - .:/repo:ro
+    tmpfs:
+      - /tmp:size=32m,mode=1777,noexec,nosuid,nodev
     depends_on:
       database:
         condition: service_healthy

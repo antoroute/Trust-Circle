@@ -31,7 +31,6 @@ services:
       POSTGRES_PASSWORD: "${TC_DB_PASSWORD:?TC_DB_PASSWORD is required}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/001-initial.sql:ro
     networks:
       - data
     healthcheck:
@@ -45,6 +44,44 @@ services:
     mem_limit: 512m
     cpus: 1.0
     stop_grace_period: 60s
+    logging:
+      driver: journald
+      options:
+        tag: "trust-circle-staging/{{.Name}}"
+    labels:
+      com.trust-circle.environment: staging
+      com.trust-circle.revision: "${TC_GIT_COMMIT:?TC_GIT_COMMIT is required}"
+
+  migrate:
+    image: "${TC_SQITCH_IMAGE:?TC_SQITCH_IMAGE must be pinned by digest}"
+    restart: "no"
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 0.5
+    stop_grace_period: 30s
+    working_dir: /repo
+    entrypoint: ["sqitch"]
+    command:
+      - deploy
+      - --verify
+      - "db:pg://${TC_DB_USER:?TC_DB_USER is required}@postgres/${TC_DB_NAME:?TC_DB_NAME is required}"
+    environment:
+      PGPASSWORD: "${TC_DB_PASSWORD:?TC_DB_PASSWORD is required}"
+    volumes:
+      - ../../infrastructure/postgres:/repo:ro
+    tmpfs:
+      - /tmp:size=32m,mode=1777,noexec,nosuid,nodev
+    networks:
+      - data
+    depends_on:
+      postgres:
+        condition: service_healthy
     logging:
       driver: journald
       options:
@@ -81,8 +118,8 @@ services:
         ipv4_address: 172.30.108.11
       data: {}
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   messaging:
     <<: *service-defaults
@@ -110,8 +147,8 @@ services:
         ipv4_address: 172.30.108.12
       data: {}
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   gateway:
     <<: *service-defaults

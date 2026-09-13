@@ -5,6 +5,8 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
 ## Propriétés
 
 - PostgreSQL dédié et volume `trust-circle-staging-postgres-data`.
+- Schéma construit exclusivement par le job ponctuel Sqitch avant le démarrage
+  d'Auth et Messaging ; aucun SQL d'initialisation Docker parallèle.
 - Réseaux `trust-circle-staging-edge` et `trust-circle-staging-data`.
 - Réseau edge dédié et adressage statique : gateway `172.30.108.10`, Auth
   `172.30.108.11`, Messaging `172.30.108.12` dans `172.30.108.0/24`.
@@ -32,7 +34,8 @@ Le code source est copié dans un répertoire de release sous `/opt/trust-circle
 bash deploy/staging/generate-env.sh \
   /opt/trust-circle-staging/shared/staging.env \
   <FULL_COMMIT> staging-<SHORT_COMMIT> \
-  postgres@sha256:<DIGEST> nginx@sha256:<DIGEST>
+  postgres@sha256:<DIGEST> nginx@sha256:<DIGEST> \
+  sqitch/sqitch@sha256:<DIGEST>
 ```
 
 3. Valider sans afficher la configuration résolue :
@@ -44,7 +47,8 @@ docker compose \
   -f deploy/staging/compose.yml config --quiet
 ```
 
-4. Construire et démarrer :
+4. Construire et démarrer. Compose attend la fin réussie du job `migrate`
+   avant de lancer Auth et Messaging :
 
 ```bash
 docker compose \
@@ -52,6 +56,18 @@ docker compose \
   --env-file /opt/trust-circle-staging/shared/staging.env \
   -f deploy/staging/compose.yml up -d --build
 ```
+
+Vérifier que le job est sorti avec le code `0` et que Sqitch connaît les six
+changements avant les smoke tests :
+
+```bash
+docker compose --project-name trust-circle-staging \
+  --env-file /opt/trust-circle-staging/shared/staging.env \
+  -f deploy/staging/compose.yml ps --all
+```
+
+Ne pas employer `docker-entrypoint-initdb.d` ni exécuter `init.sql` : le plan
+`infrastructure/postgres/sqitch.plan` est l'unique source de vérité.
 
 Le passage à l'IPAM explicite recrée le réseau edge au premier déploiement de
 ce changement. Vérifier que la stack `trust-circle-staging` est la cible,

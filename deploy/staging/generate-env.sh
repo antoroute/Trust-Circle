@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 5 ]]; then
-  echo "Usage: $0 ENV_FILE GIT_COMMIT IMAGE_TAG POSTGRES_IMAGE_DIGEST NGINX_IMAGE_DIGEST" >&2
+if [[ $# -ne 6 ]]; then
+  echo "Usage: $0 ENV_FILE GIT_COMMIT IMAGE_TAG POSTGRES_IMAGE_DIGEST NGINX_IMAGE_DIGEST SQITCH_IMAGE_DIGEST" >&2
   exit 64
 fi
 
@@ -11,6 +11,7 @@ git_commit=$2
 image_tag=$3
 postgres_image=$4
 nginx_image=$5
+sqitch_image=$6
 
 if [[ -e "$env_file" ]]; then
   echo "Refusing to overwrite existing environment file: $env_file" >&2
@@ -32,6 +33,11 @@ if [[ "$nginx_image" != nginx@sha256:* ]]; then
   exit 64
 fi
 
+if [[ "$sqitch_image" != sqitch/sqitch@sha256:* ]]; then
+  echo "Sqitch image must be pinned as sqitch/sqitch@sha256:..." >&2
+  exit 64
+fi
+
 env_dir=$(dirname -- "$env_file")
 install -d -m 0700 -- "$env_dir"
 umask 077
@@ -48,6 +54,7 @@ jwt_refresh_secret=$(openssl rand -hex 48)
   printf 'TC_IMAGE_TAG=%s\n' "$image_tag"
   printf 'TC_POSTGRES_IMAGE=%s\n' "$postgres_image"
   printf 'TC_NGINX_IMAGE=%s\n' "$nginx_image"
+  printf 'TC_SQITCH_IMAGE=%s\n' "$sqitch_image"
   printf 'TC_DB_NAME=trust_circle_staging\n'
   printf 'TC_DB_USER=trust_circle_staging\n'
   printf 'TC_DB_PASSWORD=%s\n' "$db_password"
