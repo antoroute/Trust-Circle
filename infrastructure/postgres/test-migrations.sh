@@ -36,6 +36,48 @@ tc201_compose=(
 )
 tc201_target="db:pg://trust_circle_migrator@database/trust_circle_migration_test"
 
+assert_hardened_container() {
+  local service_name=$1
+  local expected_user=$2
+  local allowed_writable_mount=${3:-}
+  local container_id
+  container_id=$("${tc201_compose[@]}" ps --all --quiet "$service_name")
+  test -n "$container_id"
+  if ! docker inspect "$container_id" | jq --exit-status \
+      --arg expected_user "$expected_user" \
+      --arg allowed_writable_mount "$allowed_writable_mount" '
+      .[0]
+      | .Config.User == $expected_user
+        and .HostConfig.ReadonlyRootfs
+        and (.HostConfig.Privileged | not)
+        and ((.HostConfig.CapAdd // []) | length == 0)
+        and ((.HostConfig.CapDrop // []) | index("ALL") != null)
+        and ((.HostConfig.SecurityOpt // []) | index("no-new-privileges:true") != null)
+        and (.HostConfig.PidsLimit > 0)
+        and (.HostConfig.Memory > 0)
+        and (.HostConfig.NanoCpus > 0)
+        and ([.Mounts[] | select(.RW == true) | .Destination]
+          == (if $allowed_writable_mount == ""
+              then [] else [$allowed_writable_mount] end))
+    ' >/dev/null; then
+    echo "Container hardening assertion failed for $service_name" >&2
+    docker inspect "$container_id" | jq \
+      '.[0] | {
+        user: .Config.User,
+        readonly: .HostConfig.ReadonlyRootfs,
+        privileged: .HostConfig.Privileged,
+        cap_add: .HostConfig.CapAdd,
+        cap_drop: .HostConfig.CapDrop,
+        security_opt: .HostConfig.SecurityOpt,
+        pids: .HostConfig.PidsLimit,
+        memory: .HostConfig.Memory,
+        nano_cpus: .HostConfig.NanoCpus,
+        writable_mounts: [.Mounts[] | select(.RW == true) | .Destination]
+      }' >&2
+    return 1
+  fi
+}
+
 tc201_cleanup() {
   local cleanup_status=0
   "${tc201_compose[@]}" down --rmi local --volumes --remove-orphans \
@@ -116,6 +158,29 @@ fi
 "${tc201_compose[@]}" run --rm privilege_test
 
 "${tc201_compose[@]}" up --detach --build --wait auth messaging gateway
+assert_hardened_container database postgres /var/lib/postgresql/data
+assert_hardened_container bootstrap_roles postgres
+assert_hardened_container sqitch sqitch
+assert_hardened_container auth node
+assert_hardened_container messaging node
+assert_hardened_container gateway 101:101
+
+for service_name in database auth messaging gateway; do
+  if "${tc201_compose[@]}" exec -T "$service_name" \
+      sh -c 'touch /tc204-rootfs-write-should-fail' >/dev/null 2>&1; then
+    echo "Writable root filesystem detected for $service_name" >&2
+    exit 1
+  fi
+  "${tc201_compose[@]}" exec -T "$service_name" \
+    sh -c 'touch /tmp/tc204-tmpfs-write && rm /tmp/tc204-tmpfs-write'
+done
+
+for service_name in auth messaging; do
+  container_id=$("${tc201_compose[@]}" ps --quiet "$service_name")
+  image_id=$(docker inspect --format '{{.Image}}' "$container_id")
+  test "$(docker image inspect --format '{{.Config.User}}' "$image_id")" = node
+done
+
 "${tc201_compose[@]}" exec -T \
   -e TC_DEVICE_TRUST_SMOKE_BASE_URL=http://gateway:8080 \
   messaging node dist/tools/deviceTrustStagingSmoke.js

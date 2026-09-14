@@ -67,6 +67,9 @@ Noms réels des stacks et services, domaines assainis, réseau/proxy, registre d
 - Secrets : URI et mot de passe injectés uniquement à l'exécution.
 - Identités : administrateur/bootstrap, migrateur/Sqitch, Auth et Messaging
   séparés selon `docs/security/DATABASE_ACCESS_CONTROL.md`.
+- Confinement : utilisateur non-root, rootfs en lecture seule, aucune
+  capability, `no-new-privileges`, tmpfs et plafonds de ressources vérifiés
+  selon `docs/security/CONTAINER_HARDENING.md`.
 - Concurrence : un seul job est orchestré ; le verrou PostgreSQL de Sqitch
   protège aussi contre un second lancement accidentel.
 - Staging : volume recréé à vide et registre adopté par `TC-202` ; Auth et

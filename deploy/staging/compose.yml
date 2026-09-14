@@ -35,6 +35,12 @@ services:
     image: "${TC_POSTGRES_IMAGE:?TC_POSTGRES_IMAGE must be pinned by digest}"
     restart: unless-stopped
     init: true
+    user: postgres
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       POSTGRES_DB: "${TC_DB_NAME:?TC_DB_NAME is required}"
       POSTGRES_USER: trust_circle_admin
@@ -43,6 +49,9 @@ services:
       - admin_db_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp:size=32m,uid=70,gid=70,mode=1777,noexec,nosuid,nodev
+      - /var/run/postgresql:size=16m,uid=70,gid=70,mode=0775,noexec,nosuid,nodev
     networks:
       - data
     healthcheck:
@@ -90,6 +99,7 @@ services:
       - ../../infrastructure/postgres:/repo:ro
     tmpfs:
       - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
+      - /var/lib/postgresql/data:size=1m,uid=70,gid=70,mode=0700,noexec,nosuid,nodev
     networks:
       - data
     depends_on:
@@ -107,6 +117,7 @@ services:
     image: "${TC_SQITCH_IMAGE:?TC_SQITCH_IMAGE must be pinned by digest}"
     restart: "no"
     init: true
+    user: sqitch
     read_only: true
     security_opt:
       - no-new-privileges:true

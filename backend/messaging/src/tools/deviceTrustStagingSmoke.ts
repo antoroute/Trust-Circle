@@ -190,11 +190,22 @@ async function socketPollingAck(
     body: `421["conv:subscribe",${JSON.stringify({ convId: conversationId })}]`,
   });
   if (!subscribe.ok) throw new Error(`Socket.IO subscribe: unexpected status ${subscribe.status}`);
-  const acknowledgement = await fetch(sessionEndpoint, { headers: commonHeaders });
-  const acknowledgementBody = await acknowledgement.text();
-  const ackPacket = acknowledgementBody
-    .split('\x1e')
-    .find((packet) => packet.startsWith('431'));
+  let ackPacket: string | undefined;
+  for (let attempt = 0; attempt < 5 && !ackPacket; attempt += 1) {
+    const acknowledgement = await fetch(sessionEndpoint, {
+      headers: commonHeaders,
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!acknowledgement.ok) {
+      throw new Error(
+        `Socket.IO subscribe ACK: unexpected status ${acknowledgement.status}`,
+      );
+    }
+    const acknowledgementBody = await acknowledgement.text();
+    ackPacket = acknowledgementBody
+      .split('\x1e')
+      .find((packet) => packet.startsWith('431'));
+  }
   if (!ackPacket) throw new Error('Socket.IO subscribe: missing ACK packet');
   const ackValues = JSON.parse(ackPacket.slice(3));
   if (!Array.isArray(ackValues) || objectValue(ackValues[0], 'Socket.IO subscribe ACK').success !== true) {

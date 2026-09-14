@@ -23,8 +23,12 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
   seule. Les valeurs DB ne figurent pas dans le fichier d'environnement ni
   dans la configuration Docker inspectable des runtimes.
 - Images backend étiquetées avec le commit et la version de staging.
+- Images backend basées sur Node fixé par digest et déclarant `USER node`.
 - Images PostgreSQL/Nginx fournies par digest dans le fichier d'environnement privé.
 - Configuration backend validée avant écoute selon `docs/operations/BACKEND_CONFIGURATION.md` ; aucun fallback de secret ou de connexion PostgreSQL.
+- Tous les services utilisent un rootfs en lecture seule, un utilisateur
+  non-root, `no-new-privileges`, `cap_drop: ALL` et des limites de ressources.
+  PostgreSQL écrit seulement dans son volume et ses deux tmpfs dédiés.
 
 ## Déploiement sur LXC106
 
@@ -77,6 +81,12 @@ ce changement. Vérifier que la stack `trust-circle-staging` est la cible,
 arrêter uniquement cette stack puis la relancer sans `--volumes`; le volume
 PostgreSQL n'est pas concerné. Ne jamais supprimer un réseau ou volume partagé
 sans avoir démontré son absence d'usage.
+
+Le durcissement PostgreSQL de `TC-204` ne requiert aucune recréation de volume.
+Avant remplacement du conteneur, vérifier que le processus PostgreSQL courant
+utilise bien l'UID attendu par le digest épinglé. Après démarrage, contrôler les
+flags effectifs Docker et tenter une écriture refusée hors des tmpfs/volume,
+selon `docs/security/CONTAINER_HARDENING.md`.
 
 5. Attendre les healthchecks puis exécuter :
 
