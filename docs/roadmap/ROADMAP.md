@@ -66,7 +66,7 @@ engagé dans ce lot.
 | TC-201 | Choisir l'outil de migration et créer une baseline — Terminée, Sqitch 1.6.1 | TC-002, TC-004 |
 | TC-202 | Réinitialiser le staging et adopter la baseline — Terminée | TC-201 |
 | TC-203 | Séparer comptes DB, secrets et privilèges par service — Terminée | TC-201 |
-| TC-204 | Durcir images/conteneurs, utilisateurs, systèmes de fichiers et ressources | TC-004 |
+| TC-204 | Durcir images/conteneurs, utilisateurs, systèmes de fichiers et ressources — Terminée | TC-004 |
 | TC-205 | Retirer Redis ou l'intégrer correctement sur réseau privé | TC-002 |
 | TC-206 | Ajouter logs structurés, corrélation et redaction | TC-112 |
 | TC-207 | Ajouter health/readiness checks et métriques minimales | TC-206 |

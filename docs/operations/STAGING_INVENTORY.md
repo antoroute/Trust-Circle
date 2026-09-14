@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
-Statut : opérationnel, publication TLS restreinte, rôles DB séparés
-Dernier déploiement : 2026-09-14 (`TC-203` terminée)
+Statut : opérationnel, publication TLS restreinte, rôles DB et conteneurs durcis
+Dernier déploiement : 2026-09-14 (`TC-204` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `190abbce96a57c4714ad5501908d39cb26cefb6a` |
-| Release | `/opt/trust-circle-staging/releases/190abbce96a57c4714ad5501908d39cb26cefb6a` |
+| Commit source | `079263be9dfa1304e36d9f24b526d138666a79ab` |
+| Release | `/opt/trust-circle-staging/releases/079263be9dfa1304e36d9f24b526d138666a79ab` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Secrets DB | répertoire frère `staging.env.d`, mode `0700`, quatre fichiers distincts |
@@ -26,8 +26,8 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-190abbce96a5` | image ID `e8d357d59df8`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-190abbce96a5` | image ID `784db2cd02ed`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-079263be9dfa` | image ID `a27009163119`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-079263be9dfa` | image ID `b5a7f8fab4ac`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | image ID `75f5a96988cd` | sain, 0 redémarrage |
 | Bootstrap rôles | même image PostgreSQL par digest | image ID `75f5a96988cd`, utilisateur `postgres` | terminé, code 0 |
 | Migration | Sqitch 1.6.1 résolue par digest | image ID `44f627f9a86a`, utilisateur `sqitch` | terminé, code 0 |
@@ -59,11 +59,13 @@ Les tests backend sont exécutés via `pct exec 106` et la gateway loopback. Tou
 
 ## Durcissement appliqué
 
-Auth, messaging, gateway et le job Sqitch utilisent : utilisateur non-root,
-rootfs en lecture seule, `no-new-privileges`, toutes les capabilities supprimées,
-limites CPU/mémoire/PID, init, délai d'arrêt et journald avec tag staging.
-
-PostgreSQL utilise un volume inscriptible, des limites de ressources, un healthcheck et un réseau interne. Son image officielle n'est pas encore durcie avec un utilisateur/jeu de capabilities Compose spécifique ; ce point appartient à `TC-204`.
+Les six conteneurs et jobs déclarent un utilisateur non-root explicite, un
+rootfs en lecture seule, `no-new-privileges`, aucune capability et des limites
+CPU, mémoire et PID. PostgreSQL n'écrit que dans son volume nommé et ses tmpfs
+bornés. Auth, Messaging et Gateway n'écrivent que dans leurs tmpfs ; les
+écritures de contrôle sur leur rootfs, comme sur celui de PostgreSQL, sont
+effectivement refusées. Le job bootstrap masque en lecture seule le `VOLUME`
+inutilisé de l'image PostgreSQL et ne laisse donc aucun volume anonyme.
 
 ## Schéma et données
 
@@ -104,6 +106,36 @@ releases `bb4ce6da93839d9db253e3505d41060023416006` et
 `2e74b544655549b3253bf4dbfd04798beb5d07c6` restent disponibles. Le rollback
 vers le schéma antérieur nécessite une nouvelle recréation du volume vide ;
 aucune donnée métier n'est à restaurer.
+
+Le redéploiement `TC-204` du 2026-09-14 a ensuite validé :
+
+1. images Auth et Messaging finales exécutées par `node`, base par `postgres`,
+   bootstrap par `postgres`, migration par `sqitch` et gateway par `101:101` ;
+2. pour les six composants, rootfs en lecture seule, `no-new-privileges`,
+   suppression de toutes les capabilities et limites CPU/mémoire/PID non
+   nulles ;
+3. refus réel des écritures hors montages autorisés sur les quatre services
+   persistants, puis persistance PostgreSQL sur le même volume après
+   redémarrage ;
+4. initialisation jetable, sept migrations et vérifications Sqitch, réversion
+   totale, nouveau déploiement, tests de privilèges et smoke adversarial tous
+   réussis ;
+5. `27/27` tests Auth, `90/90` tests Messaging et zéro avis dans les deux
+   audits npm ; l'analyse SBOM/CVE des images reste prévue par `TC-209` et
+   `TC-805` ;
+6. staging final sur `079263be9dfa1304e36d9f24b526d138666a79ab`,
+   quatre services sains sans redémarrage et deux jobs terminés en code `0` ;
+7. date de création du volume nommé inchangée
+   (`2026-09-14T18:34:16+02:00`), aucun volume anonyme résiduel, sept
+   changements Sqitch et zéro ligne dans chacune des 17 tables publiques ;
+8. zéro réponse 5xx Auth/Messaging dans la fenêtre finale, et les trois routes
+   de santé en `200` depuis NPM en accès direct comme via HTTPS.
+
+Les configurations précédentes sont conservées en mode `0600` sous
+`staging.env.before-c2d388a16bb0` et `staging.env.before-079263be9dfa`. Les
+releases `190abbce96a57c4714ad5501908d39cb26cefb6a` et
+`c2d388a16bb0c5381904c4e05371936866a43db0` restent disponibles pour rollback
+applicatif sans suppression du volume PostgreSQL.
 
 Le redéploiement `TC-202` du 2026-09-13 a validé :
 
