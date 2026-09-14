@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
-Statut : opérationnel, publication TLS restreinte
-Dernier déploiement : 2026-09-13 (`TC-202` terminée)
+Statut : opérationnel, publication TLS restreinte, rôles DB séparés
+Dernier déploiement : 2026-09-14 (`TC-203` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,10 +12,11 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `bb4ce6da93839d9db253e3505d41060023416006` |
-| Release | `/opt/trust-circle-staging/releases/bb4ce6da93839d9db253e3505d41060023416006` |
+| Commit source | `190abbce96a57c4714ad5501908d39cb26cefb6a` |
+| Release | `/opt/trust-circle-staging/releases/190abbce96a57c4714ad5501908d39cb26cefb6a` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
+| Secrets DB | répertoire frère `staging.env.d`, mode `0700`, quatre fichiers distincts |
 | Source Compose | `deploy/staging/compose.yml` |
 | Projet Compose | `trust-circle-staging` |
 
@@ -25,9 +26,10 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-bb4ce6da9383` | image ID `0fb7cca5e880`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-bb4ce6da9383` | image ID `23f9ee2782b6`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-190abbce96a5` | image ID `e8d357d59df8`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-190abbce96a5` | image ID `784db2cd02ed`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | image ID `75f5a96988cd` | sain, 0 redémarrage |
+| Bootstrap rôles | même image PostgreSQL par digest | image ID `75f5a96988cd`, utilisateur `postgres` | terminé, code 0 |
 | Migration | Sqitch 1.6.1 résolue par digest | image ID `44f627f9a86a`, utilisateur `sqitch` | terminé, code 0 |
 | Gateway | `nginx:stable-alpine` résolue par digest | image ID `6e01bfae6f79` | sain, 0 redémarrage |
 
@@ -71,8 +73,37 @@ PostgreSQL utilise un volume inscriptible, des limites de ressources, un healthc
 - 17 tables publiques observées ; `user_groups.role` reste contraint à `admin` ou `member`, et le propriétaire reste dérivé de `groups.creator_id`.
 - Aucune donnée métier persistante après `TC-202` ; les fixtures synthétiques
   du smoke final ont été supprimées après validation.
-- Six changements sont enregistrés dans `trust_circle_sqitch`. Les anciens
+- Sept changements sont enregistrés dans `trust_circle_sqitch`. Les anciens
   scripts manuels restent des archives d'audit non exécutées.
+
+Le redéploiement `TC-203` du 2026-09-14 a validé :
+
+1. recréation explicitement autorisée du volume staging ne contenant aucune
+   donnée métier, sans modification d'une autre stack ou ressource Docker ;
+2. quatre mots de passe PostgreSQL aléatoires de 256 bits, distincts et hors du
+   fichier d'environnement, avec fichiers montés en lecture seule ;
+3. séparation de `trust_circle_admin`, `trust_circle_migrator`,
+   `trust_circle_auth` et `trust_circle_messaging`, objets appartenant au
+   migrateur sans attribut d'administration ;
+4. septième changement Sqitch versionnant les privilèges runtime, tests réels
+   des commandes permises/refusées et absence d'accès runtime au registre
+   Sqitch ou au DDL ;
+5. absence de `DATABASE_URL`, `PGPASSWORD` ou mot de passe DB dans
+   `Config.Env`, Auth et Messaging ne recevant chacun que leur propre fichier ;
+6. test jetable complet avec deux migrations concurrentes, réversion totale,
+   redéploiement et smoke PostgreSQL/HTTP/Socket.IO réussis ;
+7. staging final sur `190abbce96a57c4714ad5501908d39cb26cefb6a`,
+   smoke adversarial réussi, 17 tables vidées table par table et sept entrées
+   Sqitch conservées ;
+8. quatre services persistants sains et sans redémarrage, jobs bootstrap et
+   migration en code `0`, accès direct depuis NPM et HTTPS tous deux en `200`.
+
+Les configurations précédentes sont conservées en mode `0600` sous
+`staging.env.before-2e74b5446555` et `staging.env.before-190abbce96a5`. Les
+releases `bb4ce6da93839d9db253e3505d41060023416006` et
+`2e74b544655549b3253bf4dbfd04798beb5d07c6` restent disponibles. Le rollback
+vers le schéma antérieur nécessite une nouvelle recréation du volume vide ;
+aucune donnée métier n'est à restaurer.
 
 Le redéploiement `TC-202` du 2026-09-13 a validé :
 
@@ -401,7 +432,9 @@ La fermeture de `TC-113` a ensuite validé :
   refus ne doit pas être confondu avec une panne du backend.
 - Configuration de build Flutter staging validée par `TC-114` sur Windows 11
   physique et Android 16 émulé, avec TLS et budgets profile conformes.
-- Pas encore d'outil de migrations ni de restauration complète du volume principal ; les migrations `TC-104` à `TC-106` et leurs rollbacks ont été exercés dans un environnement PostgreSQL isolé, mais appliqués manuellement au staging.
+- Sqitch est opérationnel et les rôles PostgreSQL sont séparés. Les sauvegardes
+  automatisées et les tests périodiques de restauration restent à réaliser dans
+  `TC-208`.
 - Les scénarios d'autorisation croisée cercle/conversation/clé sont couverts
   par `TC-111` et le smoke adversarial courant.
 - Images backend locales non publiées dans un registre ; l'image ID et les labels assurent la traçabilité locale, pas une provenance distante.

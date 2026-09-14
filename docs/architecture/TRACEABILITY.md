@@ -101,6 +101,7 @@ Le modèle exact observé et ses incohérences sont détaillés dans [`DATA_MODE
 | comprendre les parcours complets | [`FUNCTIONAL_REFERENCE.md`](FUNCTIONAL_REFERENCE.md) |
 | comprendre chaque octet du chiffrement V2 | [`CRYPTOGRAPHY_V2.md`](../security/CRYPTOGRAPHY_V2.md) |
 | connaître les règles non négociables | [`SECURITY_INVARIANTS.md`](../security/SECURITY_INVARIANTS.md) |
+| connaître les rôles et privilèges PostgreSQL | [`DATABASE_ACCESS_CONTROL.md`](../security/DATABASE_ACCESS_CONTROL.md) |
 | comprendre les adversaires et impacts | [`THREAT_MODEL.md`](../security/THREAT_MODEL.md) |
 | connaître la cible cryptographique | [`ADR-0003-protocole-crypto-v3.md`](../adr/ADR-0003-protocole-crypto-v3.md) |
 | comprendre la preuve d'appareil | [`DEVICE_TRUST_PROTOCOL_V1.md`](../security/DEVICE_TRUST_PROTOCOL_V1.md) |
