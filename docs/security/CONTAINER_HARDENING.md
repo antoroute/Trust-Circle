@@ -38,11 +38,12 @@ du ressort de `TC-209`/`TC-805`.
 | Messaging | aucune | `/tmp` |
 | Gateway | aucune | cache Nginx, `/var/run`, `/tmp` |
 | Sqitch | aucune | `/tmp` |
-| Bootstrap/privilèges | aucune | `/tmp` et masque tmpfs de 1 Mio sur le `VOLUME` hérité de l'image PostgreSQL |
+| Bootstrap/privilèges | aucune | `/tmp` ; masque vide en lecture seule sur le `VOLUME` hérité de l'image PostgreSQL |
 
-Le masque de `/var/lib/postgresql/data` sur les jobs ponctuels est nécessaire
-car l'image officielle PostgreSQL déclare ce chemin comme `VOLUME`. Sans masque,
-Docker crée un volume anonyme inscriptible et inutile pour chaque job.
+Le masque en lecture seule de `/var/lib/postgresql/data` sur les jobs ponctuels
+est nécessaire car l'image officielle PostgreSQL déclare ce chemin comme
+`VOLUME`. Sans masque explicite, Docker crée un volume anonyme inscriptible et
+inutile pour chaque job.
 
 PostgreSQL utilise l'utilisateur de l'image `postgres` (UID/GID 70 dans le
 digest Alpine actuellement fixé). Les UID des tmpfs sont explicites ; une mise

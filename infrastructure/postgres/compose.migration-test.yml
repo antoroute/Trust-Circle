@@ -50,9 +50,9 @@ services:
       - messaging_db_password
     volumes:
       - .:/repo:ro
+      - ./empty-data:/var/lib/postgresql/data:ro
     tmpfs:
       - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
-      - /var/lib/postgresql/data:size=1m,uid=70,gid=70,mode=0700,noexec,nosuid,nodev
     depends_on:
       database:
         condition: service_healthy
@@ -210,9 +210,9 @@ services:
       - messaging_db_password
     volumes:
       - .:/repo:ro
+      - ./empty-data:/var/lib/postgresql/data:ro
     tmpfs:
       - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
-      - /var/lib/postgresql/data:size=1m,uid=70,gid=70,mode=0700,noexec,nosuid,nodev
     depends_on:
       sqitch:
         condition: service_completed_successfully

@@ -1,0 +1,1 @@
+# Read-only mask for the PostgreSQL image VOLUME in non-database jobs.
