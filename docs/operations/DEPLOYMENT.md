@@ -1,7 +1,7 @@
 # Déploiement
 
-Statut : garde-fous définis, baseline Sqitch intégrée au staging
-Dernière mise à jour : 2026-09-13
+Statut : garde-fous définis, baseline et rôles séparés intégrés au staging
+Dernière mise à jour : 2026-09-14
 
 ## Préconditions
 
@@ -15,8 +15,9 @@ Dernière mise à jour : 2026-09-13
 ## Séquence cible
 
 1. Capturer l'état avant déploiement sans secret : versions, santé, schéma, espace disque et dernière sauvegarde vérifiée.
-2. Exécuter un job Sqitch unique : `check`, puis `deploy --verify`, avec le rôle
-   DDL et l'image approuvée par digest.
+2. Exécuter le bootstrap idempotent des rôles, puis un job Sqitch unique :
+   `check`, puis `deploy --verify`, avec le rôle DDL et l'image approuvée par
+   digest.
 3. Déployer les images par digest, avec healthchecks et limites de ressources.
 4. Exécuter les smoke tests : authentification, renouvellement, liste de cercles, synchronisation et temps réel avec comptes de test dédiés.
 5. Observer erreurs, latence, saturation et files pendant la fenêtre définie.
@@ -50,6 +51,9 @@ Noms réels des stacks et services, domaines assainis, réseau/proxy, registre d
 - Source : `deploy/staging/compose.yml` et `deploy/staging/README.md`.
 - Releases immuables sous `/opt/trust-circle-staging/releases/<commit>`.
 - Secrets persistants hors release sous `/opt/trust-circle-staging/shared/staging.env`.
+- Mots de passe PostgreSQL distincts sous le répertoire privé
+  `/opt/trust-circle-staging/shared/staging.env.d` ; seules leurs références
+  figurent dans `staging.env`.
 - Gateway liée à `10.0.20.20:18081`, filtrée pour NPM uniquement selon
   `TC-113` ; aucun déploiement production automatisé.
 - Inventaire et preuves : `docs/operations/STAGING_INVENTORY.md`.
@@ -61,6 +65,8 @@ Noms réels des stacks et services, domaines assainis, réseau/proxy, registre d
   `deploy/`, `revert/`, `verify/`.
 - Registre : schéma PostgreSQL `trust_circle_sqitch`.
 - Secrets : URI et mot de passe injectés uniquement à l'exécution.
+- Identités : administrateur/bootstrap, migrateur/Sqitch, Auth et Messaging
+  séparés selon `docs/security/DATABASE_ACCESS_CONTROL.md`.
 - Concurrence : un seul job est orchestré ; le verrou PostgreSQL de Sqitch
   protège aussi contre un second lancement accidentel.
 - Staging : volume recréé à vide et registre adopté par `TC-202` ; Auth et

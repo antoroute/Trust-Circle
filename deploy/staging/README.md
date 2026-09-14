@@ -18,14 +18,17 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
 - Gateway liée par défaut uniquement à `127.0.0.1:18080`. Une adresse interne
   différente exige `TC_STAGING_BIND_ADDRESS`, un port dédié, un filtrage réseau
   limité à NPM et la procédure `TC-113` ; ne jamais utiliser `0.0.0.0`.
-- Secrets générés hors dépôt dans un fichier `0600`.
+- Secrets générés hors dépôt : configuration en `0600`, répertoire de mots de
+  passe PostgreSQL en `0700` et quatre fichiers distincts montés en lecture
+  seule. Les valeurs DB ne figurent pas dans le fichier d'environnement ni
+  dans la configuration Docker inspectable des runtimes.
 - Images backend étiquetées avec le commit et la version de staging.
 - Images PostgreSQL/Nginx fournies par digest dans le fichier d'environnement privé.
 - Configuration backend validée avant écoute selon `docs/operations/BACKEND_CONFIGURATION.md` ; aucun fallback de secret ou de connexion PostgreSQL.
 
 ## Déploiement sur LXC106
 
-Le code source est copié dans un répertoire de release sous `/opt/trust-circle-staging/releases/<commit>`. Les secrets restent dans `/opt/trust-circle-staging/shared/staging.env`.
+Le code source est copié dans un répertoire de release sous `/opt/trust-circle-staging/releases/<commit>`. La configuration reste dans `/opt/trust-circle-staging/shared/staging.env` et les quatre mots de passe PostgreSQL dans son répertoire frère `staging.env.d`.
 
 1. Tirer les tags officiels approuvés, puis relever leurs `RepoDigests`.
 2. Créer le fichier privé une seule fois :
@@ -47,8 +50,8 @@ docker compose \
   -f deploy/staging/compose.yml config --quiet
 ```
 
-4. Construire et démarrer. Compose attend la fin réussie du job `migrate`
-   avant de lancer Auth et Messaging :
+4. Construire et démarrer. Compose attend d'abord le bootstrap réussi des rôles,
+   puis la fin réussie du job `migrate`, avant de lancer Auth et Messaging :
 
 ```bash
 docker compose \
@@ -57,7 +60,7 @@ docker compose \
   -f deploy/staging/compose.yml up -d --build
 ```
 
-Vérifier que le job est sorti avec le code `0` et que Sqitch connaît les six
+Vérifier que les deux jobs sont sortis avec le code `0` et que Sqitch connaît les sept
 changements avant les smoke tests :
 
 ```bash
@@ -112,7 +115,7 @@ docker compose --project-name trust-circle-staging \
   -f deploy/staging/compose.yml ps
 ```
 
-Pour documenter les variables, extraire uniquement leurs noms via `docker inspect` et `jq`; ne pas copier la sortie brute.
+Pour documenter les variables, extraire uniquement leurs noms via `docker inspect` et `jq`; ne pas copier la sortie brute. Les conteneurs Auth, Messaging et migration ne doivent exposer ni mot de passe, ni `PGPASSWORD`, ni `DATABASE_URL` dans `Config.Env`.
 
 ## Accès client
 

@@ -1,7 +1,7 @@
 # Modèle de données
 
-Statut : baseline V2 versionnée et contraintes cibles
-Dernière mise à jour : 2026-09-13
+Statut : baseline V2 versionnée, propriétaires et privilèges séparés
+Dernière mise à jour : 2026-09-14
 
 ## Modèle observé
 
@@ -25,11 +25,17 @@ dans Sqitch avec scripts transactionnels `deploy`, `revert` et `verify`.
 seul plan. `init.sql` n'est plus monté ni exécuté et reste uniquement une
 archive historique jusqu'à sa suppression dédiée.
 
+Le septième changement `runtime_database_privileges` accorde explicitement les
+droits minimaux d'Auth et Messaging. Tous les objets applicatifs et le registre
+Sqitch appartiennent au migrateur non administrateur ; les runtimes n'obtiennent
+aucun droit automatique sur un futur objet. La matrice complète est décrite
+dans [`DATABASE_ACCESS_CONTROL.md`](../security/DATABASE_ACCESS_CONTROL.md).
+
 La circulation de ces données par parcours est décrite dans [`FUNCTIONAL_REFERENCE.md`](FUNCTIONAL_REFERENCE.md), et les fichiers responsables dans [`TRACEABILITY.md`](TRACEABILITY.md).
 
 ## Problèmes structurels à résoudre
 
-- Le staging possède désormais son registre Sqitch ; toute autre base
+- Le staging possède désormais son registre Sqitch et des rôles séparés ; toute autre base
   persistante devra être créée ou adoptée par une procédure explicitement
   contrôlée.
 - Le stockage des rôles est explicite, mais le transfert de propriété et l'interface complète de gestion restent à concevoir.

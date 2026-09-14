@@ -3,15 +3,42 @@ services:
     image: "${TC_MIGRATION_TEST_POSTGRES_IMAGE:?pin the PostgreSQL test image}"
     environment:
       POSTGRES_DB: trust_circle_migration_test
-      POSTGRES_USER: trust_circle_migrator
-      POSTGRES_PASSWORD: "${TC_MIGRATION_TEST_PASSWORD:?set an ephemeral test password}"
+      POSTGRES_USER: trust_circle_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/admin_db_password
+    secrets:
+      - admin_db_password
     healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready -U trust_circle_migrator -d trust_circle_migration_test
+      test: ["CMD-SHELL", "pg_isready -U trust_circle_admin -d trust_circle_migration_test"]
       interval: 1s
       timeout: 3s
       retries: 30
+    networks:
+      - migration_test
+
+  bootstrap_roles:
+    image: "${TC_MIGRATION_TEST_POSTGRES_IMAGE:?pin the PostgreSQL test image}"
+    user: postgres
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    entrypoint: ["sh", "/repo/bootstrap-roles.sh"]
+    environment:
+      TC_DB_NAME: trust_circle_migration_test
+      TC_DB_HOST: database
+    secrets:
+      - admin_db_password
+      - migrator_db_password
+      - auth_db_password
+      - messaging_db_password
+    volumes:
+      - .:/repo:ro
+    tmpfs:
+      - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
+    depends_on:
+      database:
+        condition: service_healthy
     networks:
       - migration_test
 
@@ -23,16 +50,20 @@ services:
     cap_drop:
       - ALL
     working_dir: /repo
-    entrypoint: ["sqitch"]
-    environment:
-      PGPASSWORD: "${TC_MIGRATION_TEST_PASSWORD:?set an ephemeral test password}"
+    entrypoint: ["sh", "/repo/run-sqitch.sh"]
+    command:
+      - deploy
+      - --verify
+      - db:pg://trust_circle_migrator@database/trust_circle_migration_test
+    secrets:
+      - migrator_db_password
     volumes:
       - .:/repo:ro
     tmpfs:
       - /tmp:size=32m,mode=1777,noexec,nosuid,nodev
     depends_on:
-      database:
-        condition: service_healthy
+      bootstrap_roles:
+        condition: service_completed_successfully
     networks:
       - migration_test
 
@@ -40,18 +71,26 @@ services:
     build:
       context: ../../backend/auth
     user: node
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        database_password=$$(sed -n '1p' /run/secrets/auth_db_password)
+        export DATABASE_URL="postgresql://trust_circle_auth:$${database_password}@database:5432/trust_circle_migration_test"
+        unset database_password
+        exec node dist/index.js
     environment:
       NODE_ENV: test
       PORT: "3000"
       JWT_ACCESS_PRIVATE_KEY_B64: "${TC_MIGRATION_TEST_ACCESS_PRIVATE_KEY_B64:?generate an ephemeral private key}"
       JWT_ACCESS_PUBLIC_KEY_B64: "${TC_MIGRATION_TEST_ACCESS_PUBLIC_KEY_B64:?generate an ephemeral public key}"
       JWT_REFRESH_SECRET: "${TC_MIGRATION_TEST_REFRESH_SECRET:?generate an ephemeral refresh secret}"
-      DATABASE_URL: "postgresql://trust_circle_migrator:${TC_MIGRATION_TEST_PASSWORD}@database:5432/trust_circle_migration_test"
       TRUSTED_PROXY_CIDRS: ""
       CORS_ALLOWED_ORIGINS: ""
+    secrets:
+      - auth_db_password
     depends_on:
-      database:
-        condition: service_healthy
+      sqitch:
+        condition: service_completed_successfully
     networks:
       - migration_test
 
@@ -59,16 +98,24 @@ services:
     build:
       context: ../../backend/messaging
     user: node
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        database_password=$$(sed -n '1p' /run/secrets/messaging_db_password)
+        export DATABASE_URL="postgresql://trust_circle_messaging:$${database_password}@database:5432/trust_circle_migration_test"
+        unset database_password
+        exec node dist/index.js
     environment:
       NODE_ENV: test
       PORT: "3001"
       JWT_ACCESS_PUBLIC_KEY_B64: "${TC_MIGRATION_TEST_ACCESS_PUBLIC_KEY_B64:?generate an ephemeral public key}"
-      DATABASE_URL: "postgresql://trust_circle_migrator:${TC_MIGRATION_TEST_PASSWORD}@database:5432/trust_circle_migration_test"
       TRUSTED_PROXY_CIDRS: ""
       CORS_ALLOWED_ORIGINS: ""
+    secrets:
+      - messaging_db_password
     depends_on:
-      database:
-        condition: service_healthy
+      sqitch:
+        condition: service_completed_successfully
     networks:
       - migration_test
 
@@ -94,6 +141,41 @@ services:
     networks:
       - migration_test
 
+  privilege_test:
+    image: "${TC_MIGRATION_TEST_POSTGRES_IMAGE:?pin the PostgreSQL test image}"
+    user: postgres
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    entrypoint: ["sh", "/repo/test-runtime-privileges.sh"]
+    environment:
+      TC_DB_NAME: trust_circle_migration_test
+      TC_DB_HOST: database
+    secrets:
+      - auth_db_password
+      - messaging_db_password
+    volumes:
+      - .:/repo:ro
+    tmpfs:
+      - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
+    depends_on:
+      sqitch:
+        condition: service_completed_successfully
+    networks:
+      - migration_test
+
 networks:
   migration_test:
     internal: true
+
+secrets:
+  admin_db_password:
+    file: "${TC_MIGRATION_TEST_ADMIN_PASSWORD_FILE:?set an ephemeral admin password file}"
+  migrator_db_password:
+    file: "${TC_MIGRATION_TEST_MIGRATOR_PASSWORD_FILE:?set an ephemeral migrator password file}"
+  auth_db_password:
+    file: "${TC_MIGRATION_TEST_AUTH_PASSWORD_FILE:?set an ephemeral Auth password file}"
+  messaging_db_password:
+    file: "${TC_MIGRATION_TEST_MESSAGING_PASSWORD_FILE:?set an ephemeral Messaging password file}"

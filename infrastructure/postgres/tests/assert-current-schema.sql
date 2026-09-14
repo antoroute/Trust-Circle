@@ -25,8 +25,8 @@ BEGIN
     INTO sqitch_change_count
     FROM trust_circle_sqitch.changes;
 
-  IF sqitch_change_count <> 6 THEN
-    RAISE EXCEPTION 'expected 6 Sqitch changes, found %', sqitch_change_count;
+  IF sqitch_change_count <> 7 THEN
+    RAISE EXCEPTION 'expected 7 Sqitch changes, found %', sqitch_change_count;
   END IF;
 
   IF NOT EXISTS (

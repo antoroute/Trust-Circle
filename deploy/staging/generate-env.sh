@@ -39,15 +39,30 @@ if [[ "$sqitch_image" != sqitch/sqitch@sha256:* ]]; then
 fi
 
 env_dir=$(dirname -- "$env_file")
+secrets_dir="${env_file}.d"
+if [[ -e "$secrets_dir" ]]; then
+  echo "Refusing to overwrite existing secrets directory: $secrets_dir" >&2
+  exit 73
+fi
 install -d -m 0700 -- "$env_dir"
+install -d -m 0700 -- "$secrets_dir"
 umask 077
 
-db_password=$(openssl rand -hex 32)
+admin_db_password=$(openssl rand -hex 32)
+migrator_db_password=$(openssl rand -hex 32)
+auth_db_password=$(openssl rand -hex 32)
+messaging_db_password=$(openssl rand -hex 32)
 jwt_access_private_pem=$(openssl genpkey -algorithm ED25519 2>/dev/null)
 jwt_access_public_pem=$(printf '%s\n' "$jwt_access_private_pem" | openssl pkey -pubout 2>/dev/null)
 jwt_access_private_b64=$(printf '%s\n' "$jwt_access_private_pem" | openssl base64 -A)
 jwt_access_public_b64=$(printf '%s\n' "$jwt_access_public_pem" | openssl base64 -A)
 jwt_refresh_secret=$(openssl rand -hex 48)
+
+printf '%s' "$admin_db_password" > "$secrets_dir/admin_db_password"
+printf '%s' "$migrator_db_password" > "$secrets_dir/migrator_db_password"
+printf '%s' "$auth_db_password" > "$secrets_dir/auth_db_password"
+printf '%s' "$messaging_db_password" > "$secrets_dir/messaging_db_password"
+chmod 0444 -- "$secrets_dir"/*_db_password
 
 {
   printf 'TC_GIT_COMMIT=%s\n' "$git_commit"
@@ -56,15 +71,18 @@ jwt_refresh_secret=$(openssl rand -hex 48)
   printf 'TC_NGINX_IMAGE=%s\n' "$nginx_image"
   printf 'TC_SQITCH_IMAGE=%s\n' "$sqitch_image"
   printf 'TC_DB_NAME=trust_circle_staging\n'
-  printf 'TC_DB_USER=trust_circle_staging\n'
-  printf 'TC_DB_PASSWORD=%s\n' "$db_password"
+  printf 'TC_DB_ADMIN_PASSWORD_FILE=%s/admin_db_password\n' "$secrets_dir"
+  printf 'TC_DB_MIGRATOR_PASSWORD_FILE=%s/migrator_db_password\n' "$secrets_dir"
+  printf 'TC_AUTH_DB_PASSWORD_FILE=%s/auth_db_password\n' "$secrets_dir"
+  printf 'TC_MESSAGING_DB_PASSWORD_FILE=%s/messaging_db_password\n' "$secrets_dir"
   printf 'TC_JWT_ACCESS_PRIVATE_KEY_B64=%s\n' "$jwt_access_private_b64"
   printf 'TC_JWT_ACCESS_PUBLIC_KEY_B64=%s\n' "$jwt_access_public_b64"
   printf 'TC_JWT_REFRESH_SECRET=%s\n' "$jwt_refresh_secret"
   printf 'TC_STAGING_HTTP_PORT=18080\n'
 } > "$env_file"
 
+unset admin_db_password migrator_db_password auth_db_password messaging_db_password
 unset jwt_access_private_pem jwt_access_public_pem jwt_access_private_b64 jwt_access_public_b64
 
 chmod 0600 -- "$env_file"
-echo "Staging environment file created with mode 0600. Values were not printed."
+echo "Staging environment and isolated database secret files created. Values were not printed."

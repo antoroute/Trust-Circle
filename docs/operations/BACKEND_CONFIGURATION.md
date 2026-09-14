@@ -1,7 +1,7 @@
 # Configuration des services backend
 
-Statut : contrat opérationnel (`TC-101`, `TC-108`, `TC-109`)
-Dernière mise à jour : 2026-09-09
+Statut : contrat opérationnel (`TC-101`, `TC-108`, `TC-109`, `TC-203`)
+Dernière mise à jour : 2026-09-14
 
 Les services Auth et Messaging valident toute leur configuration avant de créer le serveur Fastify ou d'écouter sur le réseau. Les valeurs réelles restent dans le mécanisme de secrets de chaque environnement et ne doivent jamais être affichées, copiées dans Git ou placées dans une commande susceptible d'être journalisée.
 
@@ -34,11 +34,18 @@ La clé privée access et la clé refresh ne sont jamais injectées dans Messagi
 
 ## Staging
 
-Compose exige les variables `TC_DB_NAME`, `TC_DB_USER`, `TC_DB_PASSWORD`,
-`TC_JWT_ACCESS_PRIVATE_KEY_B64`, `TC_JWT_ACCESS_PUBLIC_KEY_B64` et
-`TC_JWT_REFRESH_SECRET`, puis construit `DATABASE_URL` dans l'environnement du
-conteneur. Le fichier privé reste
-`/opt/trust-circle-staging/shared/staging.env`, mode `0600`.
+Compose exige `TC_DB_NAME`, les quatre chemins
+`TC_DB_ADMIN_PASSWORD_FILE`, `TC_DB_MIGRATOR_PASSWORD_FILE`,
+`TC_AUTH_DB_PASSWORD_FILE`, `TC_MESSAGING_DB_PASSWORD_FILE`, ainsi que les
+variables JWT. Les mots de passe DB ne figurent pas dans le fichier
+d'environnement. Chaque composant lit uniquement son secret Docker monté en
+lecture seule et construit `DATABASE_URL` au démarrage, sans l'inscrire dans la
+configuration inspectable du conteneur. Le fichier privé reste
+`/opt/trust-circle-staging/shared/staging.env`, mode `0600`, et son répertoire
+frère `staging.env.d` est en mode `0700`.
+
+Les rôles et privilèges associés sont normatifs dans
+`docs/security/DATABASE_ACCESS_CONTROL.md`.
 
 Compose injecte une liste CORS vide et l'adresse `/32` fixe de la gateway
 staging. La configuration est vérifiée sans résolution visible :
