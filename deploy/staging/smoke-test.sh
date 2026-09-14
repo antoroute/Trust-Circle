@@ -7,11 +7,14 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 env_file=$1
-base_url=${2:-http://127.0.0.1:18080}
 if [[ ! -r "$env_file" ]]; then
   echo "Environment file is not readable: $env_file" >&2
   exit 66
 fi
+
+bind_address=$(sed -n 's/^TC_STAGING_BIND_ADDRESS=//p' "$env_file")
+http_port=$(sed -n 's/^TC_STAGING_HTTP_PORT=//p' "$env_file")
+base_url=${2:-http://${bind_address:-127.0.0.1}:${http_port:-18080}}
 
 assert_status() {
   local expected=$1
