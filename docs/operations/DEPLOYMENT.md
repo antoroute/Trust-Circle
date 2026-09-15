@@ -1,7 +1,7 @@
 # Déploiement
 
 Statut : garde-fous définis, baseline et rôles séparés intégrés au staging
-Dernière mise à jour : 2026-09-14
+Dernière mise à jour : 2026-09-15
 
 ## Préconditions
 
@@ -56,6 +56,8 @@ Noms réels des stacks et services, domaines assainis, réseau/proxy, registre d
   figurent dans `staging.env`.
 - Gateway liée à `10.0.20.20:18081`, filtrée pour NPM uniquement selon
   `TC-113` ; aucun déploiement production automatisé.
+- Une seule instance Messaging, sans Redis/Valkey selon `ADR-0007`. Un second
+  replica exige la porte complète de `docs/architecture/REALTIME_SCALING.md`.
 - Inventaire et preuves : `docs/operations/STAGING_INVENTORY.md`.
 
 ## Gestion du schéma

@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
-Statut : opérationnel, publication TLS restreinte, rôles DB et conteneurs durcis
-Dernier déploiement : 2026-09-14 (`TC-204` terminée)
+Statut : opérationnel, publication TLS restreinte, topologie temps réel sans Redis
+Dernier déploiement : 2026-09-15 (`TC-205` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `079263be9dfa1304e36d9f24b526d138666a79ab` |
-| Release | `/opt/trust-circle-staging/releases/079263be9dfa1304e36d9f24b526d138666a79ab` |
+| Commit source | `1521faef7fb6448b23d03168dddf5da92a304c5f` |
+| Release | `/opt/trust-circle-staging/releases/1521faef7fb6448b23d03168dddf5da92a304c5f` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Secrets DB | répertoire frère `staging.env.d`, mode `0700`, quatre fichiers distincts |
@@ -26,8 +26,8 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-079263be9dfa` | image ID `a27009163119`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-079263be9dfa` | image ID `b5a7f8fab4ac`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-1521faef7fb6` | image ID `cae29e970462`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-1521faef7fb6` | image ID `77d40b0e8c6b`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | image ID `75f5a96988cd` | sain, 0 redémarrage |
 | Bootstrap rôles | même image PostgreSQL par digest | image ID `75f5a96988cd`, utilisateur `postgres` | terminé, code 0 |
 | Migration | Sqitch 1.6.1 résolue par digest | image ID `44f627f9a86a`, utilisateur `sqitch` | terminé, code 0 |
@@ -135,6 +135,30 @@ Les configurations précédentes sont conservées en mode `0600` sous
 `staging.env.before-c2d388a16bb0` et `staging.env.before-079263be9dfa`. Les
 releases `190abbce96a57c4714ad5501908d39cb26cefb6a` et
 `c2d388a16bb0c5381904c4e05371936866a43db0` restent disponibles pour rollback
+applicatif sans suppression du volume PostgreSQL.
+
+Le redéploiement `TC-205` du 2026-09-15 a ensuite validé :
+
+1. retrait de l'ancien `infrastructure/redis/redis.conf` et absence de paquet,
+   import, variable ou service Redis/Valkey dans les chemins runtime actifs ;
+2. exactement un conteneur Messaging et zéro service, volume, variable ou
+   membre de réseau Redis/Valkey rattaché au projet `trust-circle-staging` ;
+3. aucun changement du schéma ou du volume PostgreSQL, dont la date de création
+   reste `2026-09-14T18:34:16+02:00` ;
+4. Auth `27/27`, Messaging `90/90`, audits npm sans avis, puis smoke
+   PostgreSQL/HTTP/Socket.IO adversarial réussi ;
+5. quatre services sains sans redémarrage, jobs bootstrap/migration en code
+   `0`, zéro 5xx Auth/Messaging dans la fenêtre finale et labels sur
+   `1521faef7fb6448b23d03168dddf5da92a304c5f` ;
+6. sept changements Sqitch, assertions de schéma/rôles réussies et zéro ligne
+   dans les 17 tables publiques après nettoyage ;
+7. les trois routes de santé en `200` depuis NPM, directement et via HTTPS.
+
+Le LXC partagé héberge des Redis appartenant à d'autres projets. Aucun n'est
+relié aux réseaux, labels, conteneurs ou volumes Trust Circle ; ils n'ont pas
+été modifiés. La configuration précédente est conservée en mode `0600` sous
+`staging.env.before-1521faef7fb6` et la release
+`079263be9dfa1304e36d9f24b526d138666a79ab` reste disponible pour rollback
 applicatif sans suppression du volume PostgreSQL.
 
 Le redéploiement `TC-202` du 2026-09-13 a validé :

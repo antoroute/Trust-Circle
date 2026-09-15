@@ -1,7 +1,7 @@
 # Roadmap de développement vers la V1
 
 Statut : plan directeur initial
-Dernière mise à jour : 2026-09-13
+Dernière mise à jour : 2026-09-15
 
 ## Mode d'emploi
 
@@ -67,7 +67,7 @@ engagé dans ce lot.
 | TC-202 | Réinitialiser le staging et adopter la baseline — Terminée | TC-201 |
 | TC-203 | Séparer comptes DB, secrets et privilèges par service — Terminée | TC-201 |
 | TC-204 | Durcir images/conteneurs, utilisateurs, systèmes de fichiers et ressources — Terminée | TC-004 |
-| TC-205 | Retirer Redis ou l'intégrer correctement sur réseau privé | TC-002 |
+| TC-205 | Retirer Redis ou l'intégrer correctement sur réseau privé — Terminée, retrait décidé | TC-002 |
 | TC-206 | Ajouter logs structurés, corrélation et redaction | TC-112 |
 | TC-207 | Ajouter health/readiness checks et métriques minimales | TC-206 |
 | TC-208 | Automatiser sauvegardes, alertes et tests de restauration | TC-003, TC-201 |

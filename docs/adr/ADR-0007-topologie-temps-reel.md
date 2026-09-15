@@ -49,8 +49,9 @@ temporaire.
 ## Options considérées
 
 - **Déployer Redis immédiatement** : rejeté. Aucun consommateur n'existe et le
-  service ajouterait mémoire, mises à jour, secrets, sauvegarde, supervision et
-  modes de panne sans augmenter la capacité du processus Messaging unique.
+  service ajouterait mémoire, mises à jour, secrets, supervision, modes de
+  panne et une politique de persistance/sauvegarde selon l'état conservé, sans
+  augmenter la capacité du processus Messaging unique.
 - **Rester sur un replica jusqu'à saturation mesurée** : retenu. C'est la
   topologie la plus simple, la plus rapide et la moins exposée pour la V1.
 - **Utiliser l'adaptateur PostgreSQL dès maintenant** : rejeté. Il n'apporte

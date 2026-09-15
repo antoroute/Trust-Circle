@@ -1,6 +1,6 @@
 # TC-205 — Décider et retirer Redis de la topologie V1
 
-Statut : En cours
+Statut : Terminée
 Priorité : P0 architecture et exploitation
 Décision : mainteneur, avec validation du propriétaire
 Dépendances : TC-002, TC-004, TC-108, TC-204
@@ -38,20 +38,71 @@ et sans impact anticipé sur l'expérience utilisateur.
 
 ## Critères d'acceptation
 
-- [ ] Aucun paquet, import, variable ou service Redis/Valkey n'appartient aux
+- [x] Aucun paquet, import, variable ou service Redis/Valkey n'appartient aux
   backends et au déploiement staging actifs.
-- [ ] La configuration Redis obsolète et permissive est supprimée du dépôt.
-- [ ] Une ADR décide explicitement d'un replica Messaging sans Redis pour la
+- [x] La configuration Redis obsolète et permissive est supprimée du dépôt.
+- [x] Une ADR décide explicitement d'un replica Messaging sans Redis pour la
   V1 et interdit un deuxième replica sans chantier distribué complet.
-- [ ] Les limites de présence, rooms, quotas et disponibilité sont documentées
+- [x] Les limites de présence, rooms, quotas et disponibilité sont documentées
   honnêtement.
-- [ ] Les mesures et critères qui déclencheront un prototype distribué sont
+- [x] Les mesures et critères qui déclencheront un prototype distribué sont
   rattachés à `TC-207`, `TC-505`, `TC-806` et à une nouvelle ADR.
-- [ ] Les exigences de réseau privé, ACL, secret, chiffrement de transport,
+- [x] Les exigences de réseau privé, ACL, secret, chiffrement de transport,
   observabilité, panne et rollback d'un futur bus sont documentées.
-- [ ] Les tests Auth/Messaging et le smoke staging passent sans Redis ; le
+- [x] Les tests Auth/Messaging et le smoke staging passent sans Redis ; le
   staging reste vide, sain et sur un seul replica Messaging.
-- [ ] Inventaire, traçabilité, index de tâches et roadmap sont cohérents.
+- [x] Inventaire, traçabilité, index de tâches et roadmap sont cohérents.
+
+## Décision et réalisation
+
+`ADR-0007` retient un seul replica Messaging sans Redis pour la V1. Redis ne
+réduit pas le coût du processus unique ; il sert au relais et aux compteurs
+partagés lorsque plusieurs instances existent. Le candidat privilégié d'un
+futur prototype est Socket.IO Redis Streams avec Valkey dédié, mais aucune
+technologie n'est autorisée avant mesure, revue de licence et nouvelle ADR.
+
+Le commit `1521faef7fb6448b23d03168dddf5da92a304c5f` supprime l'ancien
+`redis.conf`, qui écoutait toutes les interfaces avec `protected-mode no`, et
+ajoute la décision, le modèle de capacité et les garde-fous de distribution.
+La revue indépendante a confirmé les affirmations Socket.IO, Redis Streams,
+PostgreSQL adapter et licence Valkey à partir des sources officielles.
+
+La revue a aussi identifié deux limites dans `presence.ts` indépendantes de
+Redis : conservation des `Set` vides après déconnexion et requêtes ACL
+proportionnelles aux utilisateurs déjà en ligne lors d'une connexion. Elles
+sont documentées comme dette obligatoire de `TC-510`, avant instrumentation et
+charge `TC-207`/`TC-806`.
+
+## Preuves du 2026-09-15
+
+- recherches locales : aucun paquet npm, import, variable, Dockerfile, script,
+  migration ou service Compose Redis/Valkey dans les chemins runtime actifs ;
+- `npm ls` : aucun `redis`, `ioredis`, adaptateur Redis ou Redis Streams dans
+  Auth ou Messaging ;
+- suites locales : Auth `27/27`, Messaging `90/90`, builds réussis et zéro avis
+  dans les audits npm avec et sans dépendances de développement ;
+- staging déployé depuis
+  `1521faef7fb6448b23d03168dddf5da92a304c5f`, sans changement du volume
+  PostgreSQL ni du schéma ;
+- zéro service, volume ou variable Redis/Valkey rattaché au projet Compose
+  `trust-circle-staging`, et exactement un conteneur Messaging ;
+- les Redis d'autres stacks observés sur le LXC partagé ne sont reliés à aucun
+  réseau ou label Trust Circle et n'ont pas été modifiés ;
+- bootstrap et Sqitch sortis en code `0`, quatre services sains, zéro
+  redémarrage et zéro 5xx Auth/Messaging dans la fenêtre de déploiement ;
+- smoke adversarial réussi, assertions de schéma/rôles réussies, sept
+  changements Sqitch et zéro ligne dans chacune des 17 tables publiques après
+  nettoyage ;
+- routes `/healthz`, `/health/auth` et `/health/messaging` en `200` depuis NPM
+  sur `10.0.20.20:18081` et via HTTPS.
+
+## Rollback disponible
+
+La configuration antérieure est conservée en mode `0600` sous
+`staging.env.before-1521faef7fb6` et la release TC-204
+`079263be9dfa1304e36d9f24b526d138666a79ab` reste disponible. Le rollback
+s'effectue par repointage puis recréation sans `--volumes`. Aucun rollback ne
+doit réintroduire la configuration Redis permissive.
 
 ## Plan de validation
 
@@ -68,10 +119,10 @@ et sans impact anticipé sur l'expérience utilisateur.
 ## Risques et rollback
 
 Le retrait peut révéler une dépendance implicite non versionnée ou laisser une
-documentation ambiguë. Les recherches, tests et le smoke doivent le détecter.
-Le staging n'utilisant déjà pas Redis, aucun volume ni donnée métier ne sera
-supprimé. Le rollback applicatif repointe la release `TC-204` ; réintroduire
-l'ancien fichier permissif n'est jamais un rollback acceptable.
+documentation ambiguë. Les recherches, tests et le smoke ont couvert ce
+risque. Le staging n'utilisant déjà pas Redis, aucun volume ni donnée métier
+n'a été supprimé. Le rollback applicatif repointe la release `TC-204` ;
+réintroduire l'ancien fichier permissif n'est jamais un rollback acceptable.
 
 ## Documentation à mettre à jour
 

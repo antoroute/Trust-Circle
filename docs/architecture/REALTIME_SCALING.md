@@ -20,6 +20,12 @@ Cette topologie évite une connexion réseau et un composant critique
 supplémentaires. Elle ne promet pas la haute disponibilité du WebSocket : un
 redémarrage Messaging coupe les sockets, puis les clients se reconnectent.
 
+Le client Flutter natif force actuellement le transport WebSocket. Il n'a donc
+pas besoin d'affinité pour son propre chemin nominal. Le serveur conserve
+cependant le polling Socket.IO et le smoke l'exerce : cette compatibilité reste
+utile sur certains réseaux et pour tout futur client. Elle ne doit pas être
+retirée sans tests réseau réels et décision de compatibilité.
+
 ## Ce que Redis changerait réellement
 
 Un adaptateur distribué relaie un broadcast vers les clients raccordés aux
@@ -47,6 +53,20 @@ conversations, rooms et enveloppes synthétiques représentatifs. Il fixe les SL
 à partir des parcours produit, mesure p50/p95/p99 et conserve au moins 30 % de
 marge soutenue sur la ressource qui sature la première. Tant que ces résultats
 respectent les SLO, ajouter Redis ne constitue pas une optimisation justifiée.
+
+### Dettes de présence à traiter avant la charge
+
+L'implémentation actuelle de `presence.ts` conserve dans sa `Map` les
+utilisateurs dont le dernier socket s'est déconnecté, avec un `Set` vide. Sa
+mémoire peut donc croître avec le nombre d'utilisateurs distincts vus depuis le
+dernier redémarrage. À chaque nouvelle connexion, elle relit aussi les groupes
+de chaque autre utilisateur en ligne, ce qui ajoute un coût approximativement
+linéaire et plusieurs requêtes PostgreSQL.
+
+Redis ne corrige aucun de ces deux défauts. `TC-510` doit supprimer les entrées
+vides, borner ou remplacer le fan-out de présence et couvrir le comportement
+par des tests. Cette correction et l'instrumentation `TC-207` doivent précéder
+la campagne de charge `TC-806`.
 
 ## Porte de passage à plusieurs réplicas
 

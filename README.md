@@ -105,10 +105,8 @@ project-app/
 ├── infrastructure/
 │   ├── docker-compose-infra.yml
 │   ├── Makefile
-│   ├── postgres/
-│   │   └── init.sql
-│   └── redis/
-│       └── redis.conf
+│   └── postgres/
+│       └── init.sql
 ├── app/
 │   ├── docker-compose-app.yml
 │   ├── Makefile
