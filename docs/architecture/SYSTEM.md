@@ -1,7 +1,7 @@
 # Architecture système
 
 Statut : état observé et cible V1 provisoire
-Dernière mise à jour : 2026-09-09
+Dernière mise à jour : 2026-09-15
 
 ## Vue logique
 
@@ -12,7 +12,7 @@ flowchart LR
     C -->|HTTPS / Socket.IO JWT| M[Service Messaging]
     A --> P[(PostgreSQL)]
     M --> P
-    M -. mise à l'échelle future .-> R[(Redis privé)]
+    M -. mise à l'échelle future conditionnelle .-> R[(Bus Streams privé)]
     W[Site public statique] --> U
     RP[Reverse proxy TLS] --> A
     RP --> M
@@ -27,9 +27,9 @@ Le schéma est logique. L'inventaire réel du LXC et du staging est conservé da
 | Client Flutter | UI, identité d'appareil, chiffrement/déchiffrement, cache et synchronisation | Prototype mobile, desktop incomplet |
 | Auth Fastify | comptes, mots de passe, JWT, refresh tokens et réautorisation du premier appareil | Access Ed25519 et refresh HS256 séparés ; grant de bootstrap opaque et court par `TC-106` |
 | Messaging Fastify | registre d'appareils, cercles, membres, conversations, clés publiques, messages et temps réel | Preuves d'accès, liaisons de clés, rotation et révocation globale présentes |
-| PostgreSQL | identités, appartenances, clés publiques versionnées, historique, enveloppes chiffrées, sessions | Initialisé par script ; cinq migrations réversibles versionnées mais encore appliquées manuellement |
-| Redis | prévu pour présence/pub-sub | Non utilisé par l'application ; présence en mémoire du processus |
-| Nginx/proxy externe | terminaison/routage HTTP(S) | Staging loopback sans exposition publique ; TLS restreint reporté à `TC-113` |
+| PostgreSQL | identités, appartenances, clés publiques versionnées, historique, enveloppes chiffrées, sessions | Schéma géré par sept changements Sqitch ; comptes runtime et migration séparés |
+| Redis/Valkey | bus distribué éventuel | Absent de la V1 ; aucun paquet, service ou chemin applicatif actif |
+| Nginx/proxy externe | terminaison/routage HTTP(S) | Gateway staging publiée en TLS derrière l'ACL NPM restreinte de `TC-113` |
 | Site public | acquisition, téléchargements, légal, support | à créer |
 
 ## Frontières de confiance
@@ -59,7 +59,7 @@ Le schéma est logique. L'inventaire réel du LXC et du staging est conservé da
 
 ## Direction V1
 
-Conserver deux services déployables pour éviter une réécriture prématurée, mais partager un paquet de contrats/type JWT et des règles d'autorisation testées. PostgreSQL reste la source durable. Redis est retiré tant qu'une instance messaging suffit ; il ne revient que pour un besoin de mise à l'échelle démontré avec l'adaptateur Socket.IO approprié.
+Conserver deux services déployables pour éviter une réécriture prématurée, mais partager un paquet de contrats/type JWT et des règles d'autorisation testées. PostgreSQL reste la source durable. `ADR-0007` impose une seule instance Messaging sans Redis pour la V1. Un bus ne revient qu'après saturation ou besoin de disponibilité démontré, avec adaptateur, présence, quotas, affinité de session, sécurité et panne testés comme un ensemble ; voir [`REALTIME_SCALING.md`](REALTIME_SCALING.md).
 
 La configuration publique (URL, environnement, version minimum) doit être distincte des secrets serveur. Un client public ne contient aucun secret d'authentification commun.
 

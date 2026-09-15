@@ -13,7 +13,9 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
 - Les services backend ne font confiance qu'à la gateway (`172.30.108.10/32`)
   pour les en-têtes proxy ; aucune origine navigateur n'est autorisée tant que
   le staging reste réservé aux clients natifs.
-- Redis absent : aucun code backend actuel ne l'utilise.
+- Redis/Valkey absent : aucun code backend actuel ne l'utilise et `ADR-0007`
+  impose un seul replica Messaging tant que la porte documentée dans
+  `docs/architecture/REALTIME_SCALING.md` n'est pas satisfaite.
 - Auth/messaging non publiés sur l'hôte.
 - Gateway liée par défaut uniquement à `127.0.0.1:18080`. Une adresse interne
   différente exige `TC_STAGING_BIND_ADDRESS`, un port dédié, un filtrage réseau

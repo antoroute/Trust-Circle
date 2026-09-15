@@ -21,7 +21,7 @@ Le propriétaire a choisi **CircleHaven** comme marque et **CircleHaven — Trus
 - Client : Flutter/Dart dans `frontend-mobile/flutter_message_app`.
 - Authentification : Fastify/TypeScript/PostgreSQL dans `backend/auth`.
 - Messagerie : Fastify/TypeScript/Socket.IO/PostgreSQL dans `backend/messaging`.
-- Données : PostgreSQL ; présence de Redis dans l'infrastructure, sans intégration applicative démontrée.
+- Données : PostgreSQL uniquement ; Redis/Valkey est absent de la V1 par `ADR-0007` tant qu'un besoin de réplication Messaging n'est pas démontré.
 - Déploiement : Docker Compose et Nginx sur un LXC Docker partagé. Les stacks historiques ont été supprimées par décision du propriétaire. Un backend staging neuf, nommé `trust-circle-staging`, est opérationnel uniquement sur le loopback du LXC ; voir `docs/operations/STAGING_INVENTORY.md`.
 - Contrat d'API existant : `docs/openapi/openapi-v2.yaml`, à réaligner avec le code avant de le considérer comme contractuel.
 - Cryptographie actuelle : X25519, HKDF-SHA256, AES-256-GCM et Ed25519 côté

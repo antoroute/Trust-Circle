@@ -37,6 +37,7 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 - [TC-202 — Réinitialiser le schéma staging et adopter Sqitch](TC-202-reinitialiser-staging-sqitch.md)
 - [TC-203 — Séparer les comptes PostgreSQL et leurs privilèges](TC-203-separer-comptes-postgresql.md)
 - [TC-204 — Durcir les images et conteneurs](TC-204-durcir-conteneurs.md)
+- [TC-205 — Décider et retirer Redis de la topologie V1](TC-205-retirer-redis.md)
 
 ## Index Phase 3
 

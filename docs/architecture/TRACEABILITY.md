@@ -61,6 +61,7 @@ Cette matrice aide à retrouver rapidement le code réellement responsable d'un 
 
 | Responsabilité | Code | Données/événements | Tâches |
 |---|---|---|---|
+| topologie temps réel | [`index.ts`](../../backend/messaging/src/index.ts), [`presence.ts`](../../backend/messaging/src/services/presence.ts), [`REALTIME_SCALING.md`](REALTIME_SCALING.md) | un replica, adaptateur/rooms/présence/quotas en mémoire, sans Redis | `TC-205` ; distribution avant tout second replica |
 | serveur HTTP et Socket.IO | [`index.ts`](../../backend/messaging/src/index.ts), [`input.schema.ts`](../../backend/messaging/src/schemas/input.schema.ts) | corps HTTP 256 Kio, paquets WS 16 Kio, événements entrants stricts | `TC-107` terminé, `TC-108`, `TC-505`, `TC-510` |
 | configuration | [`config.ts`](../../backend/messaging/src/config.ts) | variables d'environnement serveur | `TC-101`, `TC-108`, `TC-109` |
 | validation JWT et appareil HTTP/socket | [`jwt.ts`](../../backend/messaging/src/security/jwt.ts), [`deviceAuth.ts`](../../backend/messaging/src/middlewares/deviceAuth.ts), [`deviceAccess.ts`](../../backend/messaging/src/security/deviceAccess.ts), [`socketAuth.ts`](../../backend/messaging/src/middlewares/socketAuth.ts) | JWT access public-key-only + preuve Ed25519 liée au jti | `TC-102`, `TC-106` lot D |
@@ -104,6 +105,7 @@ Le modèle exact observé et ses incohérences sont détaillés dans [`DATA_MODE
 | connaître les rôles et privilèges PostgreSQL | [`DATABASE_ACCESS_CONTROL.md`](../security/DATABASE_ACCESS_CONTROL.md) |
 | comprendre les adversaires et impacts | [`THREAT_MODEL.md`](../security/THREAT_MODEL.md) |
 | connaître la cible cryptographique | [`ADR-0003-protocole-crypto-v3.md`](../adr/ADR-0003-protocole-crypto-v3.md) |
+| comprendre la capacité et la mise à l'échelle temps réel | [`REALTIME_SCALING.md`](REALTIME_SCALING.md) |
 | comprendre la preuve d'appareil | [`DEVICE_TRUST_PROTOCOL_V1.md`](../security/DEVICE_TRUST_PROTOCOL_V1.md) |
 | sélectionner la prochaine tâche | [`ROADMAP.md`](../roadmap/ROADMAP.md) |
 

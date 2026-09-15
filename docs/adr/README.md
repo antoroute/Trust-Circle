@@ -10,6 +10,7 @@ Une ADR capture une décision durable, ses alternatives et ses conséquences. Le
 | [ADR-0004](ADR-0004-nom-produit.md) | Nom public CircleHaven — Trust Circle | Acceptée |
 | [ADR-0005](ADR-0005-confiance-appareil-compte.md) | Ancrage de confiance des appareils | Acceptée |
 | [ADR-0006](ADR-0006-migrations-postgresql.md) | Gestion des migrations PostgreSQL avec Sqitch | Acceptée |
+| [ADR-0007](ADR-0007-topologie-temps-reel.md) | Topologie temps réel V1 sans Redis | Acceptée |
 
 ## Format
 
