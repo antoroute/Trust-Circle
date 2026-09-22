@@ -68,7 +68,7 @@ engagé dans ce lot.
 | TC-203 | Séparer comptes DB, secrets et privilèges par service — Terminée | TC-201 |
 | TC-204 | Durcir images/conteneurs, utilisateurs, systèmes de fichiers et ressources — Terminée | TC-004 |
 | TC-205 | Retirer Redis ou l'intégrer correctement sur réseau privé — Terminée, retrait décidé | TC-002 |
-| TC-206 | Ajouter logs structurés, corrélation et redaction | TC-112 |
+| TC-206 | Ajouter logs structurés, corrélation et redaction — Terminée | TC-112 |
 | TC-207 | Ajouter health/readiness checks et métriques minimales | TC-206 |
 | TC-208 | Automatiser sauvegardes, alertes et tests de restauration | TC-003, TC-201 |
 | TC-209 | Construire/publier des images immuables avec provenance en CI | TC-204 |

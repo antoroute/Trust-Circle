@@ -1,6 +1,6 @@
 # TC-206 — Logs structurés, corrélation et redaction
 
-Statut : Implémentation validée localement — validation staging en attente
+Statut : Terminée le 2026-09-22
 Priorité : P0 sécurité et exploitation
 Décision : mainteneur
 Dépendances : TC-112, TC-204, TC-205
@@ -40,24 +40,24 @@ ajouter d'aller-retour réseau ou SQL.
 
 ## Critères d'acceptation
 
-- [ ] Chaque ligne applicative est un JSON structuré avec service,
+- [x] Chaque ligne applicative est un JSON structuré avec service,
   environnement, version de schéma et événement stable.
-- [ ] La gateway remplace tout identifiant client par un identifiant aléatoire
+- [x] La gateway remplace tout identifiant client par un identifiant aléatoire
   et le propage au backend et dans la réponse.
-- [ ] Un backend n'accepte qu'un identifiant de corrélation strictement valide
+- [x] Un backend n'accepte qu'un identifiant de corrélation strictement valide
   et en génère un nouveau dans les autres cas.
-- [ ] Les logs HTTP n'enregistrent jamais URL/query brute, IP, headers, corps,
+- [x] Les logs HTTP n'enregistrent jamais URL/query brute, IP, headers, corps,
   token, preuve, clé, ciphertext ou identifiant métier.
-- [ ] Les erreurs enregistrées et les réponses `5xx` sont assainies ; une panne
+- [x] Les erreurs enregistrées et les réponses `5xx` sont assainies ; une panne
   PostgreSQL n'est pas présentée comme un simple échec d'identifiants.
-- [ ] Socket.IO possède un identifiant de connexion serveur, capture tous les
+- [x] Socket.IO possède un identifiant de connexion serveur, capture tous les
   rejets asynchrones et ne journalise ni payload ni graphe social.
-- [ ] Les `console.*` runtime sont supprimés et les healthchecks ne produisent
+- [x] Les `console.*` runtime sont supprimés et les healthchecks ne produisent
   pas de logs HTTP de cycle normal.
-- [ ] `LOG_LEVEL` est validé et vaut explicitement `info` en staging.
-- [ ] Les tests de sentinelles, suites backend, audits npm, smoke staging et
+- [x] `LOG_LEVEL` est validé et vaut explicitement `info` en staging.
+- [x] Les tests de sentinelles, suites backend, audits npm, smoke staging et
   inspection journald réussissent sans donnée métier résiduelle.
-- [ ] Politique, inventaire, traçabilité, index et roadmap sont cohérents.
+- [x] Politique, inventaire, traçabilité, index et roadmap sont cohérents.
 
 ## Plan de validation
 
@@ -86,8 +86,30 @@ ajouter d'aller-retour réseau ou SQL.
   explicites a réduit son coût mesuré de `0,081677 ms` à moins de `0,003 ms` par
   appel, sans retirer les serializers en liste blanche ni les sentinelles.
 
-Les preuves Compose, Nginx, PostgreSQL, journald, smoke et nettoyage restent à
-ajouter après déploiement du commit exact sur LXC106.
+## Preuves staging et NPM du 2026-09-22
+
+- release finale `ebdf1c6f0f11ab615fe22ed4cff9df5dafca5f86` déployée
+  depuis Git sur LXC106, labels concordants, quatre services sains sans
+  redémarrage et jobs bootstrap/migration en code `0` ;
+- volume PostgreSQL conservé avec sa date de création du 2026-09-14, sept
+  changements Sqitch et zéro ligne dans les 17 tables publiques après le
+  nettoyage des fixtures synthétiques ;
+- configuration PostgreSQL effective : statements désactivés, paramètres non
+  journalisés, erreurs de statement à partir de `panic`, messages serveur à
+  partir de `fatal` et verbosité `terse` ;
+- smoke adversarial complet réussi, puis sonde dédiée réussie sur Auth,
+  Messaging, Gateway et PostgreSQL : aucune sentinelle, remplacement de
+  l'identifiant client et corrélation réponse/gateway/backend ;
+- une connexion Socket.IO réelle possède le même `requestId` dans le journal
+  sûr de la gateway et dans l'événement `socket_connected` Messaging ;
+- le premier probe a révélé le journal `combined` hérité de l'image Nginx ; le
+  format JSON a été déplacé au niveau `server`, ce qui remplace cet héritage,
+  puis la sonde a été rejouée avec succès ;
+- NPM hôte 85 a été sauvegardé puis limité : `access_log off`, error log vers
+  `/dev/null`, sinks renforcés par `systemd-tmpfiles`, HTTPS `/healthz` en
+  `200`, aucune sentinelle dans NPM ni dans les quatre composants staging ;
+- les rotations NPM historiques n'ont pas été supprimées : elles sont passées
+  en mode `0600` et leur rétention sera traitée par `TC-208`.
 
 ## Risques, performance et rollback
 
@@ -97,9 +119,13 @@ de redaction explicites et une seule ligne de fin par requête ; aucune requête
 réseau/SQL n'est ajoutée. Les événements fréquents de présence et frappe ne
 sont pas journalisés à succès.
 
-Le rollback staging repointe la release TC-205 et recrée les conteneurs sans
-supprimer le volume PostgreSQL. Les formats de logs ne sont pas contractuels
-pour les clients applicatifs ; `X-Request-ID` est purement diagnostique.
+Le rollback staging repointe la release TC-205
+`1521faef7fb6448b23d03168dddf5da92a304c5f`, restaure son fichier
+`staging.env.before-*` et recrée les conteneurs sans supprimer le volume
+PostgreSQL. La configuration NPM peut être annulée avec le mode `rollback` du
+script documenté, après retrait du fichier tmpfiles et restauration des deux
+fichiers de logs sauvegardés. Les sauvegardes vérifiées sont sous
+`/root/homelab/sauvegardes/incidents/tc206-logging-20260922/`.
 
 ## Documentation à mettre à jour
 

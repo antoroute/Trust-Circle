@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
-Statut : opérationnel, publication TLS restreinte, topologie temps réel sans Redis
-Dernier déploiement : 2026-09-15 (`TC-205` terminée)
+Statut : opérationnel, publication TLS restreinte, logs corrélés et minimisés
+Dernier déploiement : 2026-09-22 (`TC-206` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `1521faef7fb6448b23d03168dddf5da92a304c5f` |
-| Release | `/opt/trust-circle-staging/releases/1521faef7fb6448b23d03168dddf5da92a304c5f` |
+| Commit source | `ebdf1c6f0f11ab615fe22ed4cff9df5dafca5f86` |
+| Release | `/opt/trust-circle-staging/releases/ebdf1c6f0f11ab615fe22ed4cff9df5dafca5f86` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Secrets DB | répertoire frère `staging.env.d`, mode `0700`, quatre fichiers distincts |
@@ -26,8 +26,8 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-1521faef7fb6` | image ID `cae29e970462`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-1521faef7fb6` | image ID `77d40b0e8c6b`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-ebdf1c6f0f11` | image ID `dc9f68b66acd`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-ebdf1c6f0f11` | image ID `f7afd3bb614b`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | image ID `75f5a96988cd` | sain, 0 redémarrage |
 | Bootstrap rôles | même image PostgreSQL par digest | image ID `75f5a96988cd`, utilisateur `postgres` | terminé, code 0 |
 | Migration | Sqitch 1.6.1 résolue par digest | image ID `44f627f9a86a`, utilisateur `sqitch` | terminé, code 0 |
@@ -160,6 +160,31 @@ relié aux réseaux, labels, conteneurs ou volumes Trust Circle ; ils n'ont pas
 `staging.env.before-1521faef7fb6` et la release
 `079263be9dfa1304e36d9f24b526d138666a79ab` reste disponible pour rollback
 applicatif sans suppression du volume PostgreSQL.
+
+Le redéploiement `TC-206` du 2026-09-22 a ensuite validé :
+
+1. `38/38` tests Auth, `103/103` tests Messaging, builds TypeScript et audits
+   npm de production sans vulnérabilité connue ;
+2. logs Auth/Messaging JSON en liste blanche, une ligne HTTP de fin, erreurs
+   assainies, healthchecks silencieux et aucun `console.*` runtime ;
+3. remplacement de tout `X-Request-ID` entrant par la gateway, propagation au
+   backend et à la réponse, puis corrélation réelle d'une connexion Socket.IO ;
+4. access log Nginx JSON sans IP, URI/query ni header, avec remplacement du
+   journal `combined` hérité ; error log de requête désactivé ;
+5. PostgreSQL configuré sans statement ni paramètre journalisé, avec messages
+   limités à `fatal` et verbosité `terse` ;
+6. smoke adversarial et probe à sentinelles réussis sur Auth, Messaging,
+   Gateway, PostgreSQL et le chemin HTTPS NPM ;
+7. NPM hôte 85 limité à des sinks `/dev/null` persistants, tandis que les
+   rotations historiques restent conservées en mode `0600` pour `TC-208` ;
+8. volume nommé et sa date de création inchangés, sept changements Sqitch et
+   zéro ligne dans chacune des 17 tables publiques après nettoyage final.
+
+Les configurations précédentes restent en mode `0600` sous
+`staging.env.before-817d3dba62c3`, `staging.env.before-86c04f965ddd` et
+`staging.env.before-ebdf1c6f0f11`. Les releases correspondantes permettent un
+rollback applicatif sans suppression du volume. La sauvegarde NPM cohérente et
+la procédure de retour arrière sont dans le rapport homelab TC-206.
 
 Le redéploiement `TC-202` du 2026-09-13 a validé :
 
