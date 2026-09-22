@@ -102,15 +102,11 @@ export default async function routes(app: FastifyInstance) {
         groupId: b.groupId,
         // Pas de messageId, pas de contenu, pas de senderId - juste les identifiants nécessaires
       });
-      app.log.info({ 
-        convId: b.convId, 
-        messageId: b.messageId, 
-        senderId: senderUserId,
-        event: 'message_ping_sent'
-      }, 'Message ping sent to conversation (excluding sender, no sensitive data)');
-
-      // Hint presence/analytics (option)
-      app.log.info({ convId: b.convId, messageId: b.messageId, wraps: b.recipients.length }, 'message stored');
+      req.log.debug({
+        event: 'message_stored_notification_sent',
+        outcome: 'success',
+        recipientCount: b.recipients.length,
+      }, 'Message stored and notification sent');
       reply.code(201);
       return { id: row.id };
     } catch (e: any) {
@@ -183,8 +179,7 @@ export default async function routes(app: FastifyInstance) {
       const nextCursor = rows.length > 0 ? rows[rows.length - 1].sentAt : null;
       return { items: rows, nextCursor };
     } catch (e: any) {
-      req.log.error({ err: e, conversationId: id }, 'Unable to fetch messages');
-      return reply.code(500).send({ error: 'internal_server_error' });
+      throw e;
     }
   });
 }

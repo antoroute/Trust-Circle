@@ -16,7 +16,13 @@ export function corsOptions(allowedOrigins: readonly string[]): FastifyCorsOptio
       'X-Circlehaven-Device-Key-Version',
       'X-Circlehaven-Device-Proof',
     ],
-    exposedHeaders: ['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After'],
+    exposedHeaders: [
+      'RateLimit-Limit',
+      'RateLimit-Remaining',
+      'RateLimit-Reset',
+      'Retry-After',
+      'X-Request-ID',
+    ],
     maxAge: 600,
     strictPreflight: true,
   };

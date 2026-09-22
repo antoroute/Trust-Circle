@@ -1,7 +1,7 @@
 # Configuration des services backend
 
-Statut : contrat opérationnel (`TC-101`, `TC-108`, `TC-109`, `TC-203`)
-Dernière mise à jour : 2026-09-14
+Statut : contrat opérationnel (`TC-101`, `TC-108`, `TC-109`, `TC-203`, `TC-206`)
+Dernière mise à jour : 2026-09-22
 
 Les services Auth et Messaging valident toute leur configuration avant de créer le serveur Fastify ou d'écouter sur le réseau. Les valeurs réelles restent dans le mécanisme de secrets de chaque environnement et ne doivent jamais être affichées, copiées dans Git ou placées dans une commande susceptible d'être journalisée.
 
@@ -10,6 +10,7 @@ Les services Auth et Messaging valident toute leur configuration avant de créer
 | Variable | Classe | Obligatoire | Validation |
 |---|---|---:|---|
 | `NODE_ENV` | opérationnelle | oui | `development`, `test`, `staging` ou `production` |
+| `LOG_LEVEL` | opérationnelle | non | `fatal`, `error`, `warn`, `info`, `debug` ou `trace` ; défaut `info` |
 | `JWT_ACCESS_PRIVATE_KEY_B64` | clé privée Ed25519 encodée | oui dans Auth seulement | base64 canonique d'une clé PKCS#8 correspondant à la clé publique |
 | `JWT_ACCESS_PUBLIC_KEY_B64` | clé publique Ed25519 encodée | oui | base64 canonique d'une clé SPKI Ed25519 ; vérification seule dans Messaging |
 | `JWT_REFRESH_SECRET` | secret serveur Auth uniquement | oui pour Auth | distinct de la clé access, mêmes contrôles minimaux |
@@ -31,6 +32,9 @@ La clé privée access et la clé refresh ne sont jamais injectées dans Messagi
 - Le message d'erreur nomme seulement la variable et la règle violée ; il ne reproduit jamais sa valeur.
 - Aucune configuration de développement implicite n'existe. Un développeur utilise exclusivement des valeurs synthétiques explicitement injectées.
 - La paire Ed25519 doit être valide et correspondante.
+- Une valeur `LOG_LEVEL` inconnue arrête également le processus avant écoute ;
+  le niveau ne modifie jamais les interdictions de données de la politique de
+  journalisation.
 
 ## Staging
 
@@ -47,8 +51,9 @@ frère `staging.env.d` est en mode `0700`.
 Les rôles et privilèges associés sont normatifs dans
 `docs/security/DATABASE_ACCESS_CONTROL.md`.
 
-Compose injecte une liste CORS vide et l'adresse `/32` fixe de la gateway
-staging. La configuration est vérifiée sans résolution visible :
+Compose injecte une liste CORS vide, l'adresse `/32` fixe de la gateway staging
+et explicitement `LOG_LEVEL=info`. La configuration est vérifiée sans
+résolution visible :
 
 ```bash
 docker compose \

@@ -36,13 +36,16 @@ async function bootstrapGrantApp({ grantLimitReached = false } = {}) {
     request.user = claims();
   });
   app.decorate('db', {
-    one: async (query, params) => {
+    one: async () => {
+      throw new Error('unexpected required-row query');
+    },
+    maybeOne: async (query, params) => {
       if (query.includes('SELECT password FROM users')) {
         assert.deepEqual(params, [ACCOUNT]);
         return { password: passwordHash };
       }
       if (query.includes('INSERT INTO device_bootstrap_grants')) {
-        if (grantLimitReached) throw new Error('No rows');
+        if (grantLimitReached) return null;
         writes.push({ query, params });
         return { id: '33333333-3333-4333-8333-333333333333' };
       }

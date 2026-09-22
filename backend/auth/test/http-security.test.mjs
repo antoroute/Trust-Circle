@@ -32,6 +32,7 @@ test('CORS n’autorise que les origines exactes et laisse passer les clients na
   assert.equal(allowed.statusCode, 200);
   assert.equal(allowed.headers['access-control-allow-origin'], 'https://app.example.test');
   assert.equal(allowed.headers['access-control-allow-credentials'], undefined);
+  assert.match(String(allowed.headers['access-control-expose-headers']), /X-Request-Id/i);
 
   const preflight = await app.inject({
     method: 'OPTIONS',
@@ -109,9 +110,9 @@ async function rateLimitedAuthApp() {
   app.decorate('authenticate', async () => undefined);
   app.decorate('db', {
     one: async (query) => {
-      if (query.includes('SELECT id, email, username, password FROM users')) return null;
       return { id: '11111111-1111-4111-8111-111111111111' };
     },
+    maybeOne: async () => null,
     any: async () => [],
     none: async () => undefined,
   });

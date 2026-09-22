@@ -3,6 +3,8 @@
 
 import { Server, Socket } from 'socket.io';
 
+import { safeError, type RequestLogger } from '../observability.js';
+
 type PresenceState = Map<string /*userId*/, Set<string /*socket.id*/>>;
 
 export function initPresenceService(io: Server, app: any) {
@@ -12,7 +14,12 @@ export function initPresenceService(io: Server, app: any) {
     return state.get(userId)?.size || 0;
   }
 
-  function broadcastPresenceToGroups(userId: string, online: boolean, count: number) {
+  function broadcastPresenceToGroups(
+    userId: string,
+    online: boolean,
+    count: number,
+    logger: RequestLogger = app.log,
+  ) {
     app.services.acl.listAccessibleGroupIds(userId)
       .then((groupIds: string[]) => {
         groupIds.forEach((groupId: string) => {
@@ -20,11 +27,20 @@ export function initPresenceService(io: Server, app: any) {
         });
       })
       .catch((err: any) => {
-        app.log.error({ err, userId }, 'Unable to resolve presence groups');
+        logger.error({
+          event: 'presence_groups_resolution_failed',
+          outcome: 'failure',
+          ...safeError(err),
+        }, 'Unable to resolve presence groups');
       });
   }
 
-  function broadcastPresenceToConversations(userId: string, online: boolean, count: number) {
+  function broadcastPresenceToConversations(
+    userId: string,
+    online: boolean,
+    count: number,
+    logger: RequestLogger = app.log,
+  ) {
     app.services.acl.listAllAccessibleConversationIds(userId)
       .then((conversationIds: string[]) => {
         conversationIds.forEach((conversationId: string) => {
@@ -37,30 +53,30 @@ export function initPresenceService(io: Server, app: any) {
         });
       })
       .catch((err: any) => {
-        app.log.error({ err, userId }, 'Unable to resolve presence conversations');
+        logger.error({
+          event: 'presence_conversations_resolution_failed',
+          outcome: 'failure',
+          ...safeError(err),
+        }, 'Unable to resolve presence conversations');
       });
   }
 
-  function onConnect(socket: Socket) {
+  function onConnect(socket: Socket, logger: RequestLogger = app.log) {
     const { userId } = (socket as any).auth;
-    console.log(`[Presence] User ${userId} connected with socket ${socket.id}`);
     if (!state.has(userId)) state.set(userId, new Set());
     state.get(userId)!.add(socket.id);
 
     // CORRECTION: Émettre uniquement aux utilisateurs dans les mêmes groupes
     const count = state.get(userId)!.size;
-    console.log(`[Presence] Broadcasting presence:update for ${userId} - online: true, count: ${count}`);
     
     // Utiliser les fonctions helper pour broadcaster la présence
-    broadcastPresenceToGroups(userId, true, count);
-    broadcastPresenceToConversations(userId, true, count);
+    broadcastPresenceToGroups(userId, true, count, logger);
+    broadcastPresenceToConversations(userId, true, count, logger);
     
     // CORRECTION: Envoyer l'état de présence actuel uniquement aux groupes communs
     // Pour chaque utilisateur en ligne, vérifier s'il est dans les mêmes groupes que le nouvel utilisateur
-    console.log(`[Presence] Broadcasting current presence state to user's groups (filtered by membership)`);
     app.services.acl.listAccessibleGroupIds(userId)
       .then((userGroupIdsList: string[]) => {
-        console.log(`[Presence] User ${userId} is in ${userGroupIdsList.length} groups`);
         const userGroupIds = new Set(userGroupIdsList);
         
         // Pour chaque utilisateur en ligne, vérifier s'il est dans les mêmes groupes
@@ -81,24 +97,28 @@ export function initPresenceService(io: Server, app: any) {
                   });
                 });
                 
-                if (commonGroups.length > 0) {
-                  console.log(`[Presence] Broadcasted presence of ${uid} to ${commonGroups.length} common groups`);
-                }
               })
               .catch((err: any) => {
-                console.error(`[Presence] Error checking groups for user ${uid}:`, err);
+                logger.error({
+                  event: 'presence_common_groups_resolution_failed',
+                  outcome: 'failure',
+                  ...safeError(err),
+                }, 'Unable to resolve common presence groups');
               });
           }
         }
       })
       .catch((err: any) => {
-        console.error(`[Presence] Error broadcasting presence state for ${userId}:`, err);
+        logger.error({
+          event: 'presence_state_broadcast_failed',
+          outcome: 'failure',
+          ...safeError(err),
+        }, 'Unable to broadcast presence state');
       });
   }
 
-  function onDisconnect(socket: Socket) {
+  function onDisconnect(socket: Socket, logger: RequestLogger = app.log) {
     const { userId } = (socket as any).auth;
-    console.log(`[Presence] User ${userId} disconnected with socket ${socket.id}`);
     const set = state.get(userId);
     if (!set) return;
     set.delete(socket.id);
@@ -106,20 +126,24 @@ export function initPresenceService(io: Server, app: any) {
     
     // CORRECTION: Émettre uniquement aux utilisateurs dans les mêmes groupes
     const count = set.size;
-    console.log(`[Presence] Broadcasting presence:update for ${userId} - online: ${online}, count: ${count}`);
     
     // Utiliser les fonctions helper pour broadcaster la présence
-    broadcastPresenceToGroups(userId, online, count);
-    broadcastPresenceToConversations(userId, online, count);
+    broadcastPresenceToGroups(userId, online, count, logger);
+    broadcastPresenceToConversations(userId, online, count, logger);
   }
 
   function isOnline(userId: string) {
     return state.get(userId)?.size ? true : false;
   }
 
-  function broadcastUserPresence(userId: string, online: boolean, count: number) {
-    broadcastPresenceToGroups(userId, online, count);
-    broadcastPresenceToConversations(userId, online, count);
+  function broadcastUserPresence(
+    userId: string,
+    online: boolean,
+    count: number,
+    logger: RequestLogger = app.log,
+  ) {
+    broadcastPresenceToGroups(userId, online, count, logger);
+    broadcastPresenceToConversations(userId, online, count, logger);
   }
 
   return { onConnect, onDisconnect, isOnline, broadcastUserPresence, getUserSocketCount };

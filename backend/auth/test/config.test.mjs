@@ -29,8 +29,21 @@ test('accepts a complete synthetic configuration', () => {
   const config = loadConfig(validEnvironment());
   assert.equal(config.nodeEnv, 'test');
   assert.equal(config.port, 4300);
+  assert.equal(config.logLevel, 'info');
   assert.deepEqual(config.corsAllowedOrigins, []);
   assert.deepEqual(config.trustedProxyCidrs, []);
+});
+
+test('valide le niveau de logs dans une liste fermée', () => {
+  assert.equal(loadConfig({ ...validEnvironment(), LOG_LEVEL: 'debug' }).logLevel, 'debug');
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), LOG_LEVEL: 'verbose' }),
+    /LOG_LEVEL/,
+  );
+  assert.throws(
+    () => loadConfig({ ...validEnvironment(), LOG_LEVEL: 'INFO' }),
+    /LOG_LEVEL/,
+  );
 });
 
 test('validates exact CORS origins and trusted proxy CIDRs', () => {
@@ -125,6 +138,15 @@ test('the real service process exits before startup when configuration is missin
   });
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /JWT_ACCESS_PRIVATE_KEY_B64/);
+  const failure = JSON.parse(result.stderr.trim());
+  assert.equal(failure.level, 60);
+  assert.equal(failure.schemaVersion, 1);
+  assert.equal(failure.service, 'auth');
+  assert.equal(failure.environment, 'test');
+  assert.equal(failure.event, 'startup_failed');
+  assert.equal(failure.outcome, 'failure');
+  assert.equal(failure.configurationField, 'JWT_ACCESS_PRIVATE_KEY_B64');
   assert.doesNotMatch(result.stderr, /dev-secret/);
+  assert.equal(failure.message, undefined);
+  assert.equal(failure.stack, undefined);
 });

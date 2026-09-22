@@ -5,6 +5,7 @@ import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 
 import type { DbExecutor } from '../plugins/db.js';
+import type { RequestLogger } from '../observability.js';
 import { authenticatedUserId } from '../security/jwt.js';
 import { groupRoleAllows } from '../services/acl.js';
 import {
@@ -140,7 +141,7 @@ export default async function routes(app: FastifyInstance) {
   function announceAcceptedMember(
     groupId: string,
     joinedUserId: string,
-    approverId: string,
+    logger: RequestLogger,
   ) {
     app.io.in(`user:${joinedUserId}`).socketsJoin(`group:${groupId}`);
     app.io.to(`group:${groupId}`).emit('group:member_joined', {
@@ -152,10 +153,13 @@ export default async function routes(app: FastifyInstance) {
       groupId,
     });
     if (app.services.presence?.broadcastUserPresence) {
-      app.services.presence.broadcastUserPresence(joinedUserId, true, 1);
+      app.services.presence.broadcastUserPresence(joinedUserId, true, 1, logger);
     }
-    app.log.info(
-      { groupId, userId: joinedUserId, approverId },
+    logger.debug(
+      {
+        event: 'group_member_join_notifications_sent',
+        outcome: 'success',
+      },
       'Join request committed and minimal notifications emitted',
     );
   }
@@ -195,13 +199,15 @@ export default async function routes(app: FastifyInstance) {
     // CORRECTION: S'assurer que le créateur est dans la room AVANT d'émettre l'événement
     // Rejoindre le créateur à la room du groupe
     app.io.in(`user:${userId}`).socketsJoin(`group:${g.id}`);
-    app.log.info({ groupId: g.id, userId }, 'Creator joined group room');
 
     // SÉCURITÉ: Émettre uniquement un ping minimal (pas de données sensibles)
     // Le créateur n'a pas besoin de notification car il vient de créer le groupe
     // Les autres utilisateurs recevront la notification quand ils rejoindront le groupe
     // Note: On n'émet rien ici car le créateur est déjà au courant
-    app.log.info({ groupId: g.id, userId }, 'Group created (no notification needed for creator)');
+    req.log.debug({
+      event: 'group_created',
+      outcome: 'success',
+    }, 'Group created');
 
     reply.code(201); // Explicitement retourner le code 201 Created
     return { groupId: g.id, name };
@@ -350,7 +356,7 @@ export default async function routes(app: FastifyInstance) {
       return reply.code(403).send({ error: 'forbidden' });
     }
     if (result.joinedUserId) {
-      announceAcceptedMember(groupId, result.joinedUserId, approverId);
+      announceAcceptedMember(groupId, result.joinedUserId, req.log);
     }
 
     return { ok: true };
@@ -469,7 +475,7 @@ export default async function routes(app: FastifyInstance) {
       return reply.code(403).send({ error: 'forbidden' });
     }
     if (result.joinedUserId) {
-      announceAcceptedMember(groupId, result.joinedUserId, approverId);
+      announceAcceptedMember(groupId, result.joinedUserId, req.log);
     }
 
     reply.code(200); // Explicitement retourner le code 200 OK

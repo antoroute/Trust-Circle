@@ -1,7 +1,7 @@
 # Frontière réseau, CORS et quotas
 
-Statut : comportement implémenté et validé sur staging par `TC-108`
-Dernière mise à jour : 2026-09-09
+Statut : comportement implémenté et validé sur staging par `TC-108` et `TC-206`
+Dernière mise à jour : 2026-09-22
 
 Ce document décrit la protection entre un client CircleHaven, le gateway Nginx
 et les services Auth/Messaging. Elle complète l'authentification JWT, la preuve
@@ -23,6 +23,12 @@ Sur le staging, le réseau edge est `172.30.108.0/24` : Nginx utilise
 uniquement à `172.30.108.10/32`. Nginx remplace toute valeur entrante de
 `X-Forwarded-For` par l'adresse de son pair ; une chaîne forgée par le client
 ne devient donc pas l'identité IP utilisée par les quotas.
+
+Nginx remplace aussi tout `X-Request-ID` client par un identifiant aléatoire de
+32 caractères hexadécimaux. Il le transmet au backend et le renvoie dans la
+réponse. Cet identifiant sert uniquement à la corrélation technique ; il ne
+participe à aucune décision de sécurité. Les backends ne journalisent ni
+adresse réseau ni chaîne `X-Forwarded-For`.
 
 L'ajout ultérieur d'un proxy TLS ou CDN exige de redéfinir cette chaîne de
 confiance de bout en bout. Il ne faut jamais passer Fastify à
@@ -82,7 +88,9 @@ minimisation plus poussée des métadonnées de présence de `TC-510`.
 
 ## Journaux
 
-Les refus peuvent journaliser l'identifiant interne, l'adresse réseau, la
-route, le type d'erreur et des compteurs. Ils ne doivent jamais inclure jeton,
-preuve Ed25519, clé, payload Socket.IO ou contenu de message. Aucun secret
-partagé d'application n'existe depuis `TC-109`.
+Les refus journalisent uniquement un événement, un résultat, l'identifiant de
+corrélation serveur et, si utile, un compteur. Ils n'incluent ni identifiant
+métier, adresse réseau, URL brute, header, corps, erreur brute, jeton, preuve
+Ed25519, clé, payload Socket.IO ou contenu de message. Le contrat complet et
+les règles d'exploitation sont dans [`LOGGING_POLICY.md`](LOGGING_POLICY.md).
+Aucun secret partagé d'application n'existe depuis `TC-109`.

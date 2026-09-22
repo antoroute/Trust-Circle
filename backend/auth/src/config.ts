@@ -2,6 +2,7 @@ import { createPrivateKey, createPublicKey } from 'node:crypto';
 import { isIP } from 'node:net';
 
 const SUPPORTED_ENVIRONMENTS = new Set(['development', 'test', 'staging', 'production']);
+const SUPPORTED_LOG_LEVELS = new Set(['trace', 'debug', 'info', 'warn', 'error', 'fatal']);
 const FORBIDDEN_SECRET_VALUES = new Set([
   'dev-secret',
   'changeme',
@@ -16,6 +17,7 @@ export interface ServiceConfig {
   port: number;
   corsAllowedOrigins: readonly string[];
   trustedProxyCidrs: readonly string[];
+  logLevel: string;
 }
 
 function requiredBase64(env: NodeJS.ProcessEnv, name: string): Buffer {
@@ -102,6 +104,14 @@ function port(env: NodeJS.ProcessEnv): number {
   return parsed;
 }
 
+function logLevel(env: NodeJS.ProcessEnv): string {
+  const value = env.LOG_LEVEL ?? 'info';
+  if (!SUPPORTED_LOG_LEVELS.has(value)) {
+    throw new Error('Invalid configuration: LOG_LEVEL is not supported');
+  }
+  return value;
+}
+
 function csv(env: NodeJS.ProcessEnv, name: string): string[] {
   const value = env[name];
   if (value === undefined || value === '') return [];
@@ -180,5 +190,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Readonly<Servi
     port: port(env),
     corsAllowedOrigins: Object.freeze(corsAllowedOrigins(env, nodeEnv)),
     trustedProxyCidrs: Object.freeze(trustedProxyCidrs(env, nodeEnv)),
+    logLevel: logLevel(env),
   });
 }

@@ -11,17 +11,24 @@ import dbPlugin from './plugins/db.js';
 import enforceVersion from './middlewares/enforceVersion.js';
 import authRoutes from './routes/auth.js';
 import { corsOptions } from './httpSecurity.js';
+import {
+  createObservabilityOptions,
+  registerObservability,
+  writeStartupFailure,
+} from './observability.js';
 
 const AUTH_BODY_LIMIT_BYTES = 16 * 1024;
 
 async function build() {
   const config = loadConfig();
   const app = Fastify({
-    logger: true,
+    ...createObservabilityOptions(config.nodeEnv, config.logLevel),
     bodyLimit: AUTH_BODY_LIMIT_BYTES,
     ajv: { customOptions: { removeAdditional: false } },
     trustProxy: config.trustedProxyCidrs.length > 0 ? [...config.trustedProxyCidrs] : false,
   });
+
+  await registerObservability(app);
 
   await app.register(fastifyHelmet, { contentSecurityPolicy: false });
   await app.register(fastifyCors, corsOptions(config));
@@ -60,5 +67,12 @@ async function build() {
   await app.register(authRoutes, { prefix: '/auth' });
 
   await app.listen({ port: config.port, host: '0.0.0.0' });
+  app.log.info({
+    event: 'service_started',
+    outcome: 'success',
+  }, 'Auth service listening');
 }
-build().catch((e) => { console.error(e); process.exit(1); });
+build().catch((error) => {
+  writeStartupFailure(error);
+  process.exit(1);
+});

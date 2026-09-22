@@ -28,6 +28,12 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
 - Images backend basées sur Node fixé par digest et déclarant `USER node`.
 - Images PostgreSQL/Nginx fournies par digest dans le fichier d'environnement privé.
 - Configuration backend validée avant écoute selon `docs/operations/BACKEND_CONFIGURATION.md` ; aucun fallback de secret ou de connexion PostgreSQL.
+- Logs JSON minimaux selon `docs/security/LOGGING_POLICY.md` : corrélation
+  gateway/backend, niveau `info`, aucune URL brute, IP, header, corps,
+  identifiant métier ou erreur brute. PostgreSQL ne journalise ni statements
+  ni paramètres, limite les messages serveur aux erreurs fatales `terse`, et
+  le `error_log` Nginx non assainissable est désactivé au profit des statuts de
+  l'access log sûr.
 - Tous les services utilisent un rootfs en lecture seule, un utilisateur
   non-root, `no-new-privileges`, `cap_drop: ALL` et des limites de ressources.
   PostgreSQL écrit seulement dans son volume et ses deux tmpfs dédiés.
@@ -94,6 +100,16 @@ selon `docs/security/CONTAINER_HARDENING.md`.
 
 ```bash
 bash deploy/staging/smoke-test.sh \
+  /opt/trust-circle-staging/shared/staging.env
+```
+
+Puis vérifier le contrat de logs avec des sentinelles exclusivement
+synthétiques. Le script contrôle leur absence, le remplacement d'un
+`X-Request-ID` client et la corrélation entre réponse, gateway et backend sans
+afficher les lignes collectées :
+
+```bash
+bash deploy/staging/verify-safe-logs.sh \
   /opt/trust-circle-staging/shared/staging.env
 ```
 

@@ -77,10 +77,10 @@ export default async function routes(app: FastifyInstance) {
   }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { email, password } = req.body as any;
 
-    const row = await app.db.one(
+    const row = await app.db.maybeOne(
       `SELECT id, email, username, password FROM users WHERE email=$1`,
       [email]
-    ).catch(() => null);
+    );
     if (!row) return reply.code(401).send({ error: 'invalid_credentials' });
 
     const ok = await bcrypt.compare(password, row.password);
@@ -151,10 +151,10 @@ export default async function routes(app: FastifyInstance) {
   }, async (req: FastifyRequest, reply: FastifyReply) => {
     const userId = authenticatedUserId(req);
     const { password } = req.body as { password: string };
-    const user = await app.db.one(
+    const user = await app.db.maybeOne(
       'SELECT password FROM users WHERE id = $1',
       [userId],
-    ).catch(() => null);
+    );
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return reply.code(401).send({ error: 'invalid_credentials' });
     }
@@ -164,10 +164,8 @@ export default async function routes(app: FastifyInstance) {
     const expiresAtUnixSeconds =
       Math.floor(Date.now() / 1000) + DEVICE_BOOTSTRAP_GRANT_TTL_SECONDS;
 
-    let createdGrant;
-    try {
-      createdGrant = await app.db.one(
-        `WITH account_lock AS MATERIALIZED (
+    const createdGrant = await app.db.maybeOne(
+      `WITH account_lock AS MATERIALIZED (
            SELECT pg_advisory_xact_lock(
              hashtextextended(($1::uuid)::text, 0)
            )
@@ -186,12 +184,8 @@ export default async function routes(app: FastifyInstance) {
            FROM recent
           WHERE recent.count < 5
          RETURNING id`,
-        [userId, grantHash, expiresAtUnixSeconds],
-      );
-    } catch (error) {
-      if ((error as Error).message !== 'No rows') throw error;
-      createdGrant = null;
-    }
+      [userId, grantHash, expiresAtUnixSeconds],
+    );
     if (!createdGrant) {
       return reply.code(429).send({ error: 'too_many_bootstrap_grants' });
     }

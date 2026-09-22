@@ -1,6 +1,8 @@
 import { createPublicKey } from 'node:crypto';
 import { isIP } from 'node:net';
 
+import { parseLogLevel, type LogLevel } from './observability.js';
+
 const SUPPORTED_ENVIRONMENTS = new Set(['development', 'test', 'staging', 'production']);
 export interface ServiceConfig {
   nodeEnv: string;
@@ -9,6 +11,7 @@ export interface ServiceConfig {
   port: number;
   corsAllowedOrigins: readonly string[];
   trustedProxyCidrs: readonly string[];
+  logLevel: LogLevel;
 }
 
 function requiredAccessPublicKey(env: NodeJS.ProcessEnv): string {
@@ -147,5 +150,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Readonly<Servi
     port: port(env),
     corsAllowedOrigins: corsAllowedOrigins(env, nodeEnv),
     trustedProxyCidrs: trustedProxyCidrs(env, nodeEnv),
+    logLevel: parseLogLevel(env.LOG_LEVEL),
   });
 }

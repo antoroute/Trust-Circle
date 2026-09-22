@@ -18,6 +18,10 @@ async function validationApp() {
       calls.push(args);
       throw new Error('database must not be reached');
     },
+    maybeOne: async (...args) => {
+      calls.push(args);
+      throw new Error('database must not be reached');
+    },
     any: async () => [],
     none: async () => undefined,
   });

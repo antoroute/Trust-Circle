@@ -26,6 +26,17 @@ test('accepts a complete synthetic configuration', () => {
   const config = loadConfig(validEnvironment());
   assert.equal(config.nodeEnv, 'test');
   assert.equal(config.port, 4301);
+  assert.equal(config.logLevel, 'info');
+});
+
+test('accepts only supported log levels and defaults to info', () => {
+  assert.equal(loadConfig({ ...validEnvironment(), LOG_LEVEL: 'debug' }).logLevel, 'debug');
+  for (const LOG_LEVEL of ['', ' debug', 'debug ', 'verbose', 'silent']) {
+    assert.throws(
+      () => loadConfig({ ...validEnvironment(), LOG_LEVEL }),
+      /LOG_LEVEL/,
+    );
+  }
 });
 
 for (const name of ['NODE_ENV', 'JWT_ACCESS_PUBLIC_KEY_B64', 'DATABASE_URL']) {
@@ -111,6 +122,8 @@ test('the real service process exits before startup when configuration is missin
   });
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /JWT_ACCESS_PUBLIC_KEY_B64/);
+  const failure = JSON.parse(result.stderr.trim());
+  assert.equal(failure.event, 'startup_failed');
+  assert.equal(failure.configurationField, 'JWT_ACCESS_PUBLIC_KEY_B64');
   assert.doesNotMatch(result.stderr, /dev-secret/);
 });

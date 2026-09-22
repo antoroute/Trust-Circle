@@ -66,22 +66,28 @@ export default async function routes(app: FastifyInstance) {
     // Tous les membres ont été validés par l'ACL avant l'insertion.
     for (const uid of allMembers) {
       app.io.in(`user:${uid}`).socketsJoin(`group:${groupId}`);
-      app.log.debug({ groupId, userId: uid }, 'User joined group room for conversation creation');
     }
-    app.log.info({ groupId, memberCount: allMembers.length }, 'All conversation members joined group room');
+    req.log.debug({
+      event: 'conversation_member_rooms_joined',
+      outcome: 'success',
+      memberCount: allMembers.length,
+    }, 'Conversation member rooms joined');
 
     // SÉCURITÉ: Émettre un ping avec convId et groupId (identifiants, pas de données sensibles)
     // Les clients devront récupérer les conversations via l'API après avoir reçu le ping
     // Le convId et groupId sont nécessaires pour identifier quelle conversation a été créée
     // CORRECTION: Exclure le créateur de la notification (il vient de créer la conversation)
-    app.log.info({ convId: conv.id, groupId, userId, memberCount: allMembers.length }, 'About to emit conversation:created ping');
     app.io.to(`group:${groupId}`).except(`user:${userId}`).emit('conversation:created', {
       type: 'conversation:created',
       convId: conv.id,
       groupId: groupId,
       // Pas de creatorId, pas de contenu - juste les identifiants nécessaires
     });
-    app.log.info({ convId: conv.id, groupId, userId }, 'Conversation created ping sent to group members (excluding creator, no sensitive data)');
+    req.log.debug({
+      event: 'conversation_created_notification_sent',
+      outcome: 'success',
+      recipientCount: Math.max(0, allMembers.length - 1),
+    }, 'Conversation created notification sent');
 
     reply.code(201);
     return { id: conv.id };
@@ -175,7 +181,10 @@ export default async function routes(app: FastifyInstance) {
 
     // Notifie les autres membres de la conversation (exclure l'utilisateur qui a marqué comme lu)
     app.io.to(`conv:${convId}`).except(`user:${userId}`).emit('conv:read', { convId, userId, at: ts });
-    app.log.info({ convId, userId, at: ts }, 'Read receipt broadcasted to conversation members (excluding reader)');
+    req.log.debug({
+      event: 'conversation_read_notification_sent',
+      outcome: 'success',
+    }, 'Read receipt notification sent');
 
     return { ok: true, at: ts };
   });

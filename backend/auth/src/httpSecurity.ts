@@ -22,7 +22,13 @@ export function corsOptions(config: ServiceConfig): FastifyCorsOptions {
     credentials: false,
     methods: CORS_METHODS,
     allowedHeaders: CORS_ALLOWED_HEADERS,
-    exposedHeaders: ['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After'],
+    exposedHeaders: [
+      'RateLimit-Limit',
+      'RateLimit-Remaining',
+      'RateLimit-Reset',
+      'Retry-After',
+      'X-Request-ID',
+    ],
     maxAge: 600,
     strictPreflight: true,
   };

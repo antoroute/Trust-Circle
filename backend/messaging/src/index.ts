@@ -24,6 +24,14 @@ import {
   parseStrictConversationBatch,
   parseStrictConversationEvent,
 } from './schemas/input.schema.js';
+import {
+  createObservabilityOptions,
+  observeSocketTask,
+  registerObservability,
+  safeError,
+  safeStartupFailure,
+  socketLogger,
+} from './observability.js';
 
 // Routes 
 import keysDevicesRoutes from './routes/keys.devices.js';
@@ -59,11 +67,12 @@ declare module 'fastify' {
 async function build() {
   const config = loadConfig();
   const app = Fastify({
-    logger: true,
+    ...createObservabilityOptions(config.nodeEnv, config.logLevel),
     bodyLimit: MESSAGING_BODY_LIMIT_BYTES,
     ajv: { customOptions: { removeAdditional: false } },
     trustProxy: [...config.trustedProxyCidrs],
   });
+  registerObservability(app);
 
   // Pré-déclarer les décorateurs AVANT démarrage
   app.decorate('io', undefined as unknown as IOServer);
@@ -144,43 +153,29 @@ async function build() {
   });
   io.on('connection', (socket) => {
     const { userId, deviceId } = (socket as any).auth;
+    const { log: connectionLog } = socketLogger(app.log, socket.request);
     socketConnectionLimiter.release(userId, deviceId);
     socket.join(`user:${userId}`);
     const quotas = new SocketEventQuotas();
     
     // Métriques de connexion
-    app.log.info({ 
-      userId, 
-      socketId: socket.id, 
-      timestamp: new Date().toISOString(),
-      event: 'user_connected'
-    }, 'User WebSocket connected');
+    connectionLog.info({
+      event: 'socket_connected',
+      outcome: 'success',
+    }, 'WebSocket connected');
     
     // CORRECTION: Rejoindre automatiquement les rooms de groupes de l'utilisateur
     app.services.acl.listAccessibleGroupIds(userId)
       .then((groupIds: string[]) => {
         groupIds.forEach((groupId: string) => {
           socket.join(`group:${groupId}`);
-          app.log.info({ 
-            userId, 
-            groupId,
-            socketId: socket.id,
-            event: 'group_room_joined'
-          }, 'User auto-joined group room');
         });
-        app.log.info({ 
-          userId, 
-          groupCount: groupIds.length,
-          socketId: socket.id,
-          event: 'all_group_rooms_joined'
-        }, 'User auto-joined group rooms');
       })
       .catch((err: any) => {
-        app.log.error({ 
-          userId, 
-          error: err,
-          socketId: socket.id,
-          event: 'group_room_join_failed'
+        connectionLog.error({
+          event: 'group_room_join_failed',
+          outcome: 'failure',
+          ...safeError(err),
         }, 'Failed to auto-join group rooms');
       });
     
@@ -228,11 +223,6 @@ async function build() {
             presences: otherUsersPresence
           });
           
-          app.log.info({ 
-            convId, 
-            userId, 
-            presenceCount: otherUsersPresence.length 
-          }, 'Sent batch presence state to new subscriber');
         }
         
         // Notifier les autres utilisateurs de la présence du nouvel arrivant
@@ -251,240 +241,234 @@ async function build() {
     }
 
     // Gestion des abonnements aux conversations
-    socket.on('conv:subscribe', async (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
+    socket.on('conv:subscribe', (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
       const respond = createAckResponder(socket, 'conv:subscribe', ack);
-      if (!quotas.allowSubscription()) {
-        respond({ success: false, error: 'rate_limited' });
-        return;
-      }
-      const convId = parseStrictConversationEvent(data);
-      if (!convId) {
-        respond({
-          success: false,
-          error: 'invalid_payload',
-        });
-        return;
-      }
-      const roomName = `conv:${convId}`;
+      void observeSocketTask(connectionLog, 'conv:subscribe', async () => {
+        if (!quotas.allowSubscription()) {
+          respond({ success: false, error: 'rate_limited' });
+          return;
+        }
+        const convId = parseStrictConversationEvent(data);
+        if (!convId) {
+          respond({ success: false, error: 'invalid_payload' });
+          return;
+        }
+        const roomName = `conv:${convId}`;
 
-      const hasAccess = await app.services.acl.hasConversationPermission(
-        userId,
-        convId,
-        'socket:subscribe',
-      );
-      if (!hasAccess) {
-        respond({ success: false, error: 'forbidden' });
-        app.log.warn({ convId, userId }, 'Unauthorized conversation subscription attempt');
-        return;
-      }
+        const hasAccess = await app.services.acl.hasConversationPermission(
+          userId,
+          convId,
+          'socket:subscribe',
+        );
+        if (!hasAccess) {
+          respond({ success: false, error: 'forbidden' });
+          connectionLog.warn({
+            event: 'conversation_subscription_refused',
+            outcome: 'failure',
+            socketEvent: 'conv:subscribe',
+          }, 'Unauthorized conversation subscription attempt');
+          return;
+        }
 
-      // L'accès est revérifié même si le socket se trouve déjà dans la room.
-      const room = app.io.sockets.adapter.rooms.get(roomName);
-      if (room && room.has(socket.id)) {
-        app.log.info({ convId, userId }, 'User already subscribed to conversation');
-        respond({ success: true, convId, alreadySubscribed: true });
-        return;
-      }
+        // L'accès est revérifié même si le socket se trouve déjà dans la room.
+        const room = app.io.sockets.adapter.rooms.get(roomName);
+        if (room && room.has(socket.id)) {
+          respond({ success: true, convId, alreadySubscribed: true });
+          return;
+        }
 
-      const currentConversationRooms = [...socket.rooms].filter((room) => room.startsWith('conv:')).length;
-      if (currentConversationRooms >= MAX_CONVERSATION_ROOMS_PER_SOCKET) {
-        respond({ success: false, error: 'conversation_room_limit' });
-        return;
-      }
+        const currentConversationRooms = [...socket.rooms].filter((room) => room.startsWith('conv:')).length;
+        if (currentConversationRooms >= MAX_CONVERSATION_ROOMS_PER_SOCKET) {
+          respond({ success: false, error: 'conversation_room_limit' });
+          return;
+        }
 
-      socket.join(roomName);
-      respond({ success: true, convId });
-      app.log.info({ convId, userId }, 'User subscribed to conversation');
+        socket.join(roomName);
+        respond({ success: true, convId });
 
-      // ✅ OPTIMISÉ: Utiliser la fonction helper pour les événements de présence
-      await emitBatchPresenceEvents(socket, [convId], userId, app);
+        // ✅ OPTIMISÉ: Utiliser la fonction helper pour les événements de présence
+        await emitBatchPresenceEvents(socket, [convId], userId, app);
+      }, () => respond({ success: false, error: 'internal_error' }));
     });
     
     // ✅ NOUVEAU: Endpoint batch pour abonner plusieurs conversations en une requête
-    socket.on('conv:subscribe:batch', async (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
+    socket.on('conv:subscribe:batch', (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
       const respond = createAckResponder(socket, 'conv:subscribe:batch', ack);
-      const convIds = parseStrictConversationBatch(data);
-      if (!convIds) {
-        respond({
-          success: false,
-          error: 'invalid_payload',
-        });
-        return;
-      }
-      if (!quotas.allowSubscription(convIds.length)) {
-        respond({ success: false, error: 'rate_limited' });
-        return;
-      }
-      
-      app.log.info({ userId, count: convIds.length }, 'Batch subscription request');
-      
-      const authorizedConvIds =
-        await app.services.acl.listAccessibleConversationIds(userId, convIds);
-      const unauthorizedCount = convIds.length - authorizedConvIds.length;
-      
-      const currentConversationRooms = [...socket.rooms].filter((room) => room.startsWith('conv:')).length;
-      const newConversationRooms = authorizedConvIds.filter(
-        (convId) => !socket.rooms.has(`conv:${convId}`),
-      ).length;
-      if (currentConversationRooms + newConversationRooms > MAX_CONVERSATION_ROOMS_PER_SOCKET) {
-        respond({ success: false, error: 'conversation_room_limit' });
-        return;
-      }
-
-      // Abonner à toutes les conversations autorisées
-      const subscribed: string[] = [];
-      const alreadySubscribed: string[] = [];
-      
-      for (const convId of authorizedConvIds) {
-        const roomName = `conv:${convId}`;
-        const room = app.io.sockets.adapter.rooms.get(roomName);
-        
-        if (room && room.has(socket.id)) {
-          alreadySubscribed.push(convId);
-        } else {
-          socket.join(roomName);
-          subscribed.push(convId);
+      void observeSocketTask(connectionLog, 'conv:subscribe:batch', async () => {
+        const convIds = parseStrictConversationBatch(data);
+        if (!convIds) {
+          respond({ success: false, error: 'invalid_payload' });
+          return;
         }
-      }
-      
-      // ✅ OPTIMISÉ: Émettre les événements de présence de manière batch
-      if (subscribed.length > 0) {
-        await emitBatchPresenceEvents(socket, subscribed, userId, app);
-      }
-      
-      respond({
-        success: true,
-        subscribed: subscribed.length,
-        alreadySubscribed: alreadySubscribed.length,
-        unauthorized: unauthorizedCount,
-        convIds: subscribed
-      });
-      
-      app.log.info({ 
-        userId, 
-        subscribed: subscribed.length,
-        alreadySubscribed: alreadySubscribed.length,
-        unauthorized: unauthorizedCount
-      }, 'Batch subscription completed');
+        if (!quotas.allowSubscription(convIds.length)) {
+          respond({ success: false, error: 'rate_limited' });
+          return;
+        }
+
+        const authorizedConvIds =
+          await app.services.acl.listAccessibleConversationIds(userId, convIds);
+        const unauthorizedCount = convIds.length - authorizedConvIds.length;
+
+        const currentConversationRooms = [...socket.rooms].filter((room) => room.startsWith('conv:')).length;
+        const newConversationRooms = authorizedConvIds.filter(
+          (convId) => !socket.rooms.has(`conv:${convId}`),
+        ).length;
+        if (currentConversationRooms + newConversationRooms > MAX_CONVERSATION_ROOMS_PER_SOCKET) {
+          respond({ success: false, error: 'conversation_room_limit' });
+          return;
+        }
+
+        const subscribed: string[] = [];
+        const alreadySubscribed: string[] = [];
+        for (const convId of authorizedConvIds) {
+          const roomName = `conv:${convId}`;
+          const room = app.io.sockets.adapter.rooms.get(roomName);
+          if (room && room.has(socket.id)) alreadySubscribed.push(convId);
+          else {
+            socket.join(roomName);
+            subscribed.push(convId);
+          }
+        }
+
+        if (subscribed.length > 0) {
+          await emitBatchPresenceEvents(socket, subscribed, userId, app);
+        }
+
+        respond({
+          success: true,
+          subscribed: subscribed.length,
+          alreadySubscribed: alreadySubscribed.length,
+          unauthorized: unauthorizedCount,
+          convIds: subscribed,
+        });
+
+      }, () => respond({ success: false, error: 'internal_error' }));
     });
     
-    socket.on('conv:unsubscribe', async (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
+    socket.on('conv:unsubscribe', (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
       const respond = createAckResponder(socket, 'conv:unsubscribe', ack);
-      if (!quotas.allowSubscription()) {
-        respond({ success: false, error: 'rate_limited' });
-        return;
-      }
-      const convId = parseStrictConversationEvent(data);
-      if (!convId) {
-        respond({
-          success: false,
-          error: 'invalid_payload',
-        });
-        return;
-      }
-      const conversationRoom = `conv:${convId}`;
-      socket.leave(conversationRoom);
+      void observeSocketTask(connectionLog, 'conv:unsubscribe', async () => {
+        if (!quotas.allowSubscription()) {
+          respond({ success: false, error: 'rate_limited' });
+          return;
+        }
+        const convId = parseStrictConversationEvent(data);
+        if (!convId) {
+          respond({ success: false, error: 'invalid_payload' });
+          return;
+        }
+        const conversationRoom = `conv:${convId}`;
+        socket.leave(conversationRoom);
 
-      if (!(await app.services.acl.hasConversationPermission(
-        userId,
-        convId,
-        'socket:subscribe',
-      ))) {
-        app.log.warn({ convId, userId }, 'Conversation room left without presence emission after ACL refusal');
-        respond({ success: false, error: 'forbidden' });
-        return;
-      }
-      app.log.info({ convId, userId }, 'User unsubscribed from conversation');
-      
-      // CORRECTION: Émettre la présence de l'utilisateur comme hors ligne dans cette conversation
-      // Vérifier si l'utilisateur a encore des sockets dans cette conversation
-      const socketsInConversation = app.io.sockets.adapter.rooms.get(conversationRoom);
-      const userSocketsInConversation = Array.from(socketsInConversation || []).filter(socketId => {
-        const socket = app.io.sockets.sockets.get(socketId);
-        return socket && (socket as any).auth?.userId === userId;
-      });
-      
-      const isOnlineInConversation = userSocketsInConversation.length > 0;
-      socket.to(`conv:${convId}`).emit('presence:conversation', { 
-        userId, 
-        online: isOnlineInConversation, 
-        count: userSocketsInConversation.length,
-        conversationId: convId 
-      });
-      app.log.info({ convId, userId, isOnlineInConversation }, 'Presence updated on conversation unsubscribe');
-      respond({ success: true, convId });
+        if (!(await app.services.acl.hasConversationPermission(
+          userId,
+          convId,
+          'socket:subscribe',
+        ))) {
+          connectionLog.warn({
+            event: 'conversation_unsubscription_refused',
+            outcome: 'failure',
+            socketEvent: 'conv:unsubscribe',
+          }, 'Conversation room left without presence emission after ACL refusal');
+          respond({ success: false, error: 'forbidden' });
+          return;
+        }
+
+        const socketsInConversation = app.io.sockets.adapter.rooms.get(conversationRoom);
+        const userSocketsInConversation = Array.from(socketsInConversation || []).filter(socketId => {
+          const candidate = app.io.sockets.sockets.get(socketId);
+          return candidate && (candidate as any).auth?.userId === userId;
+        });
+
+        const isOnlineInConversation = userSocketsInConversation.length > 0;
+        socket.to(`conv:${convId}`).emit('presence:conversation', {
+          userId,
+          online: isOnlineInConversation,
+          count: userSocketsInConversation.length,
+          conversationId: convId,
+        });
+        respond({ success: true, convId });
+      }, () => respond({ success: false, error: 'internal_error' }));
     });
     
     // Gestion des indicateurs de frappe avec vérification de sécurité
-    socket.on('typing:start', async (data: unknown) => {
-      if (!quotas.allowTyping()) {
-        socket.emit('typing:error', { error: 'rate_limited' });
-        return;
-      }
-      const convId = parseStrictConversationEvent(data);
-      if (convId) {
-        const isInConversation =
-          await app.services.acl.hasConversationPermission(
-            userId,
-            convId,
-            'typing:emit',
-          );
-        
-        if (isInConversation) {
-          // Broadcaster à tous les autres utilisateurs dans la conversation
-          socket.to(`conv:${convId}`).emit('typing:start', { convId, userId });
-          app.log.debug({ convId, userId }, 'User started typing');
-        } else {
-          app.log.warn({ convId, userId }, 'Unauthorized typing event');
+    socket.on('typing:start', (data: unknown) => {
+      void observeSocketTask(connectionLog, 'typing:start', async () => {
+        if (!quotas.allowTyping()) {
+          socket.emit('typing:error', { error: 'rate_limited' });
+          return;
         }
-      } else socket.emit('typing:error', { error: 'invalid_payload' });
+        const convId = parseStrictConversationEvent(data);
+        if (!convId) {
+          socket.emit('typing:error', { error: 'invalid_payload' });
+          return;
+        }
+        const isInConversation = await app.services.acl.hasConversationPermission(
+          userId,
+          convId,
+          'typing:emit',
+        );
+        if (isInConversation) {
+          socket.to(`conv:${convId}`).emit('typing:start', { convId, userId });
+        } else {
+          connectionLog.warn({
+            event: 'typing_event_refused',
+            outcome: 'failure',
+            socketEvent: 'typing:start',
+          }, 'Unauthorized typing event');
+        }
+      }, () => socket.emit('typing:error', { error: 'internal_error' }));
     });
     
-    socket.on('typing:stop', async (data: unknown) => {
-      if (!quotas.allowTyping()) {
-        socket.emit('typing:error', { error: 'rate_limited' });
-        return;
-      }
-      const convId = parseStrictConversationEvent(data);
-      if (convId) {
-        const isInConversation =
-          await app.services.acl.hasConversationPermission(
-            userId,
-            convId,
-            'typing:emit',
-          );
-        
-        if (isInConversation) {
-          // Broadcaster à tous les autres utilisateurs dans la conversation
-          socket.to(`conv:${convId}`).emit('typing:stop', { convId, userId });
-          app.log.debug({ convId, userId }, 'User stopped typing');
-        } else {
-          app.log.warn({ convId, userId }, 'Unauthorized typing event');
+    socket.on('typing:stop', (data: unknown) => {
+      void observeSocketTask(connectionLog, 'typing:stop', async () => {
+        if (!quotas.allowTyping()) {
+          socket.emit('typing:error', { error: 'rate_limited' });
+          return;
         }
-      } else socket.emit('typing:error', { error: 'invalid_payload' });
+        const convId = parseStrictConversationEvent(data);
+        if (!convId) {
+          socket.emit('typing:error', { error: 'invalid_payload' });
+          return;
+        }
+        const isInConversation = await app.services.acl.hasConversationPermission(
+          userId,
+          convId,
+          'typing:emit',
+        );
+        if (isInConversation) {
+          socket.to(`conv:${convId}`).emit('typing:stop', { convId, userId });
+        } else {
+          connectionLog.warn({
+            event: 'typing_event_refused',
+            outcome: 'failure',
+            socketEvent: 'typing:stop',
+          }, 'Unauthorized typing event');
+        }
+      }, () => socket.emit('typing:error', { error: 'internal_error' }));
     });
 
-    app.services.presence.onConnect(socket);
+    app.services.presence.onConnect(socket, connectionLog);
     
     // Métriques de déconnexion
-    socket.on('disconnect', (reason) => {
-      app.log.info({ 
-        userId, 
-        socketId: socket.id, 
-        reason,
-        timestamp: new Date().toISOString(),
-        event: 'user_disconnected'
-      }, 'User WebSocket disconnected');
+    socket.on('disconnect', () => {
+      connectionLog.info({
+        event: 'socket_disconnected',
+        outcome: 'success',
+      }, 'WebSocket disconnected');
       
-      app.services.presence.onDisconnect(socket);
+      app.services.presence.onDisconnect(socket, connectionLog);
     });
   });
 
   await app.listen({ port: config.port, host: '0.0.0.0' });
-  app.log.info(`Messaging v2 listening on ${config.port}`);
+  app.log.info({
+    event: 'service_started',
+    outcome: 'success',
+  }, 'Messaging service listening');
 }
 
 build().catch((e) => {
-  console.error(e);
+  process.stderr.write(`${safeStartupFailure(process.env.NODE_ENV, e)}\n`);
   process.exit(1);
 });

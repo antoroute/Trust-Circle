@@ -38,6 +38,7 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 - [TC-203 — Séparer les comptes PostgreSQL et leurs privilèges](TC-203-separer-comptes-postgresql.md)
 - [TC-204 — Durcir les images et conteneurs](TC-204-durcir-conteneurs.md)
 - [TC-205 — Décider et retirer Redis de la topologie V1](TC-205-retirer-redis.md)
+- [TC-206 — Logs structurés, corrélation et redaction](TC-206-logs-structures-correlation-redaction.md)
 
 ## Index Phase 3
 
