@@ -31,22 +31,26 @@ fi
 sentinel="tc206-synthetic-$(od -An -N12 -tx1 /dev/urandom | tr -d ' \n')"
 forged_request_id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 started_at=$(date --iso-8601=ns)
+bind_address=$(sed -n 's/^TC_STAGING_BIND_ADDRESS=//p' "$env_file")
+http_port=$(sed -n 's/^TC_STAGING_HTTP_PORT=//p' "$env_file")
+base_url="http://${bind_address:-127.0.0.1}:${http_port:-18080}"
 
-# Execute through Nginx itself so this check works regardless of the staging
-# host bind. BusyBox wget is already present in the pinned gateway image.
-docker exec "$gateway_container" wget -S -O /dev/null \
+# Exercise the real host bind. curl is already a prerequisite of smoke-test.sh
+# and, unlike the pinned BusyBox wget build, preserves response headers.
+curl --silent --show-error --dump-header "$work_dir/auth.headers" --output /dev/null \
+  --request POST \
   --header "Authorization: Bearer $sentinel" \
   --header "Cookie: session=$sentinel" \
   --header "X-Request-ID: $forged_request_id" \
   --header 'Content-Type: application/json' \
-  --post-data "{\"email\":\"log-check@example.invalid\",\"password\":\"$sentinel\"}" \
-  "http://127.0.0.1:8080/auth/login?probe=$sentinel" 2>"$work_dir/auth.headers" || true
+  --data "{\"email\":\"log-check@example.invalid\",\"password\":\"$sentinel\"}" \
+  "$base_url/auth/login?probe=$sentinel"
 
-docker exec "$gateway_container" wget -S -O /dev/null \
+curl --silent --show-error --dump-header "$work_dir/messaging.headers" --output /dev/null \
   --header "Authorization: Bearer $sentinel" \
   --header "Cookie: session=$sentinel" \
   --header "X-Request-ID: $forged_request_id" \
-  "http://127.0.0.1:8080/api/groups?probe=$sentinel" 2>"$work_dir/messaging.headers" || true
+  "$base_url/api/groups?probe=$sentinel"
 
 # A deliberately invalid cast would normally repeat its value in PostgreSQL's
 # ERROR/DETAIL output. Runtime logging must suppress that synthetic value.
@@ -68,8 +72,14 @@ fi
 
 auth_response_id=$(awk 'tolower($1) == "x-request-id:" {gsub("\r", "", $2); print $2}' "$work_dir/auth.headers" | tail -n1)
 messaging_response_id=$(awk 'tolower($1) == "x-request-id:" {gsub("\r", "", $2); print $2}' "$work_dir/messaging.headers" | tail -n1)
-[[ "$auth_response_id" =~ ^[0-9a-f]{32}$ && "$auth_response_id" != "$forged_request_id" ]]
-[[ "$messaging_response_id" =~ ^[0-9a-f]{32}$ && "$messaging_response_id" != "$forged_request_id" ]]
+if [[ ! "$auth_response_id" =~ ^[0-9a-f]{32}$ || "$auth_response_id" == "$forged_request_id" ]]; then
+  echo "Auth response correlation ID is missing, malformed or client-controlled" >&2
+  exit 1
+fi
+if [[ ! "$messaging_response_id" =~ ^[0-9a-f]{32}$ || "$messaging_response_id" == "$forged_request_id" ]]; then
+  echo "Messaging response correlation ID is missing, malformed or client-controlled" >&2
+  exit 1
+fi
 
 sleep 1
 docker logs --since "$started_at" "$auth_container" >"$work_dir/auth.log" 2>&1
