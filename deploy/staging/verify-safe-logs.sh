@@ -87,10 +87,12 @@ docker logs --since "$started_at" "$messaging_container" >"$work_dir/messaging.l
 docker logs --since "$started_at" "$gateway_container" >"$work_dir/gateway.log" 2>&1
 docker logs --since "$started_at" "$postgres_container" >"$work_dir/postgres.log" 2>&1
 
-if grep -Fq -- "$sentinel" "$work_dir/auth.log" "$work_dir/messaging.log" "$work_dir/gateway.log" "$work_dir/postgres.log"; then
-  echo "Synthetic sensitive sentinel leaked into runtime logs" >&2
-  exit 1
-fi
+for component in auth messaging gateway postgres; do
+  if grep -Fq -- "$sentinel" "$work_dir/$component.log"; then
+    echo "Synthetic sensitive sentinel leaked into $component runtime logs" >&2
+    exit 1
+  fi
+done
 if grep -Fq -- "$forged_request_id" "$work_dir/auth.log" "$work_dir/messaging.log" "$work_dir/gateway.log"; then
   echo "Client-supplied request ID was not replaced by the gateway" >&2
   exit 1
