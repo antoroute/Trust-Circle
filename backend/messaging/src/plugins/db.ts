@@ -100,6 +100,14 @@ const dbPlugin: FastifyPluginAsync<DbPluginOptions> = async (app, options) => {
     query_timeout: 1_000,
     idleTimeoutMillis: 60_000,
   });
+  const reportPoolError = () => {
+    app.log.error({
+      event: 'database_pool_error',
+      outcome: 'failure',
+    }, 'PostgreSQL pool connection failed');
+  };
+  pool.on('error', reportPoolError);
+  readinessPool.on('error', reportPoolError);
 
   const executor = createDbExecutor(pool);
   const database: AppDatabase = {
