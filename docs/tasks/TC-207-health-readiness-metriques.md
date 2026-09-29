@@ -1,6 +1,6 @@
 # TC-207 — Health, readiness et métriques minimales
 
-Statut : En cours
+Statut : Terminée le 2026-09-29
 Priorité : P0 exploitation et sécurité
 Décision : mainteneur
 Dépendances : TC-206
@@ -46,24 +46,24 @@ personnelle, secret, identifiant métier ou contenu chiffré.
 
 ## Critères d'acceptation
 
-- [ ] `/live` ne vérifie que le processus et reste rapide sans PostgreSQL.
-- [ ] `/ready` retourne `503` avec une réponse générique lorsque PostgreSQL ne
+- [x] `/live` ne vérifie que le processus et reste rapide sans PostgreSQL.
+- [x] `/ready` retourne `503` avec une réponse générique lorsque PostgreSQL ne
   répond pas dans le délai prévu, sans exposer l'erreur interne.
-- [ ] `/health` conserve un contrat de compatibilité documenté.
-- [ ] Docker utilise `/ready` pour Auth et Messaging ; la gateway distingue sa
+- [x] `/health` conserve un contrat de compatibilité documenté.
+- [x] Docker utilise `/ready` pour Auth et Messaging ; la gateway distingue sa
   propre vivacité de la readiness des backends.
-- [ ] `/metrics` n'est pas routé publiquement par Nginx/NPM et la collecte
+- [x] `/metrics` n'est pas routé publiquement par Nginx/NPM et la collecte
   Prometheus est limitée au chemin réseau d'administration attendu.
-- [ ] Les métriques ont des noms stables et des labels à cardinalité finie ;
+- [x] Les métriques ont des noms stables et des labels à cardinalité finie ;
   aucune URL brute, IP, identité, room, compte, conversation, message, clé,
   token, payload ou contenu ne peut devenir un label.
-- [ ] Auth et Messaging exposent les métriques runtime, HTTP, readiness et pool
+- [x] Auth et Messaging exposent les métriques runtime, HTTP, readiness et pool
   PostgreSQL nécessaires à un diagnostic minimal.
-- [ ] Messaging expose sous forme agrégée connexions, refus, événements,
+- [x] Messaging expose sous forme agrégée connexions, refus, événements,
   durées, transports et tailles de rooms Socket.IO.
-- [ ] Les probes et scrapes normaux ne polluent pas les logs applicatifs.
-- [ ] Builds, suites, audits npm, tests négatifs et smoke staging réussissent.
-- [ ] La documentation, la traçabilité, la roadmap et le rollback sont à jour.
+- [x] Les probes et scrapes normaux ne polluent pas les logs applicatifs.
+- [x] Builds, suites, audits npm, tests négatifs et smoke staging réussissent.
+- [x] La documentation, la traçabilité, la roadmap et le rollback sont à jour.
 
 ## Plan de validation
 
@@ -86,6 +86,13 @@ Une readiness trop lente peut accumuler des connexions et une instrumentation
 strict, les labels doivent être des listes fermées et les métriques ne doivent
 pas ajouter d'accès SQL au chemin métier. La collecte reste interne.
 
+Le premier test de panne staging a mis en évidence que les pools `pg`
+émettaient une erreur asynchrone lors de la perte de leurs connexions idle. Le
+signal non géré faisait redémarrer chaque backend alors que la readiness était
+correcte. Le commit final installe un listener assaini sur les deux pools ; le
+même scénario laisse désormais Auth et Messaging vivants avec zéro
+redémarrage.
+
 Le rollback repointe la release staging précédente et restaure les
 configurations Prometheus/réseau sauvegardées. Aucune donnée utilisateur n'est
 à migrer ni à conserver à ce stade du projet.
@@ -103,3 +110,37 @@ configurations Prometheus/réseau sauvegardées. Aucune donnée utilisateur n'es
 Aucune pour le code et le staging existant. Une exposition vers un nouveau
 réseau de supervision ou des alertes de production nécessite une validation
 explicite de la frontière réseau correspondante.
+
+## Preuves locales du 2026-09-29
+
+- installation par `npm ci`, builds et suites réussis : Auth `41/41`,
+  Messaging `105/105` ;
+- audits npm complets et production : zéro avis dans les deux services ;
+- dépendance `prom-client` 15.1.3 épinglée, Apache-2.0 et compatible Node 20 ;
+- test TCP silencieux : `/ready` renvoie `503` en environ 1,02 seconde tandis
+  que `/live` reste en `200` ;
+- sentinelles absentes des labels HTTP/Socket.IO et noms inconnus réduits à
+  `other` ;
+- 100 000 paires compteur/histogramme Socket.IO mesurées à environ
+  `1,07 µs` par paire sur l'hôte de développement.
+
+## Preuves staging du 2026-09-29
+
+- release exécutable `44f99d0778a97460c0e696b2310d1fe07c69a6ca` ;
+- quatre services persistants sains, zéro redémarrage, jobs bootstrap/migration
+  en code `0`, labels concordants et rootfs en lecture seule ;
+- arrêt réel de PostgreSQL : `/live = 200`, `/ready = 503`, health backend
+  gateway en `503`, puis retour à `200` après reprise, sans redémarrage backend ;
+- smoke adversarial complet réussi avant et après la panne et sonde TC-206 de
+  non-divulgation réussie ;
+- `/metrics*` retourne `404` via la gateway directe et via HTTPS/NPM, alors que
+  `/healthz`, `/health/auth` et `/health/messaging` retournent `200` ;
+- timer collecteur actif, `node_textfile_scrape_error = 0` et collecte à `1`
+  pour Auth/Messaging ; séries d'échec readiness visibles dans Prometheus VM112
+  sous le job existant `docker-node` ;
+- volume PostgreSQL conservé avec sa date du 2026-09-14, sept changements
+  Sqitch, 17 tables publiques et zéro ligne après retrait des fixtures de test.
+
+## Prochaine tâche
+
+`TC-208` — automatiser sauvegardes, alertes et tests de restauration.

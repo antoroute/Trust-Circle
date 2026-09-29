@@ -1,7 +1,7 @@
 # Matrice de traçabilité fonctionnelle et sécurité
 
-Dernière mise à jour : 2026-09-13
-Code observé : branche `main`, changement `TC-114`
+Dernière mise à jour : 2026-09-29
+Code observé : branche `main`, changement `TC-207`
 
 Cette matrice aide à retrouver rapidement le code réellement responsable d'un comportement. Elle n'atteste ni la qualité ni la sécurité d'une fonction : consulter la référence fonctionnelle, les invariants et les tâches liées avant toute modification.
 
@@ -53,9 +53,9 @@ Cette matrice aide à retrouver rapidement le code réellement responsable d'un 
 | réautorisation du premier appareil | [`auth.ts`](../../backend/auth/src/routes/auth.ts) | `device_bootstrap_grants`, empreinte SHA-256 | `TC-106` lot B |
 | JWT access/refresh | [`jwt.ts`](../../backend/auth/src/security/jwt.ts) | Ed25519/HS256 | `TC-102` terminé |
 | version minimale | [`enforceVersion.ts`](../../backend/auth/src/middlewares/enforceVersion.ts) | en-têtes | `TC-107` |
-| observabilité sûre | [`observability.ts`](../../backend/auth/src/observability.ts), [`LOGGING_POLICY.md`](../security/LOGGING_POLICY.md) | JSON allowlisté, corrélation gateway, erreurs assainies | `TC-206` |
+| observabilité sûre | [`observability.ts`](../../backend/auth/src/observability.ts), [`metrics.ts`](../../backend/auth/src/metrics.ts), [`health.ts`](../../backend/auth/src/health.ts), [`OBSERVABILITY.md`](../operations/OBSERVABILITY.md) | JSON allowlisté, corrélation, live/ready, métriques HTTP/runtime/pool | `TC-206`, `TC-207` |
 | frontière HTTP | [`httpSecurity.ts`](../../backend/auth/src/httpSecurity.ts) | CORS exact et headers publics | `TC-108`, retrait du faux secret `TC-109` |
-| PostgreSQL | [`db.ts`](../../backend/auth/src/plugins/db.ts) | pool SQL | `TC-201`, `TC-203` |
+| PostgreSQL | [`db.ts`](../../backend/auth/src/plugins/db.ts) | pool SQL métier et pool readiness borné | `TC-201`, `TC-203`, `TC-207` |
 | migrations PostgreSQL | [`sqitch.plan`](../../infrastructure/postgres/sqitch.plan), [`README`](../../infrastructure/postgres/README.md) | Sqitch, scripts deploy/revert/verify et registre dédié | `TC-201`/`TC-202` terminés |
 
 ## Backend Messaging
@@ -64,7 +64,7 @@ Cette matrice aide à retrouver rapidement le code réellement responsable d'un 
 |---|---|---|---|
 | topologie temps réel | [`index.ts`](../../backend/messaging/src/index.ts), [`presence.ts`](../../backend/messaging/src/services/presence.ts), [`REALTIME_SCALING.md`](REALTIME_SCALING.md) | un replica, adaptateur/rooms/présence/quotas en mémoire, sans Redis | `TC-205` ; distribution avant tout second replica |
 | serveur HTTP et Socket.IO | [`index.ts`](../../backend/messaging/src/index.ts), [`input.schema.ts`](../../backend/messaging/src/schemas/input.schema.ts) | corps HTTP 256 Kio, paquets WS 16 Kio, événements entrants stricts | `TC-107` terminé, `TC-108`, `TC-505`, `TC-510` |
-| observabilité HTTP/Socket.IO | [`observability.ts`](../../backend/messaging/src/observability.ts), [`LOGGING_POLICY.md`](../security/LOGGING_POLICY.md) | JSON allowlisté, IDs requête/connexion, erreurs assainies | `TC-206` |
+| observabilité HTTP/Socket.IO | [`observability.ts`](../../backend/messaging/src/observability.ts), [`metrics.ts`](../../backend/messaging/src/metrics.ts), [`health.ts`](../../backend/messaging/src/health.ts), [`OBSERVABILITY.md`](../operations/OBSERVABILITY.md) | JSON allowlisté, live/ready, métriques HTTP/runtime/pool/Socket.IO | `TC-206`, `TC-207` |
 | configuration | [`config.ts`](../../backend/messaging/src/config.ts) | variables d'environnement serveur | `TC-101`, `TC-108`, `TC-109` |
 | validation JWT et appareil HTTP/socket | [`jwt.ts`](../../backend/messaging/src/security/jwt.ts), [`deviceAuth.ts`](../../backend/messaging/src/middlewares/deviceAuth.ts), [`deviceAccess.ts`](../../backend/messaging/src/security/deviceAccess.ts), [`socketAuth.ts`](../../backend/messaging/src/middlewares/socketAuth.ts) | JWT access public-key-only + preuve Ed25519 liée au jti | `TC-102`, `TC-106` lot D |
 | transactions PostgreSQL | [`db.ts`](../../backend/messaging/src/plugins/db.ts) | connexion réservée, commit/rollback, retry borné | `TC-105` terminé |

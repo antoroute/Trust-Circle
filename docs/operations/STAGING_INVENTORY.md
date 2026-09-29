@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
-Statut : opérationnel, publication TLS restreinte, logs corrélés et minimisés
-Dernier déploiement : 2026-09-22 (`TC-206` terminée)
+Statut : opérationnel, publication TLS restreinte, santé et métriques validées
+Dernier déploiement : 2026-09-29 (`TC-207` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,8 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `ebdf1c6f0f11ab615fe22ed4cff9df5dafca5f86` |
-| Release | `/opt/trust-circle-staging/releases/ebdf1c6f0f11ab615fe22ed4cff9df5dafca5f86` |
+| Commit source | `44f99d0778a97460c0e696b2310d1fe07c69a6ca` |
+| Release | `/opt/trust-circle-staging/releases/44f99d0778a97460c0e696b2310d1fe07c69a6ca` |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Secrets DB | répertoire frère `staging.env.d`, mode `0700`, quatre fichiers distincts |
@@ -26,8 +26,8 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-ebdf1c6f0f11` | image ID `dc9f68b66acd`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-ebdf1c6f0f11` | image ID `f7afd3bb614b`, label revision complet | sain, 0 redémarrage |
+| Auth | `trust-circle-staging-auth:staging-44f99d0778a9` | image ID `2e34975390e7`, label revision complet | sain, 0 redémarrage |
+| Messaging | `trust-circle-staging-messaging:staging-44f99d0778a9` | image ID `0d7744dbb104`, label revision complet | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | image ID `75f5a96988cd` | sain, 0 redémarrage |
 | Bootstrap rôles | même image PostgreSQL par digest | image ID `75f5a96988cd`, utilisateur `postgres` | terminé, code 0 |
 | Migration | Sqitch 1.6.1 résolue par digest | image ID `44f627f9a86a`, utilisateur `sqitch` | terminé, code 0 |
@@ -45,6 +45,9 @@ Les références tierces exactes observées au déploiement sont :
   `10.0.10.20/32` uniquement ; aucun bind `0.0.0.0` ni ancien loopback
   simultané.
 - Auth et messaging : aucune publication de port hôte.
+- Leurs `/metrics` ne sont pas routés par la gateway. Un timer LXC les copie
+  dans le collecteur textfile du `node_exporter` existant sur `9100`, dont le
+  flux est déjà limité à Prometheus VM112 ; aucun nouveau port n'est ouvert.
 - PostgreSQL : aucune publication de port hôte, réseau interne `trust-circle-staging-data`.
 - Migration : aucune publication de port, réseau `trust-circle-staging-data`
   uniquement ; elle termine avant le démarrage des backends.
@@ -185,6 +188,35 @@ Les configurations précédentes restent en mode `0600` sous
 `staging.env.before-ebdf1c6f0f11`. Les releases correspondantes permettent un
 rollback applicatif sans suppression du volume. La sauvegarde NPM cohérente et
 la procédure de retour arrière sont dans le rapport homelab TC-206.
+
+Le redéploiement `TC-207` du 2026-09-29 a ensuite validé :
+
+1. `41/41` tests Auth, `105/105` tests Messaging, installations `npm ci`,
+   builds et audits complets/production sans vulnérabilité connue ;
+2. séparation `/live`, `/ready` et `/health`, readiness PostgreSQL isolée et
+   bornée à une seconde, puis healthchecks Docker/gateway basculés sur
+   `/ready` ;
+3. métriques runtime, HTTP, PostgreSQL et Socket.IO sans donnée sensible ni
+   label libre, avec un coût local d'environ `1,07 µs` par paire
+   compteur/histogramme Socket.IO ;
+4. collecteur textfile LXC106 toutes les 30 secondes, timer actif,
+   `node_textfile_scrape_error = 0` et deux collectes à `1`, sans nouveau port
+   ni modification OPNsense ;
+5. ingestion effective par Prometheus VM112 sous `job="docker-node"`, y compris
+   les deux séries `not_ready` générées par le test de panne ;
+6. arrêt réel de PostgreSQL : backends vivants, readiness et gateway en `503`,
+   signal pool assaini, reprise en `200` et zéro redémarrage des deux backends ;
+7. routes `/metrics*` en `404` sur la gateway directe et HTTPS/NPM, tandis que
+   les trois routes de santé sont en `200` après reprise ;
+8. release finale `44f99d0778a97460c0e696b2310d1fe07c69a6ca`, quatre
+   services sains sans redémarrage, deux jobs en code `0`, volume inchangé,
+   sept changements Sqitch et zéro ligne dans les 17 tables publiques.
+
+Les configurations précédentes sont conservées en mode `0600` sous
+`staging.env.before-0b0ae29184df` et `staging.env.before-44f99d0778a9`. Les
+releases TC-206 et TC-207 intermédiaire restent disponibles. Le rollback du
+collecteur désactive son timer et retire uniquement ses cinq fichiers, sans
+modifier `node_exporter`, Prometheus, OPNsense ou les données.
 
 Le redéploiement `TC-202` du 2026-09-13 a validé :
 

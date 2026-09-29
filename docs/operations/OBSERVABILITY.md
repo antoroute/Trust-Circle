@@ -1,6 +1,6 @@
 # Santé et observabilité applicative
 
-Statut : contrat implémenté par `TC-207`
+Statut : contrat implémenté et validé sur staging par `TC-207`
 Dernière mise à jour : 2026-09-29
 
 ## Contrats de santé
@@ -143,3 +143,12 @@ systemctl daemon-reload
 
 La suppression des cinq fichiers ci-dessus ne supprime aucune donnée métier et
 ne modifie ni Prometheus, ni `node_exporter`, ni les règles réseau existantes.
+
+## Validation staging
+
+Le 2026-09-29, Prometheus VM112 a lu les séries Auth et Messaging avec
+`instance="10.0.20.20:9100"`, `job="docker-node"` et une collecte à `1`.
+`node_textfile_scrape_error` valait `0`. Une coupure réelle de PostgreSQL a
+produit une readiness `not_ready` pour chaque service, visible dans Prometheus,
+sans redémarrage backend. Les trois chemins `/metrics*` sont restés en `404`
+par la gateway directe comme par HTTPS/NPM.

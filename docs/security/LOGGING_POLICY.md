@@ -113,9 +113,9 @@ données métier.
 
 Nginx ne sait pas assainir ou structurer son `error_log`, qui peut recopier IP
 et URI. Il est désactivé : les statuts d'échec restent dans l'access log JSON
-sûr et les backends conservent leurs événements assainis. `TC-207` doit fournir
-les compteurs et alertes agrégés avant d'autoriser une filière d'erreur plus
-riche.
+sûr et les backends conservent leurs événements assainis. `TC-207` fournit les
+compteurs agrégés ; `TC-208` doit fixer les alertes et leur rétention avant
+d'autoriser une filière d'erreur plus riche.
 
 ## Transport, accès et rétention
 
