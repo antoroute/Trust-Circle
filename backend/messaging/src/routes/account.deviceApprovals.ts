@@ -545,12 +545,14 @@ export default async function accountDeviceApprovalRoutes(
       switch (outcome.kind) {
         case 'decided': {
           if (outcome.decision === 'revoke') {
+            app.metrics?.recordSocketBroadcast('device:revoked');
             app.io?.to(`user:${accountId}`).emit('device:revoked', {
               type: 'device:revoked',
               deviceId: outcome.targetDeviceId,
               groupIds: outcome.affectedGroupIds,
             });
             for (const groupId of outcome.affectedGroupIds) {
+              app.metrics?.recordSocketBroadcast('device:key-directory-changed');
               app.io
                 ?.to(`group:${groupId}`)
                 .emit('device:key-directory-changed', {

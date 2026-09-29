@@ -37,6 +37,9 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
 - Tous les services utilisent un rootfs en lecture seule, un utilisateur
   non-root, `no-new-privileges`, `cap_drop: ALL` et des limites de ressources.
   PostgreSQL écrit seulement dans son volume et ses deux tmpfs dédiés.
+- `/live` vérifie uniquement le processus, `/ready` vérifie PostgreSQL avec un
+  délai borné, et les healthchecks Docker utilisent `/ready`. `/metrics` reste
+  privé au réseau Docker et n'est jamais relayé par la gateway.
 
 ## Déploiement sur LXC106
 
@@ -154,6 +157,13 @@ au préalable les deux fichiers de `host/` dans `/usr/local/sbin` et
 `/etc/systemd/system`, puis activer le service. La chaîne `DOCKER-USER`
 n'autorise sur ce port que NPM `10.0.10.20` et l'hôte Docker lui-même. Le
 loopback historique `127.0.0.1:18080` n'est pas conservé simultanément.
+
+Pour `TC-207`, installer également le script et les deux unités
+`trust-circle-metrics-collector*` présents dans `host/`, puis activer le timer.
+Il collecte les endpoints backend via leurs IP Docker fixes et publie les
+résultats dans le collecteur textfile du `node_exporter` existant. Il ne faut
+publier aucun port métrique supplémentaire. La procédure complète et le
+rollback sont décrits dans `docs/operations/OBSERVABILITY.md`.
 
 ## Destruction du staging
 

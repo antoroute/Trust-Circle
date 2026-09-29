@@ -96,6 +96,7 @@ export default async function routes(app: FastifyInstance) {
       // SÉCURITÉ: Émettre un ping avec convId et groupId (identifiants, pas de contenu sensible)
       // Les clients devront récupérer les messages via l'API après avoir reçu le ping
       // Le convId et groupId sont nécessaires pour identifier quelle conversation a reçu le message
+      app.metrics?.recordSocketBroadcast('message:new');
       app.io.to(`conv:${b.convId}`).except(`user:${senderUserId}`).emit('message:new', {
         type: 'message:new',
         convId: b.convId,

@@ -39,6 +39,7 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 - [TC-204 — Durcir les images et conteneurs](TC-204-durcir-conteneurs.md)
 - [TC-205 — Décider et retirer Redis de la topologie V1](TC-205-retirer-redis.md)
 - [TC-206 — Logs structurés, corrélation et redaction](TC-206-logs-structures-correlation-redaction.md)
+- [TC-207 — Health, readiness et métriques minimales](TC-207-health-readiness-metriques.md)
 
 ## Index Phase 3
 

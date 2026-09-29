@@ -8,6 +8,8 @@ declare module 'fastify' {
       maybeOne: (q: string, p?: any[]) => Promise<any | null>;
       any: (q: string, p?: any[]) => Promise<any[]>;
       none: (q: string, p?: any[]) => Promise<void>;
+      readiness: () => Promise<void>;
+      poolStats: () => { total: number; idle: number; waiting: number };
     };
     authenticate: (req: any, reply: any) => Promise<void>;
   }

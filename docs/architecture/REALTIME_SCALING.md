@@ -48,6 +48,14 @@ incorrecte.
 - CPU, mémoire, PID, redémarrages et saturation PostgreSQL ;
 - reconnexions, erreurs de transport et rattrapages nécessaires.
 
+`TC-207` implémente côté serveur les connexions acceptées/refusées, erreurs de
+transport, volumes et durées d'événements, livraisons sortantes, connexions
+actives, rooms et membres agrégés, ainsi que le lag de boucle d'événements via
+les métriques runtime Node. Une reconnexion ne peut pas être distinguée de
+façon fiable d'une nouvelle connexion par le serveur sans identifiant client
+stable ; sa mesure et celle du rattrapage restent donc des métriques client à
+ajouter avec `TC-505`/`TC-806`, sans introduire de label appareil ou compte.
+
 `TC-806` doit ensuite charger une instance avec des comptes, appareils,
 conversations, rooms et enveloppes synthétiques représentatifs. Il fixe les SLO
 à partir des parcours produit, mesure p50/p95/p99 et conserve au moins 30 % de

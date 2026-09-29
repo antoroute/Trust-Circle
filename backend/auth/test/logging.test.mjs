@@ -38,6 +38,9 @@ test('corrèle la réponse et remplace tout identifiant entrant non fiable', asy
   const { app, records } = await observedApp(async (instance) => {
     instance.get('/resource', async () => ({ ok: true }));
     instance.get('/health', async () => ({ ok: true }));
+    instance.get('/live', async () => ({ status: 'live' }));
+    instance.get('/ready', async () => ({ status: 'ready' }));
+    instance.get('/metrics', async () => 'metric 1\n');
   });
   t.after(() => app.close());
 
@@ -67,10 +70,12 @@ test('corrèle la réponse et remplace tout identifiant entrant non fiable', asy
   assert.match(generatedA.headers['x-request-id'], /^[0-9a-f]{32}$/);
   assert.notEqual(generatedA.headers['x-request-id'], generatedB.headers['x-request-id']);
 
-  const beforeHealth = records().length;
-  const health = await app.inject({ method: 'GET', url: '/health' });
-  assert.match(health.headers['x-request-id'], /^[0-9a-f]{32}$/);
-  assert.equal(records().length, beforeHealth);
+  const beforeOperationalProbes = records().length;
+  for (const url of ['/health', '/live', '/ready', '/metrics']) {
+    const response = await app.inject({ method: 'GET', url });
+    assert.match(response.headers['x-request-id'], /^[0-9a-f]{32}$/);
+  }
+  assert.equal(records().length, beforeOperationalProbes);
 
   for (const record of records()) {
     assert.equal(record.schemaVersion, 1);

@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
 const ALLOWLIST = [
-  /^\/health$/,    // health
+  /^\/(?:health|live|ready|metrics)$/, // operational endpoints on the private backend
   /^\/socket/,     // handshake Socket.IO (path '/socket')
 ];
 

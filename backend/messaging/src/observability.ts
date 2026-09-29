@@ -242,8 +242,9 @@ export function createObservabilityOptions(
   };
 }
 
-function isHealthRequest(request: FastifyRequest): boolean {
-  return request.routeOptions?.url === '/health';
+function isSilentOperationalRequest(request: FastifyRequest): boolean {
+  const route = request.routeOptions?.url;
+  return route === '/health' || route === '/live' || route === '/ready' || route === '/metrics';
 }
 
 function routeTemplate(request: FastifyRequest): string {
@@ -271,7 +272,7 @@ export function registerObservability(app: FastifyInstance): void {
   });
 
   app.addHook('onError', (request, reply, error, done) => {
-    if (!isHealthRequest(request)) {
+    if (!isSilentOperationalRequest(request)) {
       const httpStatusCode = errorStatusCode(error);
       const fields = {
         event: 'http_request_error',
@@ -288,7 +289,7 @@ export function registerObservability(app: FastifyInstance): void {
   });
 
   app.addHook('onResponse', (request, reply, done) => {
-    if (!isHealthRequest(request)) {
+    if (!isSilentOperationalRequest(request)) {
       request.log.info({
         event: 'http_request_completed',
         outcome: statusOutcome(reply.statusCode),
@@ -322,10 +323,14 @@ export async function observeSocketTask(
   socketEvent: string,
   task: () => Promise<void>,
   onFailure: () => void,
+  observer?: (outcome: 'handled' | 'failure', durationSeconds: number) => void,
 ): Promise<void> {
+  const startedAt = performance.now();
+  let outcome: 'handled' | 'failure' = 'handled';
   try {
     await task();
   } catch (error) {
+    outcome = 'failure';
     logger.error({
       event: 'socket_event_failed',
       outcome: 'failure',
@@ -342,6 +347,8 @@ export async function observeSocketTask(
         ...safeError(responseError),
       }, 'Socket failure response failed');
     }
+  } finally {
+    observer?.(outcome, (performance.now() - startedAt) / 1_000);
   }
 }
 

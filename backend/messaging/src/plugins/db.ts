@@ -23,6 +23,8 @@ export interface AppDatabase extends DbExecutor {
     work: (transaction: DbExecutor) => Promise<T>,
     options?: TransactionOptions,
   ) => Promise<T>;
+  readiness: () => Promise<void>;
+  poolStats: () => { total: number; idle: number; waiting: number };
 }
 
 export function createDbExecutor(queryable: Queryable): DbExecutor {
@@ -91,17 +93,32 @@ const dbPlugin: FastifyPluginAsync<DbPluginOptions> = async (app, options) => {
   const pool = new Pool({
     connectionString: options.connectionString,
   });
+  const readinessPool = new Pool({
+    connectionString: options.connectionString,
+    max: 1,
+    connectionTimeoutMillis: 1_000,
+    query_timeout: 1_000,
+    idleTimeoutMillis: 60_000,
+  });
 
   const executor = createDbExecutor(pool);
   const database: AppDatabase = {
     ...executor,
     transaction: (work, transactionOptions) =>
       runInTransaction(pool, work, transactionOptions),
+    readiness: async () => {
+      await readinessPool.query('SELECT 1');
+    },
+    poolStats: () => ({
+      total: pool.totalCount,
+      idle: pool.idleCount,
+      waiting: pool.waitingCount,
+    }),
   };
   app.decorate('db', database);
 
   app.addHook('onClose', async () => {
-    await pool.end();
+    await Promise.all([pool.end(), readinessPool.end()]);
   });
 };
 

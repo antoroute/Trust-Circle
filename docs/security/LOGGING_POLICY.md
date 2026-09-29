@@ -96,7 +96,14 @@ les deux lignes automatiques début/fin ainsi que les milliers de healthchecks.
 Le niveau par défaut est `info` et `LOG_LEVEL` est validé par allowlist. Le
 niveau `debug` exige une configuration explicite, mais ne lève aucune
 interdiction de données. Les succès très fréquents restent silencieux. Les
-métriques agrégées et budgets de latence seront ajoutés par `TC-207`/`TC-806`.
+métriques agrégées serveur sont ajoutées par `TC-207`; les budgets de latence
+complets restent rattachés à `TC-806`.
+
+`/live`, `/ready`, `/health` et `/metrics` sont silencieux en fonctionnement
+normal. Le résultat des probes est suivi par compteurs Prometheus agrégés ;
+aucune erreur PostgreSQL brute n'est enregistrée lors d'une indisponibilité de
+readiness. Les labels autorisés et le chemin de collecte privé sont définis
+dans `operations/OBSERVABILITY.md`.
 
 PostgreSQL staging n'enregistre ni statements ni paramètres et limite son log
 serveur aux événements fatals en format `terse`. Cela évite aussi les `DETAIL`

@@ -43,6 +43,10 @@ assert_status 200 "$base_url/health/auth"
 assert_status 200 "$base_url/health/messaging"
 assert_no_cors_origin "$base_url/health/auth"
 assert_no_cors_origin "$base_url/health/messaging"
+# Metrics must never become reachable through the public application gateway.
+assert_status 404 "$base_url/metrics"
+assert_status 404 "$base_url/metrics/auth"
+assert_status 404 "$base_url/metrics/messaging"
 blocked_socket_status=$(curl --silent --show-error --output /dev/null \
   --write-out '%{http_code}' --header 'Origin: https://attacker.invalid' \
   "$base_url/socket/?EIO=4&transport=polling")

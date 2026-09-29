@@ -162,16 +162,20 @@ test('an unstructured internal logger error keeps only a generic signal', async 
   assert.doesNotMatch(capture.text(), new RegExp(sentinel));
 });
 
-test('health requests are correlated in the response without lifecycle log noise', async (t) => {
+test('operational probes are correlated without lifecycle log noise', async (t) => {
   const capture = captureStream();
   const app = await observableApp(capture);
   t.after(() => app.close());
   app.get('/health', async () => ({ ok: true }));
+  app.get('/live', async () => ({ status: 'live' }));
+  app.get('/ready', async () => ({ status: 'ready' }));
+  app.get('/metrics', async () => 'metric 1\n');
 
-  const response = await app.inject({ method: 'GET', url: '/health' });
-
-  assert.equal(response.statusCode, 200);
-  assert.match(response.headers['x-request-id'], /^[0-9a-f]{32}$/);
+  for (const url of ['/health', '/live', '/ready', '/metrics']) {
+    const response = await app.inject({ method: 'GET', url });
+    assert.equal(response.statusCode, 200);
+    assert.match(response.headers['x-request-id'], /^[0-9a-f]{32}$/);
+  }
   assert.equal(capture.records().filter((record) =>
     record.event === 'http_request_completed' || record.event === 'http_request_error').length, 0);
 });

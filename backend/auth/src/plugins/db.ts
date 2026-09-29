@@ -12,6 +12,13 @@ const dbPlugin: FastifyPluginAsync<DbPluginOptions> = async (app, options) => {
   const pool = new Pool({
     connectionString: options.connectionString,
   });
+  const readinessPool = new Pool({
+    connectionString: options.connectionString,
+    max: 1,
+    connectionTimeoutMillis: 1_000,
+    query_timeout: 1_000,
+    idleTimeoutMillis: 60_000,
+  });
 
   app.decorate('db', {
     query: (q: string, p?: any[]) => pool.query(q, p),
@@ -28,10 +35,18 @@ const dbPlugin: FastifyPluginAsync<DbPluginOptions> = async (app, options) => {
     none: async (q: string, p?: any[]) => {
       await pool.query(q, p);
     },
+    readiness: async () => {
+      await readinessPool.query('SELECT 1');
+    },
+    poolStats: () => ({
+      total: pool.totalCount,
+      idle: pool.idleCount,
+      waiting: pool.waitingCount,
+    }),
   });
 
   app.addHook('onClose', async () => {
-    await pool.end();
+    await Promise.all([pool.end(), readinessPool.end()]);
   });
 };
 

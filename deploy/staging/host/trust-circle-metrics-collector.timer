@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh CircleHaven staging metrics every 30 seconds
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+AccuracySec=2s
+RandomizedDelaySec=3s
+Persistent=true
+Unit=trust-circle-metrics-collector.service
+
+[Install]
+WantedBy=timers.target

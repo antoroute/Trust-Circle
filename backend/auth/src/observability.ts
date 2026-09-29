@@ -285,6 +285,10 @@ function routeTemplate(request: { routeOptions?: { url?: string } }): string {
   return typeof route === 'string' && route.length > 0 ? route : 'unmatched';
 }
 
+function isSilentOperationalRoute(route: string): boolean {
+  return route === '/health' || route === '/live' || route === '/ready' || route === '/metrics';
+}
+
 export async function registerObservability(app: FastifyInstance): Promise<void> {
   app.addHook('onSend', async (request, reply, payload) => {
     reply.header(CORRELATION_HEADER, request.id);
@@ -292,6 +296,7 @@ export async function registerObservability(app: FastifyInstance): Promise<void>
   });
 
   app.addHook('onError', async (request, reply, error) => {
+    if (isSilentOperationalRoute(routeTemplate(request))) return;
     const fields = {
       event: 'http_request_error',
       outcome: requestOutcome(statusCode(error)),
@@ -309,7 +314,7 @@ export async function registerObservability(app: FastifyInstance): Promise<void>
 
   app.addHook('onResponse', async (request, reply) => {
     const route = routeTemplate(request);
-    if (route === '/health') return;
+    if (isSilentOperationalRoute(route)) return;
 
     request.log.info({
       event: 'http_request_completed',

@@ -32,6 +32,8 @@ import {
   safeStartupFailure,
   socketLogger,
 } from './observability.js';
+import { registerHealthRoutes } from './health.js';
+import { createMessagingMetrics, type MessagingMetrics } from './metrics.js';
 
 // Routes 
 import keysDevicesRoutes from './routes/keys.devices.js';
@@ -56,6 +58,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     db: AppDatabase;
     io: IOServer;
+    metrics?: MessagingMetrics;
     services: {
       presence: ReturnType<typeof initPresenceService>;
       acl: ReturnType<typeof initAclService>;
@@ -106,8 +109,11 @@ async function build() {
   await app.register(dbPlugin, { connectionString: config.databaseUrl });
   registerDeviceAuth(app);
 
-  // Health AVANT enforceVersion (et whiteliste dans le middleware)
-  app.get('/health', async () => ({ ok: true }));
+  // Operational routes before the API version middleware. Metrics remain
+  // reachable only on the private backend network, never through the gateway.
+  const metrics = createMessagingMetrics(app, () => app.io);
+  app.decorate('metrics', metrics);
+  registerHealthRoutes(app, metrics);
 
   await app.register(enforceVersion);
 
@@ -134,6 +140,9 @@ async function build() {
 
   // NE PAS re-déclarer ici : on assigne sur les décorateurs déjà posés
   (app as any).io = io;
+  io.engine.on('connection_error', () => {
+    metrics.recordSocketTransportError();
+  });
 
   // Services (présence, ACL)
   (app as any).services = {
@@ -143,10 +152,17 @@ async function build() {
 
   // Auth WS + rooms
   const socketConnectionLimiter = new SocketConnectionLimiter();
-  io.use(socketAuth(app));
+  const authenticateSocket = socketAuth(app);
+  io.use((socket, next) => {
+    void authenticateSocket(socket, (error?: any) => {
+      if (error) metrics.recordSocketConnection('refused');
+      next(error);
+    });
+  });
   io.use((socket, next) => {
     const { userId, deviceId } = (socket as any).auth ?? {};
     if (!userId || !deviceId || !socketConnectionLimiter.reserve(io, userId, deviceId)) {
+      metrics.recordSocketConnection('refused');
       return next(new Error('socket connection limit reached'));
     }
     next();
@@ -155,6 +171,7 @@ async function build() {
     const { userId, deviceId } = (socket as any).auth;
     const { log: connectionLog } = socketLogger(app.log, socket.request);
     socketConnectionLimiter.release(userId, deviceId);
+    metrics.recordSocketConnection('accepted');
     socket.join(`user:${userId}`);
     const quotas = new SocketEventQuotas();
     
@@ -218,6 +235,7 @@ async function build() {
           }
           
           // Envoyer toutes les présences en un seul événement
+          metrics.recordSocketBroadcast('presence:conversation:batch');
           socket.emit('presence:conversation:batch', {
             conversationId: convId,
             presences: otherUsersPresence
@@ -231,6 +249,7 @@ async function build() {
           return s && (s as any).auth?.userId === userId;
         });
         
+        metrics.recordSocketBroadcast('presence:conversation');
         socket.to(conversationRoom).emit('presence:conversation', {
           userId,
           online: true,
@@ -288,7 +307,8 @@ async function build() {
 
         // ✅ OPTIMISÉ: Utiliser la fonction helper pour les événements de présence
         await emitBatchPresenceEvents(socket, [convId], userId, app);
-      }, () => respond({ success: false, error: 'internal_error' }));
+      }, () => respond({ success: false, error: 'internal_error' }),
+      (outcome, duration) => metrics.observeSocketEvent('conv:subscribe', outcome, duration));
     });
     
     // ✅ NOUVEAU: Endpoint batch pour abonner plusieurs conversations en une requête
@@ -342,7 +362,8 @@ async function build() {
           convIds: subscribed,
         });
 
-      }, () => respond({ success: false, error: 'internal_error' }));
+      }, () => respond({ success: false, error: 'internal_error' }),
+      (outcome, duration) => metrics.observeSocketEvent('conv:subscribe:batch', outcome, duration));
     });
     
     socket.on('conv:unsubscribe', (data: unknown, ack?: (response: Record<string, unknown>) => void) => {
@@ -381,6 +402,7 @@ async function build() {
         });
 
         const isOnlineInConversation = userSocketsInConversation.length > 0;
+        metrics.recordSocketBroadcast('presence:conversation');
         socket.to(`conv:${convId}`).emit('presence:conversation', {
           userId,
           online: isOnlineInConversation,
@@ -388,7 +410,8 @@ async function build() {
           conversationId: convId,
         });
         respond({ success: true, convId });
-      }, () => respond({ success: false, error: 'internal_error' }));
+      }, () => respond({ success: false, error: 'internal_error' }),
+      (outcome, duration) => metrics.observeSocketEvent('conv:unsubscribe', outcome, duration));
     });
     
     // Gestion des indicateurs de frappe avec vérification de sécurité
@@ -409,6 +432,7 @@ async function build() {
           'typing:emit',
         );
         if (isInConversation) {
+          metrics.recordSocketBroadcast('typing:start');
           socket.to(`conv:${convId}`).emit('typing:start', { convId, userId });
         } else {
           connectionLog.warn({
@@ -417,7 +441,8 @@ async function build() {
             socketEvent: 'typing:start',
           }, 'Unauthorized typing event');
         }
-      }, () => socket.emit('typing:error', { error: 'internal_error' }));
+      }, () => socket.emit('typing:error', { error: 'internal_error' }),
+      (outcome, duration) => metrics.observeSocketEvent('typing:start', outcome, duration));
     });
     
     socket.on('typing:stop', (data: unknown) => {
@@ -437,6 +462,7 @@ async function build() {
           'typing:emit',
         );
         if (isInConversation) {
+          metrics.recordSocketBroadcast('typing:stop');
           socket.to(`conv:${convId}`).emit('typing:stop', { convId, userId });
         } else {
           connectionLog.warn({
@@ -445,7 +471,8 @@ async function build() {
             socketEvent: 'typing:stop',
           }, 'Unauthorized typing event');
         }
-      }, () => socket.emit('typing:error', { error: 'internal_error' }));
+      }, () => socket.emit('typing:error', { error: 'internal_error' }),
+      (outcome, duration) => metrics.observeSocketEvent('typing:stop', outcome, duration));
     });
 
     app.services.presence.onConnect(socket, connectionLog);

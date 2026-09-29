@@ -350,6 +350,7 @@ export default async function routes(app: FastifyInstance) {
 
       if (outcome.kind === 'published') {
         if (outcome.changed) {
+          app.metrics?.recordSocketBroadcast('device:key-directory-changed');
           app.io.to(`group:${groupId}`).emit('device:key-directory-changed', {
             type: 'device:key-directory-changed',
             groupId,

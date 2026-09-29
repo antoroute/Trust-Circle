@@ -77,6 +77,7 @@ export default async function routes(app: FastifyInstance) {
     // Les clients devront récupérer les conversations via l'API après avoir reçu le ping
     // Le convId et groupId sont nécessaires pour identifier quelle conversation a été créée
     // CORRECTION: Exclure le créateur de la notification (il vient de créer la conversation)
+    app.metrics?.recordSocketBroadcast('conversation:created');
     app.io.to(`group:${groupId}`).except(`user:${userId}`).emit('conversation:created', {
       type: 'conversation:created',
       convId: conv.id,
@@ -180,6 +181,7 @@ export default async function routes(app: FastifyInstance) {
     }
 
     // Notifie les autres membres de la conversation (exclure l'utilisateur qui a marqué comme lu)
+    app.metrics?.recordSocketBroadcast('conv:read');
     app.io.to(`conv:${convId}`).except(`user:${userId}`).emit('conv:read', { convId, userId, at: ts });
     req.log.debug({
       event: 'conversation_read_notification_sent',

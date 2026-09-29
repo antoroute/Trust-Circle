@@ -23,6 +23,7 @@ export function initPresenceService(io: Server, app: any) {
     app.services.acl.listAccessibleGroupIds(userId)
       .then((groupIds: string[]) => {
         groupIds.forEach((groupId: string) => {
+          app.metrics?.recordSocketBroadcast('presence:update');
           io.to(`group:${groupId}`).emit('presence:update', { userId, online, count });
         });
       })
@@ -44,6 +45,7 @@ export function initPresenceService(io: Server, app: any) {
     app.services.acl.listAllAccessibleConversationIds(userId)
       .then((conversationIds: string[]) => {
         conversationIds.forEach((conversationId: string) => {
+          app.metrics?.recordSocketBroadcast('presence:conversation');
           io.to(`conv:${conversationId}`).emit('presence:conversation', {
             userId, 
             online, 
@@ -90,6 +92,7 @@ export function initPresenceService(io: Server, app: any) {
                 
                 // Émettre la présence uniquement dans les groupes communs
                 commonGroups.forEach((groupId: string) => {
+                  app.metrics?.recordSocketBroadcast('presence:update');
                   io.to(`group:${groupId}`).emit('presence:update', { 
                     userId: uid, 
                     online: true, 

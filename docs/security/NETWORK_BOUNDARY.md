@@ -1,7 +1,7 @@
 # Frontière réseau, CORS et quotas
 
-Statut : comportement implémenté et validé sur staging par `TC-108` et `TC-206`
-Dernière mise à jour : 2026-09-22
+Statut : comportement implémenté et validé sur staging par `TC-108` à `TC-207`
+Dernière mise à jour : 2026-09-29
 
 Ce document décrit la protection entre un client CircleHaven, le gateway Nginx
 et les services Auth/Messaging. Elle complète l'authentification JWT, la preuve
@@ -16,6 +16,9 @@ flowchart LR
     N -->|X-Forwarded-For remplacé| M[Messaging HTTP et Socket.IO]
     A --> P[(PostgreSQL)]
     M --> P
+    A -. métriques privées .-> X[Collecteur local LXC106]
+    M -. métriques privées .-> X
+    X -->|textfile node_exporter :9100| O[Prometheus VM112]
 ```
 
 Sur le staging, le réseau edge est `172.30.108.0/24` : Nginx utilise
@@ -33,6 +36,12 @@ adresse réseau ni chaîne `X-Forwarded-For`.
 L'ajout ultérieur d'un proxy TLS ou CDN exige de redéfinir cette chaîne de
 confiance de bout en bout. Il ne faut jamais passer Fastify à
 `trustProxy: true` ni recopier aveuglément une chaîne transmise par Internet.
+
+Les endpoints `/metrics` d'Auth et Messaging n'ont aucune route gateway. Un
+timer du LXC106 les lit directement sur `172.30.108.11/12` puis utilise le
+collecteur textfile du `node_exporter`. Prometheus conserve ainsi le flux déjà
+autorisé `10.0.50.10 → 10.0.20.20:9100` ; aucun accès NPM, Internet ou nouveau
+port inter-VLAN n'est ajouté.
 
 ## Politique CORS
 

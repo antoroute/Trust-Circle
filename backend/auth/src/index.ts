@@ -11,6 +11,8 @@ import dbPlugin from './plugins/db.js';
 import enforceVersion from './middlewares/enforceVersion.js';
 import authRoutes from './routes/auth.js';
 import { corsOptions } from './httpSecurity.js';
+import { registerHealthRoutes } from './health.js';
+import { createAuthMetrics } from './metrics.js';
 import {
   createObservabilityOptions,
   registerObservability,
@@ -61,7 +63,8 @@ async function build() {
 
   await app.register(dbPlugin, { connectionString: config.databaseUrl });
 
-  app.get('/health', async () => ({ ok: true }));
+  const metrics = createAuthMetrics(app);
+  registerHealthRoutes(app, metrics);
 
   await app.register(enforceVersion);
   await app.register(authRoutes, { prefix: '/auth' });

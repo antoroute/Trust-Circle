@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+OUTPUT_DIRECTORY=/var/lib/prometheus/node-exporter
+
+collect() {
+  service=$1
+  url=$2
+  target="$OUTPUT_DIRECTORY/circlehaven-${service}.prom"
+  temporary=$(mktemp "$OUTPUT_DIRECTORY/.circlehaven-${service}.prom.XXXXXX")
+  trap 'rm -f "$temporary"' EXIT HUP INT TERM
+
+  success=0
+  if /usr/bin/curl --fail --silent \
+    --connect-timeout 1 --max-time 3 "$url" >"$temporary"; then
+    success=1
+  else
+    : >"$temporary"
+  fi
+
+  printf '\n# HELP circlehaven_metrics_collection_success Whether the local private metrics collection succeeded.\n' >>"$temporary"
+  printf '# TYPE circlehaven_metrics_collection_success gauge\n' >>"$temporary"
+  printf 'circlehaven_metrics_collection_success{service="%s"} %s\n' "$service" "$success" >>"$temporary"
+  chmod 0644 "$temporary"
+  mv -f "$temporary" "$target"
+  trap - EXIT HUP INT TERM
+}
+
+collect auth http://172.30.108.11:3000/metrics
+collect messaging http://172.30.108.12:3001/metrics

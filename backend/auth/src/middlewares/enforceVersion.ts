@@ -3,7 +3,7 @@ import fp from 'fastify-plugin';
 
 // Autoriser ces routes sans X-Client-Version
 const ALLOWLIST = [
-  /^\/health$/,            // healthcheck (Docker/infra)
+  /^\/(?:health|live|ready|metrics)$/, // operational endpoints on the private backend
   /^\/auth\/login$/,       // login (pas de client encore)
   /^\/auth\/register$/,    // register
   /^\/auth\/refresh$/,     // refresh token

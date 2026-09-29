@@ -144,10 +144,12 @@ export default async function routes(app: FastifyInstance) {
     logger: RequestLogger,
   ) {
     app.io.in(`user:${joinedUserId}`).socketsJoin(`group:${groupId}`);
+    app.metrics?.recordSocketBroadcast('group:member_joined');
     app.io.to(`group:${groupId}`).emit('group:member_joined', {
       type: 'group:member_joined',
       groupId,
     });
+    app.metrics?.recordSocketBroadcast('group:joined');
     app.io.to(`user:${joinedUserId}`).emit('group:joined', {
       type: 'group:joined',
       groupId,
