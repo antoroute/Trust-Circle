@@ -1,5 +1,14 @@
+# ---- Base: pinned upstream plus reviewed Debian security fixes ----
+FROM node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS base
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      libpcre2-8-0=10.46-1~deb13u3 \
+      libssl3t64=3.5.7-1~deb13u3 \
+      openssl-provider-legacy=3.5.7-1~deb13u3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # ---- Builder ----
-FROM node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS builder
+FROM base AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -10,7 +19,7 @@ COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
 # ---- Runner ----
-FROM node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS runner
+FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
