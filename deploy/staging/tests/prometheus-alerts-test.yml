@@ -1,0 +1,60 @@
+rule_files:
+  - ../monitoring/circlehaven-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: failed backup fires after ten minutes
+    interval: 1m
+    input_series:
+      - series: 'circlehaven_backup_last_run_success{environment="staging",instance="docker"}'
+        values: '0+0x15'
+      - series: 'circlehaven_backup_last_success_timestamp_seconds{environment="staging",instance="docker"}'
+        values: '1+60x15'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: CircleHavenBackupFailed
+        exp_alerts:
+          - exp_labels:
+              environment: staging
+              instance: docker
+              severity: critical
+            exp_annotations:
+              summary: "La dernière sauvegarde CircleHaven a échoué"
+
+  - name: healthy backup and restore do not alert
+    interval: 1m
+    input_series:
+      - series: 'circlehaven_backup_last_run_success{environment="staging",instance="docker"}'
+        values: '1+0x20'
+      - series: 'circlehaven_backup_last_success_timestamp_seconds{environment="staging",instance="docker"}'
+        values: '0+60x20'
+      - series: 'circlehaven_restore_test_last_run_success{environment="staging",instance="docker"}'
+        values: '1+0x20'
+      - series: 'circlehaven_restore_test_last_success_timestamp_seconds{environment="staging",instance="docker"}'
+        values: '0+60x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: CircleHavenBackupFailed
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: CircleHavenRestoreTestFailed
+        exp_alerts: []
+
+  - name: metrics collection failure is service scoped
+    interval: 1m
+    input_series:
+      - series: 'circlehaven_metrics_collection_success{service="auth",instance="docker"}'
+        values: '0+0x10'
+      - series: 'circlehaven_metrics_collection_success{service="messaging",instance="docker"}'
+        values: '1+0x10'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CircleHavenMetricsCollectionFailed
+        exp_alerts:
+          - exp_labels:
+              instance: docker
+              service: auth
+              severity: critical
+            exp_annotations:
+              summary: "Collecte CircleHaven indisponible pour auth"

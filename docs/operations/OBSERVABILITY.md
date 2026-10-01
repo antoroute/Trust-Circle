@@ -1,7 +1,7 @@
 # Santé et observabilité applicative
 
-Statut : contrat implémenté et validé sur staging par `TC-207`
-Dernière mise à jour : 2026-09-29
+Statut : contrat implémenté et validé sur staging par `TC-207`, alertes de reprise validées par `TC-208`
+Dernière mise à jour : 2026-10-01
 
 ## Contrats de santé
 
@@ -143,6 +143,27 @@ systemctl daemon-reload
 
 La suppression des cinq fichiers ci-dessus ne supprime aucune donnée métier et
 ne modifie ni Prometheus, ni `node_exporter`, ni les règles réseau existantes.
+
+## Sauvegardes et règles d'alerte TC-208
+
+Les services de sauvegarde et de restauration déposent deux textfiles
+supplémentaires. Ils exposent uniquement le dernier résultat, la date, la durée
+et la taille chiffrée ; aucun nom d'artefact, compte, table ou chemin n'est un
+label Prometheus.
+
+Six règles sont versionnées dans
+`deploy/staging/monitoring/circlehaven-alerts.yml` :
+
+- collecte Auth/Messaging absente pendant cinq minutes ;
+- plusieurs échecs de readiness pendant une fenêtre de cinq minutes ;
+- dernière sauvegarde en échec ou vieille de plus de 36 heures ;
+- dernier test de restauration en échec ou vieux de plus de huit jours.
+
+Le fichier est chargé séparément dans le répertoire de règles de VM112 afin de
+ne pas modifier la configuration homelab générique. Sa syntaxe et trois cas de
+comportement sont vérifiés par `promtool` avec
+`deploy/staging/tests/prometheus-alerts-test.yml`. Alertmanager réutilise le
+relais mail existant ; aucun webhook ni secret supplémentaire n'est ajouté.
 
 ## Validation staging
 

@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
-Statut : opérationnel, publication TLS restreinte, santé et métriques validées
-Dernier déploiement : 2026-09-29 (`TC-207` terminée)
+Statut : opérationnel, publication TLS restreinte, reprise et alertes validées
+Dernier changement d'exploitation : 2026-10-01 (`TC-208` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -539,15 +539,39 @@ La fermeture de `TC-113` a ensuite validé :
    OPNsense avant/après sous
    `/root/homelab/sauvegardes/incidents/tc113-opnsense-20260912/`.
 
+La fermeture de `TC-208` du 2026-09-29 a validé sans redéploiement applicatif :
+
+1. dump PostgreSQL custom créé sous `tmpfs`, validé puis chiffré avec `age`
+   avant copie sur le NFS TrueNAS ;
+2. ciphertext de 92 376 octets en mode `0600` et checksum vérifié après copie,
+   sans fichier clair sur le stockage persistant ;
+3. restauration en cinq secondes dans PostgreSQL éphémère sur `tmpfs`, réseau
+   Docker interne et aucun port publié ;
+4. conformité des 17 tables, sept changements Sqitch, rôles, propriétaires,
+   privilèges, index, contraintes, clés étrangères et comptages agrégés ;
+5. readiness d'Auth et Messaging sur la base restaurée avec secrets
+   synthétiques, puis suppression de toutes les ressources temporaires ;
+6. timers quotidien et hebdomadaire actifs, rétention 7 jours/5 semaines/
+   12 mois et copie de récupération de la clé hors LXC en mode `0600` ;
+7. métriques ingérées par Prometheus et six règles validées par `promtool`,
+   sans alerte active après le contrôle ;
+8. quatre services persistants toujours sains et à zéro redémarrage.
+
+Au contrôle du 2026-10-01, les sauvegardes automatiques des deux nuits
+précédentes avaient réussi, les trois générations présentes avaient un checksum
+valide et la restauration durcie avait été rejouée avec succès. Les quatre
+services applicatifs restaient sains et à zéro redémarrage.
+
 ## Limites assumées
 
 - Le domaine staging est volontairement inaccessible hors de l'ACL NPM ; ce
   refus ne doit pas être confondu avec une panne du backend.
 - Configuration de build Flutter staging validée par `TC-114` sur Windows 11
   physique et Android 16 émulé, avec TLS et budgets profile conformes.
-- Sqitch est opérationnel et les rôles PostgreSQL sont séparés. Les sauvegardes
-  automatisées et les tests périodiques de restauration restent à réaliser dans
-  `TC-208`.
+- Sqitch, les rôles séparés, les sauvegardes automatiques et les restaurations
+  périodiques sont opérationnels. La cible NFS staging partage encore
+  l'identité d'écriture Immich : un dataset TrueNAS dédié avec snapshots et ACL
+  propres est obligatoire avant toute donnée personnelle réelle.
 - Les scénarios d'autorisation croisée cercle/conversation/clé sont couverts
   par `TC-111` et le smoke adversarial courant.
 - Images backend locales non publiées dans un registre ; l'image ID et les labels assurent la traçabilité locale, pas une provenance distante.

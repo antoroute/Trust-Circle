@@ -1,0 +1,9 @@
+# Non-secret configuration installed as /etc/trust-circle-backup/config.
+BACKUP_DESTINATION=/mnt/truenas/trust-circle-staging/backups
+AGE_RECIPIENT_FILE=/etc/trust-circle-backup/recipient.txt
+SCHEMA_ASSERTION_FILE=/opt/trust-circle-staging/current/infrastructure/postgres/tests/assert-current-schema.sql
+ROLE_ASSERTION_FILE=/opt/trust-circle-staging/current/infrastructure/postgres/tests/assert-role-separation.sql
+BACKUP_KEEP_DAILY=7
+BACKUP_KEEP_WEEKLY=5
+BACKUP_KEEP_MONTHLY=12
+BACKUP_MAX_BYTES=1073741824

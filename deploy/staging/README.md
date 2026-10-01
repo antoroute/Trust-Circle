@@ -165,6 +165,28 @@ résultats dans le collecteur textfile du `node_exporter` existant. Il ne faut
 publier aucun port métrique supplémentaire. La procédure complète et le
 rollback sont décrits dans `docs/operations/OBSERVABILITY.md`.
 
+Pour `TC-208`, installer `age`, le script `trust-circle-backup`, les quatre
+unités `trust-circle-{backup,restore-test}.*` et une copie privée de
+`trust-circle-backup.conf.example`. La configuration doit pointer vers une
+cible NFS existante et vers les assertions SQL de la release courante. Générer
+l'identité `age` hors dépôt, ne laisser que son destinataire public au job de
+sauvegarde et fournir l'identité au test par `LoadCredentialEncrypted`.
+
+Après une exécution manuelle réussie des deux services, activer les timers :
+
+```bash
+systemctl enable --now trust-circle-backup.timer \
+  trust-circle-restore-test.timer
+systemctl start trust-circle-backup.service
+systemctl start trust-circle-restore-test.service
+```
+
+Installer également `monitoring/circlehaven-alerts.yml` dans le répertoire de
+règles Prometheus de VM112, valider avec `promtool` avant rechargement et
+confirmer qu'aucune règle CircleHaven n'est en alerte. Le runbook complet, la
+rétention et les limites de la cible staging sont dans
+`docs/operations/BACKUP_RESTORE.md`.
+
 ## Destruction du staging
 
 La suppression du volume PostgreSQL est irréversible. Elle exige une autorisation explicite distincte et une résolution exacte du projet :

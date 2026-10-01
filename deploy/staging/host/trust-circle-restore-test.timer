@@ -1,0 +1,11 @@
+[Unit]
+Description=Test a CircleHaven staging backup restore every week
+
+[Timer]
+OnCalendar=Sun *-*-* 04:17:00
+RandomizedDelaySec=20min
+Persistent=true
+Unit=trust-circle-restore-test.service
+
+[Install]
+WantedBy=timers.target

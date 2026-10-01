@@ -1,0 +1,558 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+umask 077
+
+program_name=${0##*/}
+operation=${1:-}
+lock_file=/run/lock/trust-circle-backup.lock
+runtime_root=/run/trust-circle-backup
+state_root=/var/lib/trust-circle-backup
+metrics_root=/var/lib/prometheus/node-exporter
+backup_metrics_file=$metrics_root/circlehaven-backup.prom
+restore_metrics_file=$metrics_root/circlehaven-restore-test.prom
+work_dir=
+restore_network=
+restore_database_container=
+restore_auth_container=
+restore_messaging_container=
+operation_started_at=$(date +%s)
+operation_step=initialization
+
+log() {
+  printf '%s: %s\n' "$program_name" "$*" >&2
+}
+
+die() {
+  log "$*"
+  return 1
+}
+
+read_state_timestamp() {
+  local state_file=$1
+  local value=0
+  if [[ -r "$state_file" ]]; then
+    IFS= read -r value <"$state_file" || value=0
+  fi
+  [[ "$value" =~ ^[0-9]+$ ]] || value=0
+  printf '%s' "$value"
+}
+
+write_metric_file() {
+  local target=$1
+  local content=$2
+  local temporary
+  temporary="${target}.tmp.$$"
+  install -d -o root -g root -m 0755 "$metrics_root"
+  printf '%s\n' "$content" >"$temporary"
+  chmod 0644 "$temporary"
+  mv -f -- "$temporary" "$target"
+}
+
+write_backup_metrics() {
+  local success=$1
+  local duration=$2
+  local size=$3
+  local last_success
+  last_success=$(read_state_timestamp "$state_root/backup-last-success")
+  write_metric_file "$backup_metrics_file" "# HELP circlehaven_backup_last_run_success Whether the latest PostgreSQL backup run succeeded.
+# TYPE circlehaven_backup_last_run_success gauge
+circlehaven_backup_last_run_success{environment=\"staging\"} $success
+# HELP circlehaven_backup_last_success_timestamp_seconds Unix timestamp of the latest successful encrypted PostgreSQL backup.
+# TYPE circlehaven_backup_last_success_timestamp_seconds gauge
+circlehaven_backup_last_success_timestamp_seconds{environment=\"staging\"} $last_success
+# HELP circlehaven_backup_duration_seconds Duration of the latest PostgreSQL backup run.
+# TYPE circlehaven_backup_duration_seconds gauge
+circlehaven_backup_duration_seconds{environment=\"staging\"} $duration
+# HELP circlehaven_backup_size_bytes Size of the latest encrypted PostgreSQL backup.
+# TYPE circlehaven_backup_size_bytes gauge
+circlehaven_backup_size_bytes{environment=\"staging\"} $size"
+}
+
+write_restore_metrics() {
+  local success=$1
+  local duration=$2
+  local last_success
+  last_success=$(read_state_timestamp "$state_root/restore-last-success")
+  write_metric_file "$restore_metrics_file" "# HELP circlehaven_restore_test_last_run_success Whether the latest isolated restore test succeeded.
+# TYPE circlehaven_restore_test_last_run_success gauge
+circlehaven_restore_test_last_run_success{environment=\"staging\"} $success
+# HELP circlehaven_restore_test_last_success_timestamp_seconds Unix timestamp of the latest successful isolated restore test.
+# TYPE circlehaven_restore_test_last_success_timestamp_seconds gauge
+circlehaven_restore_test_last_success_timestamp_seconds{environment=\"staging\"} $last_success
+# HELP circlehaven_restore_test_duration_seconds Duration of the latest isolated restore test.
+# TYPE circlehaven_restore_test_duration_seconds gauge
+circlehaven_restore_test_duration_seconds{environment=\"staging\"} $duration"
+}
+
+cleanup() {
+  local status=$?
+  trap - EXIT INT TERM
+
+  [[ -z "$restore_messaging_container" ]] || docker rm -f "$restore_messaging_container" >/dev/null 2>&1 || true
+  [[ -z "$restore_auth_container" ]] || docker rm -f "$restore_auth_container" >/dev/null 2>&1 || true
+  [[ -z "$restore_database_container" ]] || docker rm -f "$restore_database_container" >/dev/null 2>&1 || true
+  [[ -z "$restore_network" ]] || docker network rm "$restore_network" >/dev/null 2>&1 || true
+  [[ -z "$work_dir" ]] || rm -rf -- "$work_dir"
+
+  local finished_at duration
+  finished_at=$(date +%s)
+  duration=$((finished_at - operation_started_at))
+  if [[ "$operation" == backup ]]; then
+    if [[ "$status" -eq 0 ]]; then
+      write_backup_metrics 1 "$duration" "${backup_size_bytes:-0}" || true
+    else
+      write_backup_metrics 0 "$duration" 0 || true
+      log "backup failed during $operation_step"
+    fi
+  elif [[ "$operation" == restore-test ]]; then
+    if [[ "$status" -eq 0 ]]; then
+      write_restore_metrics 1 "$duration" || true
+    else
+      write_restore_metrics 0 "$duration" || true
+      log "restore test failed during $operation_step"
+    fi
+  fi
+  exit "$status"
+}
+trap cleanup EXIT INT TERM
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command is unavailable: $1"
+}
+
+validate_settings() {
+  : "${BACKUP_DESTINATION:?BACKUP_DESTINATION is required}"
+  : "${AGE_RECIPIENT_FILE:?AGE_RECIPIENT_FILE is required}"
+  : "${SCHEMA_ASSERTION_FILE:?SCHEMA_ASSERTION_FILE is required}"
+  : "${ROLE_ASSERTION_FILE:?ROLE_ASSERTION_FILE is required}"
+  BACKUP_KEEP_DAILY=${BACKUP_KEEP_DAILY:-7}
+  BACKUP_KEEP_WEEKLY=${BACKUP_KEEP_WEEKLY:-5}
+  BACKUP_KEEP_MONTHLY=${BACKUP_KEEP_MONTHLY:-12}
+  BACKUP_MAX_BYTES=${BACKUP_MAX_BYTES:-1073741824}
+
+  [[ "$BACKUP_DESTINATION" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "backup destination must be an absolute simple path"
+  [[ "$AGE_RECIPIENT_FILE" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "age recipient path is invalid"
+  [[ "$SCHEMA_ASSERTION_FILE" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "schema assertion path is invalid"
+  [[ "$ROLE_ASSERTION_FILE" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "role assertion path is invalid"
+  for retention in BACKUP_KEEP_DAILY BACKUP_KEEP_WEEKLY BACKUP_KEEP_MONTHLY; do
+    [[ "${!retention}" =~ ^[1-9][0-9]*$ ]] || die "$retention must be a positive integer"
+  done
+  [[ "$BACKUP_MAX_BYTES" =~ ^[1-9][0-9]*$ ]] || die "BACKUP_MAX_BYTES must be a positive integer"
+
+  [[ -d "$BACKUP_DESTINATION" && ! -L "$BACKUP_DESTINATION" ]] \
+    || die "backup destination must be a real directory"
+  [[ -w "$BACKUP_DESTINATION" ]] || die "backup destination is not writable"
+  [[ "$(stat -c %a "$BACKUP_DESTINATION")" == 700 ]] \
+    || die "backup destination must have mode 0700"
+  local filesystem options
+  filesystem=$(findmnt -T "$BACKUP_DESTINATION" -n -o FSTYPE | head -n 1)
+  options=$(findmnt -T "$BACKUP_DESTINATION" -n -o OPTIONS | head -n 1)
+  [[ "$filesystem" == nfs || "$filesystem" == nfs4 ]] || die "backup destination must be on NFS"
+  [[ ",$options," == *,rw,* ]] || die "backup destination must be mounted read-write"
+  [[ -r "$AGE_RECIPIENT_FILE" ]] || die "age recipient file is not readable"
+  [[ -r "$SCHEMA_ASSERTION_FILE" ]] || die "schema assertion file is not readable"
+  [[ -r "$ROLE_ASSERTION_FILE" ]] || die "role assertion file is not readable"
+
+  local recipient extra
+  IFS= read -r recipient <"$AGE_RECIPIENT_FILE"
+  IFS= read -r extra < <(sed -n '2p' "$AGE_RECIPIENT_FILE") || true
+  [[ "$recipient" =~ ^age1[0-9a-z]+$ && -z "$extra" ]] || die "age recipient file is invalid"
+  age_recipient=$recipient
+}
+
+verify_backup_checksum() {
+  local destination=$1
+  local backup_name=$2
+  local checksum_file="$destination/$backup_name.sha256"
+  local -a checksum_lines=()
+  local checksum_line expected listed actual
+
+  [[ "$backup_name" =~ ^circlehaven-staging-postgresql-[0-9]{8}T[0-9]{6}Z\.tar\.age$ ]] \
+    || die "backup filename is invalid"
+  [[ -f "$checksum_file" && ! -L "$checksum_file" ]] || die "backup checksum file is invalid"
+  mapfile -t checksum_lines <"$checksum_file"
+  [[ "${#checksum_lines[@]}" -eq 1 ]] || die "backup checksum file must contain one line"
+  checksum_line=${checksum_lines[0]}
+  [[ "$checksum_line" =~ ^[0-9a-f]{64}\ \ [A-Za-z0-9._-]+$ ]] \
+    || die "backup checksum format is invalid"
+  expected=${checksum_line%% *}
+  listed=${checksum_line#*  }
+  [[ "$listed" == "$backup_name" ]] || die "backup checksum references another file"
+  actual=$(sha256sum "$destination/$backup_name" | awk '{print $1}')
+  [[ "$actual" == "$expected" ]] || die "encrypted backup checksum verification failed"
+}
+
+container_for_service() {
+  local service=$1
+  local -a matches=()
+  mapfile -t matches < <(docker ps --quiet \
+    --filter label=com.docker.compose.project=trust-circle-staging \
+    --filter "label=com.docker.compose.service=$service")
+  [[ "${#matches[@]}" -eq 1 ]] || die "expected exactly one running staging $service container"
+  printf '%s' "${matches[0]}"
+}
+
+collect_row_counts() {
+  local container=$1
+  local database=$2
+  local username=$3
+  docker exec -u postgres "$container" sh -euc '
+    queries=$(psql -X -At --set ON_ERROR_STOP=1 --username "$2" --dbname "$1" --command "
+      SELECT format(
+        '\''SELECT %L AS table_name, count(*)::bigint AS row_count FROM %I.%I;'\'',
+        table_schema || '\''.'\'' || table_name,
+        table_schema,
+        table_name
+      )
+      FROM information_schema.tables
+      WHERE table_schema = '\''public'\'' AND table_type = '\''BASE TABLE'\''
+      ORDER BY table_name
+    ")
+    printf "%s\n" "$queries" | psql -X -At --set ON_ERROR_STOP=1 --field-separator "	" --username "$2" --dbname "$1"
+  ' sh "$database" "$username"
+}
+
+prune_backups() {
+  local destination=$1
+  local keep_daily=$2
+  local keep_weekly=$3
+  local keep_monthly=$4
+  local -a backup_files=()
+  mapfile -t backup_files < <(
+    find "$destination" -maxdepth 1 -type f \
+      -name 'circlehaven-staging-postgresql-????????T??????Z.tar.age' \
+      -printf '%f\n' | LC_ALL=C sort -r
+  )
+
+  local -A days=() weeks=() months=() keep=()
+  local day_count=0 week_count=0 month_count=0
+  local file stamp day week month
+  for file in "${backup_files[@]}"; do
+    [[ "$file" =~ ^circlehaven-staging-postgresql-([0-9]{8}T[0-9]{6}Z)\.tar\.age$ ]] || continue
+    stamp=${BASH_REMATCH[1]}
+    day=${stamp:0:8}
+    week=$(date -u -d "${day:0:4}-${day:4:2}-${day:6:2}" +%G-W%V)
+    month=${day:0:6}
+
+    if [[ -z "${days[$day]+set}" && "$day_count" -lt "$keep_daily" ]]; then
+      days[$day]=1
+      day_count=$((day_count + 1))
+      keep[$file]=1
+    fi
+    if [[ -z "${weeks[$week]+set}" && "$week_count" -lt "$keep_weekly" ]]; then
+      weeks[$week]=1
+      week_count=$((week_count + 1))
+      keep[$file]=1
+    fi
+    if [[ -z "${months[$month]+set}" && "$month_count" -lt "$keep_monthly" ]]; then
+      months[$month]=1
+      month_count=$((month_count + 1))
+      keep[$file]=1
+    fi
+  done
+
+  for file in "${backup_files[@]}"; do
+    if [[ -z "${keep[$file]+set}" ]]; then
+      rm -f -- "$destination/$file" "$destination/$file.sha256"
+    fi
+  done
+}
+
+run_backup() {
+  require_command age
+  require_command docker
+  require_command findmnt
+  require_command flock
+  require_command sha256sum
+  require_command tar
+  validate_settings
+
+  operation_step=locking
+  exec 9>"$lock_file"
+  flock -n 9 || die "another backup or restore test is already running"
+
+  operation_step=preparing
+  install -d -o root -g root -m 0700 "$runtime_root" "$state_root"
+  work_dir=$(mktemp -d "$runtime_root/backup.XXXXXX")
+  local postgres_container database_name database_user revision postgres_version timestamp archive encrypted checksum destination_partial
+  postgres_container=$(container_for_service postgres)
+  database_name=$(docker exec -u postgres "$postgres_container" sh -euc 'printf %s "$POSTGRES_DB"')
+  [[ "$database_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || die "database name is invalid"
+  database_user=$(docker exec -u postgres "$postgres_container" sh -euc 'printf %s "$POSTGRES_USER"')
+  [[ "$database_user" == trust_circle_admin ]] || die "database administrator role is unexpected"
+  revision=$(docker inspect --format '{{ index .Config.Labels "com.trust-circle.revision" }}' "$postgres_container")
+  [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || die "staging revision label is invalid"
+  postgres_version=$(docker exec -u postgres "$postgres_container" postgres --version | awk '{print $3}')
+  [[ "$postgres_version" =~ ^16\.[0-9]+$ ]] || die "unexpected PostgreSQL version"
+  timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+
+  operation_step=dumping
+  docker exec -u postgres "$postgres_container" sh -euc '
+    exec pg_dump --format=custom --compress=6 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"
+  ' >"$work_dir/database.dump"
+  docker exec -i -u postgres "$postgres_container" pg_restore --list \
+    <"$work_dir/database.dump" >/dev/null
+  collect_row_counts "$postgres_container" "$database_name" "$database_user" >"$work_dir/row-counts.tsv"
+  printf 'format_version=1\ncreated_at=%s\ndatabase=%s\npostgres_version=%s\nrevision=%s\n' \
+    "$timestamp" "$database_name" "$postgres_version" "$revision" \
+    >"$work_dir/manifest.txt"
+
+  operation_step=archiving
+  archive="$work_dir/circlehaven-staging-postgresql-$timestamp.tar"
+  tar --create --file "$archive" --directory "$work_dir" \
+    database.dump row-counts.tsv manifest.txt
+  encrypted="$archive.age"
+  age --recipient "$age_recipient" --output "$encrypted" "$archive"
+  rm -f -- "$archive" "$work_dir/database.dump" "$work_dir/row-counts.tsv" "$work_dir/manifest.txt"
+
+  operation_step=copying
+  checksum=$(sha256sum "$encrypted" | awk '{print $1}')
+  [[ "$checksum" =~ ^[0-9a-f]{64}$ ]] || die "encrypted backup checksum is invalid"
+  destination_partial="$BACKUP_DESTINATION/.${encrypted##*/}.partial.$$"
+  install -m 0600 "$encrypted" "$destination_partial"
+  mv -f -- "$destination_partial" "$BACKUP_DESTINATION/${encrypted##*/}"
+  printf '%s  %s\n' "$checksum" "${encrypted##*/}" \
+    >"$BACKUP_DESTINATION/.${encrypted##*/}.sha256.partial.$$"
+  chmod 0600 "$BACKUP_DESTINATION/.${encrypted##*/}.sha256.partial.$$"
+  mv -f -- "$BACKUP_DESTINATION/.${encrypted##*/}.sha256.partial.$$" \
+    "$BACKUP_DESTINATION/${encrypted##*/}.sha256"
+  verify_backup_checksum "$BACKUP_DESTINATION" "${encrypted##*/}"
+  backup_size_bytes=$(stat -c %s "$BACKUP_DESTINATION/${encrypted##*/}")
+
+  operation_step=retention
+  prune_backups "$BACKUP_DESTINATION" \
+    "$BACKUP_KEEP_DAILY" "$BACKUP_KEEP_WEEKLY" "$BACKUP_KEEP_MONTHLY"
+
+  operation_step=finalizing
+  printf '%s\n' "$(date +%s)" >"$state_root/backup-last-success.tmp.$$"
+  chmod 0600 "$state_root/backup-last-success.tmp.$$"
+  mv -f -- "$state_root/backup-last-success.tmp.$$" "$state_root/backup-last-success"
+  log "encrypted PostgreSQL backup completed"
+}
+
+wait_for_postgres() {
+  local container=$1
+  local database=$2
+  local attempt
+  for ((attempt = 1; attempt <= 60; attempt++)); do
+    if docker exec -u postgres "$container" pg_isready -q -U postgres -d "$database"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+wait_for_backend() {
+  local container=$1
+  local port=$2
+  local attempt
+  for ((attempt = 1; attempt <= 45; attempt++)); do
+    if docker exec "$container" node -e '
+      fetch(`http://127.0.0.1:${process.argv[1]}/ready`)
+        .then((response) => { if (response.status !== 200) process.exit(1); })
+        .catch(() => process.exit(1));
+    ' "$port"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+run_restore_test() {
+  require_command age
+  require_command docker
+  require_command findmnt
+  require_command flock
+  require_command openssl
+  require_command sha256sum
+  require_command tar
+  validate_settings
+
+  operation_step=locking
+  exec 9>"$lock_file"
+  flock -n 9 || die "another backup or restore test is already running"
+
+  operation_step=selecting-backup
+  local identity_file=${AGE_IDENTITY_FILE:-${CREDENTIALS_DIRECTORY:-}/age_identity}
+  [[ "$identity_file" =~ ^/[A-Za-z0-9._/-]+$ && -r "$identity_file" ]] \
+    || die "age identity credential is unavailable"
+  local -a candidates=()
+  mapfile -t candidates < <(
+    find "$BACKUP_DESTINATION" -maxdepth 1 -type f \
+      -name 'circlehaven-staging-postgresql-????????T??????Z.tar.age' \
+      -printf '%f\n' | LC_ALL=C sort -r
+  )
+  [[ "${#candidates[@]}" -gt 0 ]] || die "no encrypted backup is available"
+  local backup_name=${candidates[0]}
+  local backup_size
+  backup_size=$(stat -c %s "$BACKUP_DESTINATION/$backup_name")
+  [[ "$backup_size" -gt 0 && "$backup_size" -le "$BACKUP_MAX_BYTES" ]] \
+    || die "encrypted backup size is outside the configured bound"
+  verify_backup_checksum "$BACKUP_DESTINATION" "$backup_name"
+
+  operation_step=decrypting
+  install -d -o root -g root -m 0700 "$runtime_root" "$state_root"
+  work_dir=$(mktemp -d "$runtime_root/restore.XXXXXX")
+  age --decrypt --identity "$identity_file" \
+    --output "$work_dir/backup.tar" "$BACKUP_DESTINATION/$backup_name"
+  local archive_entries
+  archive_entries=$(tar --list --file "$work_dir/backup.tar" | LC_ALL=C sort)
+  [[ "$archive_entries" == $'database.dump\nmanifest.txt\nrow-counts.tsv' ]] \
+    || die "encrypted archive contains unexpected paths"
+  [[ "$(tar --list --verbose --file "$work_dir/backup.tar" | awk 'substr($1, 1, 1) != "-" { invalid = 1 } END { print invalid + 0 }')" == 0 ]] \
+    || die "encrypted archive contains a non-regular entry"
+  tar --extract --no-same-owner --no-same-permissions \
+    --file "$work_dir/backup.tar" --directory "$work_dir" \
+    database.dump manifest.txt row-counts.tsv
+  rm -f -- "$work_dir/backup.tar"
+
+  operation_step=preparing-isolation
+  local live_postgres live_auth live_messaging postgres_image auth_image messaging_image
+  live_postgres=$(container_for_service postgres)
+  live_auth=$(container_for_service auth)
+  live_messaging=$(container_for_service messaging)
+  postgres_image=$(docker inspect --format '{{.Config.Image}}' "$live_postgres")
+  auth_image=$(docker inspect --format '{{.Config.Image}}' "$live_auth")
+  messaging_image=$(docker inspect --format '{{.Config.Image}}' "$live_messaging")
+  [[ -n "$postgres_image" && -n "$auth_image" && -n "$messaging_image" ]] \
+    || die "restore images could not be resolved"
+
+  local suffix postgres_uid postgres_gid restore_database
+  suffix="$$-$(openssl rand -hex 4)"
+  restore_network="circlehaven-restore-$suffix"
+  restore_database_container="circlehaven-restore-db-$suffix"
+  restore_auth_container="circlehaven-restore-auth-$suffix"
+  restore_messaging_container="circlehaven-restore-messaging-$suffix"
+  restore_database=trust_circle_restore
+  postgres_uid=$(docker run --rm --network none --entrypoint sh "$postgres_image" -c 'id -u postgres')
+  postgres_gid=$(docker run --rm --network none --entrypoint sh "$postgres_image" -c 'id -g postgres')
+  [[ "$postgres_uid" =~ ^[0-9]+$ && "$postgres_gid" =~ ^[0-9]+$ ]] \
+    || die "PostgreSQL container identity is invalid"
+
+  docker network create --internal \
+    --label com.trust-circle.restore-test=true "$restore_network" >/dev/null
+  docker run --detach --name "$restore_database_container" \
+    --network "$restore_network" --network-alias restore-db \
+    --read-only --user postgres --security-opt no-new-privileges:true \
+    --cap-drop ALL --pids-limit 256 --memory 768m --cpus 1 \
+    --tmpfs "/var/lib/postgresql/data:rw,size=512m,uid=$postgres_uid,gid=$postgres_gid,mode=0700" \
+    --tmpfs "/var/run/postgresql:rw,size=16m,uid=$postgres_uid,gid=$postgres_gid,mode=0775" \
+    --tmpfs /tmp:rw,size=64m,mode=1777,noexec,nosuid,nodev \
+    --env "POSTGRES_DB=$restore_database" \
+    --env POSTGRES_HOST_AUTH_METHOD=trust \
+    "$postgres_image" >/dev/null
+  wait_for_postgres "$restore_database_container" "$restore_database" \
+    || die "isolated PostgreSQL did not become ready"
+
+  operation_step=restoring
+  docker exec -i -u postgres "$restore_database_container" \
+    psql -X --set ON_ERROR_STOP=1 --username postgres --dbname "$restore_database" \
+    >/dev/null <<'SQL'
+CREATE ROLE trust_circle_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 5;
+CREATE ROLE trust_circle_auth LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 20;
+CREATE ROLE trust_circle_messaging LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 20;
+ALTER ROLE trust_circle_migrator SET search_path = public, pg_catalog;
+ALTER ROLE trust_circle_auth SET search_path = public, pg_catalog;
+ALTER ROLE trust_circle_messaging SET search_path = public, pg_catalog;
+SQL
+  docker exec -i -u postgres "$restore_database_container" \
+    pg_restore --exit-on-error --username postgres --dbname "$restore_database" \
+    <"$work_dir/database.dump" >/dev/null
+
+  operation_step=validating-database
+  docker exec -i -u postgres "$restore_database_container" \
+    psql -X --set ON_ERROR_STOP=1 --username postgres --dbname "$restore_database" \
+    <"$SCHEMA_ASSERTION_FILE" >/dev/null
+  docker exec -i -u postgres "$restore_database_container" \
+    psql -X --set ON_ERROR_STOP=1 --username postgres --dbname "$restore_database" \
+    <"$ROLE_ASSERTION_FILE" >/dev/null
+  collect_row_counts "$restore_database_container" "$restore_database" postgres \
+    >"$work_dir/restored-row-counts.tsv"
+  cmp --silent "$work_dir/row-counts.tsv" "$work_dir/restored-row-counts.tsv" \
+    || die "restored aggregate row counts do not match the backup"
+  docker exec -u postgres "$restore_database_container" \
+    psql -X -At --set ON_ERROR_STOP=1 --username postgres --dbname "$restore_database" \
+      --command "SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND NOT convalidated" \
+    | grep -qx 0 || die "restored foreign keys are not fully validated"
+
+  operation_step=starting-smoke-services
+  local auth_password messaging_password refresh_secret private_key public_key private_key_b64 public_key_b64
+  auth_password=$(openssl rand -hex 32)
+  messaging_password=$(openssl rand -hex 32)
+  refresh_secret=$(openssl rand -hex 32)
+  private_key="$work_dir/access-private.pem"
+  public_key="$work_dir/access-public.pem"
+  openssl genpkey -algorithm ED25519 -out "$private_key" 2>/dev/null
+  openssl pkey -in "$private_key" -pubout -out "$public_key" 2>/dev/null
+  private_key_b64=$(base64 -w 0 "$private_key")
+  public_key_b64=$(base64 -w 0 "$public_key")
+
+  docker exec -i -u postgres "$restore_database_container" \
+    psql -X --set ON_ERROR_STOP=1 --username postgres --dbname "$restore_database" \
+    >/dev/null <<SQL
+ALTER ROLE trust_circle_auth PASSWORD '$auth_password';
+ALTER ROLE trust_circle_messaging PASSWORD '$messaging_password';
+SQL
+  cat >"$work_dir/auth.env" <<EOF
+NODE_ENV=test
+LOG_LEVEL=fatal
+PORT=3000
+DATABASE_URL=postgresql://trust_circle_auth:$auth_password@restore-db:5432/$restore_database
+JWT_ACCESS_PRIVATE_KEY_B64=$private_key_b64
+JWT_ACCESS_PUBLIC_KEY_B64=$public_key_b64
+JWT_REFRESH_SECRET=$refresh_secret
+EOF
+  cat >"$work_dir/messaging.env" <<EOF
+NODE_ENV=test
+LOG_LEVEL=fatal
+PORT=3001
+DATABASE_URL=postgresql://trust_circle_messaging:$messaging_password@restore-db:5432/$restore_database
+JWT_ACCESS_PUBLIC_KEY_B64=$public_key_b64
+EOF
+  chmod 0600 "$work_dir/auth.env" "$work_dir/messaging.env"
+  docker run --detach --name "$restore_auth_container" \
+    --network "$restore_network" --read-only --user node \
+    --security-opt no-new-privileges:true --cap-drop ALL \
+    --pids-limit 128 --memory 256m --cpus 0.5 \
+    --tmpfs /tmp:rw,size=32m,mode=1777,noexec,nosuid,nodev \
+    --env-file "$work_dir/auth.env" "$auth_image" >/dev/null
+  docker run --detach --name "$restore_messaging_container" \
+    --network "$restore_network" --read-only --user node \
+    --security-opt no-new-privileges:true --cap-drop ALL \
+    --pids-limit 128 --memory 256m --cpus 0.5 \
+    --tmpfs /tmp:rw,size=32m,mode=1777,noexec,nosuid,nodev \
+    --env-file "$work_dir/messaging.env" "$messaging_image" >/dev/null
+  wait_for_backend "$restore_auth_container" 3000 || die "restored Auth service did not become ready"
+  wait_for_backend "$restore_messaging_container" 3001 || die "restored Messaging service did not become ready"
+
+  operation_step=finalizing
+  printf '%s\n' "$(date +%s)" >"$state_root/restore-last-success.tmp.$$"
+  chmod 0600 "$state_root/restore-last-success.tmp.$$"
+  mv -f -- "$state_root/restore-last-success.tmp.$$" "$state_root/restore-last-success"
+  log "isolated encrypted-backup restore test completed"
+}
+
+main() {
+  case "$operation" in
+    backup)
+      run_backup
+      ;;
+    restore-test)
+      run_restore_test
+      ;;
+    prune)
+      [[ $# -eq 5 ]] || die "usage: $program_name prune DESTINATION DAILY WEEKLY MONTHLY"
+      prune_backups "$2" "$3" "$4" "$5"
+      ;;
+    *)
+      die "usage: $program_name {backup|restore-test}"
+      ;;
+  esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

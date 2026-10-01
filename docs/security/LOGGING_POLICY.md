@@ -1,7 +1,7 @@
 # Politique de journalisation sûre
 
-Statut : contrat implémenté par `TC-206`
-Dernière mise à jour : 2026-09-22
+Statut : contrat implémenté par `TC-206`, événements de sauvegarde encadrés par `TC-208`
+Dernière mise à jour : 2026-10-01
 
 Cette politique couvre Auth, Messaging, Socket.IO, la présence et la gateway
 Nginx. Elle complète les invariants 5 et 18. Un journal technique n'est ni un
@@ -114,15 +114,24 @@ données métier.
 Nginx ne sait pas assainir ou structurer son `error_log`, qui peut recopier IP
 et URI. Il est désactivé : les statuts d'échec restent dans l'access log JSON
 sûr et les backends conservent leurs événements assainis. `TC-207` fournit les
-compteurs agrégés ; `TC-208` doit fixer les alertes et leur rétention avant
-d'autoriser une filière d'erreur plus riche.
+compteurs agrégés et `TC-208` ajoute les alertes de collecte, readiness,
+sauvegarde et restauration. Aucune filière d'erreur plus riche n'est autorisée
+pour autant.
 
 ## Transport, accès et rétention
 
-Les conteneurs écrivent vers `journald`; le homelab peut les transférer vers
-Loki. La rétention effective, le chiffrement, les ACL de consultation et la
-suppression centralisée ne sont pas encore prouvés : `TC-208` doit les établir
-avant toute donnée réelle. Jusqu'alors, seul le staging synthétique est admis.
+Les conteneurs écrivent vers `journald`; le homelab les transfère vers Loki.
+Sur LXC106, journald est borné à 512 Mio et 30 jours. Loki supprime les lignes
+après 14 jours ; Prometheus conserve 30 jours ou 6 Gio. Grafana est derrière
+l'ACL NPM « VPN uniquement » et son accès anonyme est limité au rôle Viewer.
+Prometheus écoute seulement sur le loopback de VM112 et Alertmanager n'expose
+aucun port hôte.
+
+Les volumes système de LXC106 et VM112 ne sont pas démontrés chiffrés au repos.
+La minimisation applicative et les ACL réduisent l'impact, mais ne remplacent
+pas le chiffrement du stockage physique. Le staging reste donc limité aux
+données synthétiques ; ce risque devra être traité ou explicitement accepté
+avant d'y placer des données personnelles réelles.
 
 Toute extraction pour support doit être bornée dans le temps, filtrée aux
 services concernés et relue avant partage. Aucun journal brut n'entre dans un
@@ -135,4 +144,5 @@ ticket, prompt, dépôt Git ou rapport public.
 - inspection post-déploiement : JSON valide, corrélation identique,
   healthchecks silencieux et aucune sentinelle synthétique ;
 - revue de tout nouveau champ de log au regard de cette liste blanche ;
-- vérification périodique des règles de rétention et d'accès avec `TC-208`.
+- vérification périodique des règles de rétention et d'accès ; état initial
+  vérifié par `TC-208` le 2026-09-29.

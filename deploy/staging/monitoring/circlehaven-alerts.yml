@@ -1,0 +1,50 @@
+groups:
+  - name: circlehaven-staging
+    rules:
+      - alert: CircleHavenMetricsCollectionFailed
+        expr: circlehaven_metrics_collection_success == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Collecte CircleHaven indisponible pour {{ $labels.service }}"
+
+      - alert: CircleHavenReadinessFailures
+        expr: sum by (service) (increase(circlehaven_readiness_checks_total{outcome="not_ready"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Readiness CircleHaven dégradée pour {{ $labels.service }}"
+
+      - alert: CircleHavenBackupFailed
+        expr: circlehaven_backup_last_run_success{environment="staging"} == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "La dernière sauvegarde CircleHaven a échoué"
+
+      - alert: CircleHavenBackupStale
+        expr: (time() - circlehaven_backup_last_success_timestamp_seconds{environment="staging"} > 129600) or absent(circlehaven_backup_last_success_timestamp_seconds{environment="staging"})
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Aucune sauvegarde CircleHaven valide depuis plus de 36 heures"
+
+      - alert: CircleHavenRestoreTestFailed
+        expr: circlehaven_restore_test_last_run_success{environment="staging"} == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Le dernier test de restauration CircleHaven a échoué"
+
+      - alert: CircleHavenRestoreTestStale
+        expr: (time() - circlehaven_restore_test_last_success_timestamp_seconds{environment="staging"} > 691200) or absent(circlehaven_restore_test_last_success_timestamp_seconds{environment="staging"})
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Aucune restauration CircleHaven valide depuis plus de 8 jours"

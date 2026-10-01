@@ -1,7 +1,7 @@
 # Contexte du projet
 
 Statut : référence de travail
-Dernière mise à jour : 2026-09-29
+Dernière mise à jour : 2026-10-01
 Instantané fonctionnel documenté : branche `main`, Phase 1 terminée
 
 ## Mission
@@ -38,8 +38,10 @@ conteneurs (`TC-204`), confirmé la topologie mono-réplique sans Redis
 staging et son proxy TLS (`TC-206`). Les données synthétiques ont été nettoyées
 après validation. `TC-207` sépare désormais vivacité et readiness PostgreSQL,
 expose des métriques HTTP/runtime/Socket.IO agrégées et les fait collecter par
-Prometheus sans nouveau port ni exposition publique. La prochaine tâche est
-`TC-208`.
+Prometheus sans nouveau port ni exposition publique. `TC-208` produit désormais
+des sauvegardes PostgreSQL chiffrées quotidiennes hors LXC, prouve chaque
+semaine une restauration isolée et alerte sur les échecs ou la fraîcheur. La
+prochaine tâche est `TC-209`.
 
 
 Les principaux bloqueurs restants sont : stockage SQLite insuffisamment protégé, protocole V3 choisi mais non implémenté ni audité, fiabilité hors ligne fragile, compatibilité desktop incomplète et configuration de release non préparée. La confusion entre access et refresh tokens a été fermée par `TC-102`, l'identité d'envoi est dérivée du JWT par `TC-103`, les autorisations cercle/conversation/rôle sont centralisées par `TC-104`, et `TC-105` rend atomiques les contrôles et écritures Messaging critiques avec événements post-commit. Les lots A à D de `TC-106`, désormais validés sur staging, isolent l'identité locale, prouvent sa possession, permettent l'approbation signée, lient chaque access token à la clé privée de l'appareil et propagent rotation ou révocation globale sans détruire les clés historiques. `TC-107` borne les corps, structures, identifiants, collections et données cryptographiques HTTP/Socket.IO. `TC-108` applique une allowlist CORS exacte, une confiance proxy par CIDR, des quotas HTTP/Socket.IO sans aller-retour supplémentaire et des ACK d'abonnement immédiats ; son fonctionnement est décrit dans `security/NETWORK_BOUNDARY.md`. `TC-109` retire du client, des backends et du staging le faux secret partagé extractible, sans le remplacer ni ajouter d'appel réseau. `TC-111` rend les scénarios négatifs d'identité, ACL, rôles, appareils, clés et Socket.IO reproductibles sur les suites locales et PostgreSQL staging. `TC-110` met les deux backends à zéro avis `npm audit`, met notamment Fastify et Socket.IO à niveau et conserve les 117 tests backend ainsi que le smoke adversarial. `TC-114` impose désormais l'authentification du message avant tout usage du texte et respecte les budgets Android/Windows. Avec l'exposition TLS restreinte de `TC-113`, la Phase 1 est terminée. `TC-201` adopte Sqitch 1.6.1 et valide une baseline réversible sur PostgreSQL 16 jetable ; `TC-202` recrée le staging à vide depuis cette baseline et enregistre ses six changements. L'inventaire Docker détaillé est dans `docs/operations/PRODUCTION_INVENTORY.md`.
