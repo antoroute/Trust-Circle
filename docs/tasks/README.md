@@ -41,6 +41,7 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 - [TC-206 — Logs structurés, corrélation et redaction](TC-206-logs-structures-correlation-redaction.md)
 - [TC-207 — Health, readiness et métriques minimales](TC-207-health-readiness-metriques.md)
 - [TC-208 — Sauvegardes, alertes et restauration](TC-208-sauvegardes-alertes-restauration.md)
+- [TC-209 — Images immuables et provenance en CI](TC-209-images-immuables-ci.md)
 
 ## Index Phase 3
 

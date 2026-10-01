@@ -1,0 +1,155 @@
+name: Backend images
+
+on:
+  pull_request:
+    paths:
+      - backend/**
+      - infrastructure/postgres/**
+      - deploy/staging/nginx.conf
+      - deploy/ci/**
+      - .github/workflows/backend-images.yml
+  push:
+    branches: [main]
+    paths:
+      - backend/**
+      - infrastructure/postgres/**
+      - deploy/staging/nginx.conf
+      - deploy/ci/**
+      - .github/workflows/backend-images.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth, messaging]
+    defaults:
+      run:
+        working-directory: backend/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm test
+      - run: npm audit --omit=dev
+      - run: npm audit
+
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Migrations, role separation, hardening and adversarial smoke
+        run: bash infrastructure/postgres/test-migrations.sh
+
+  publish:
+    if: github.repository == 'antoroute/Trust-Circle' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [test, integration]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth, messaging]
+    env:
+      IMAGE: ghcr.io/antoroute/circlehaven-${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build candidate from the committed Git context
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: "{{defaultContext}}:backend/${{ matrix.service }}"
+          platforms: linux/amd64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ env.IMAGE }}:sha-${{ github.sha }}-run-${{ github.run_id }}-${{ github.run_attempt }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/antoroute/Trust-Circle
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=CircleHaven ${{ matrix.service }}
+      - name: Scan the published digest
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          scanners: vuln
+          format: json
+          output: trivy.json
+          exit-code: '0'
+      - name: Enforce vulnerability gate
+        run: |
+          jq -e '[.Results[]?.Vulnerabilities[]? | select((.Severity == "HIGH" or .Severity == "CRITICAL") and (.FixedVersion // "") != "")] | length == 0' trivy.json
+      - name: Inspect SBOM, provenance and runtime by digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          ref="$IMAGE@$DIGEST"
+          docker buildx imagetools inspect "$ref" --format '{{json .SBOM}}' > sbom.json
+          docker buildx imagetools inspect "$ref" --format '{{json .Provenance}}' > provenance.json
+          jq -e '[.. | objects | select(has("spdxVersion")) | .packages[]?] | length > 0' sbom.json
+          jq -e '[.. | objects | select(has("buildType"))] | length > 0' provenance.json
+          docker pull "$ref"
+          test "$(docker image inspect --format '{{.Config.User}}' "$ref")" = node
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$ref")" = "$GITHUB_SHA"
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true "$ref" node -e 'if(process.getuid()===0 || process.versions.node.split(".")[0]!=="24") process.exit(1); require("fastify"); require("pg"); require("node:fs").accessSync("dist/index.js")'
+      - name: Sign build provenance using GitHub OIDC
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
+      - name: Verify provenance and reject a wrong source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          bash deploy/ci/verify-image.sh "$IMAGE@$DIGEST" "$GITHUB_SHA" > verification.json
+          if bash deploy/ci/verify-image.sh "$IMAGE@$DIGEST" 0000000000000000000000000000000000000000 >/dev/null 2>&1; then
+            echo 'Verification incorrectly accepted another source commit' >&2
+            exit 1
+          fi
+          jq -n --arg image "$IMAGE@$DIGEST" --arg commit "$GITHUB_SHA" --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" '{image:$image,commit:$commit,run:$run,platform:"linux/amd64"}' > release.json
+          printf '%s\n' "$IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep release evidence and scan report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: image-evidence-${{ matrix.service }}-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 90
+          path: |
+            trivy.json
+            sbom.json
+            provenance.json
+            verification.json
+            release.json
