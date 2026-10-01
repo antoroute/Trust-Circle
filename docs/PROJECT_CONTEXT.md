@@ -2,7 +2,7 @@
 
 Statut : référence de travail
 Dernière mise à jour : 2026-10-01
-Instantané fonctionnel documenté : branche `main`, Phase 1 terminée
+Instantané fonctionnel documenté : branche `main`, Phases 1 et 2 terminées sur staging
 
 ## Mission
 
@@ -43,10 +43,14 @@ des sauvegardes PostgreSQL chiffrées quotidiennes hors LXC, prouve chaque
 semaine une restauration isolée et alerte sur les échecs ou la fraîcheur.
 `TC-209` construit et publie Auth/Messaging dans GHCR avec SBOM, analyse et
 provenance signée vérifiée par digest et commit. Les nouvelles images utilisent
-Node 24 LTS et des dépendances corrigées ; le staging persistant conserve sa
-release antérieure jusqu'à `TC-210`, prochaine tâche de promotion, migration
-et rollback. Les 8 CVE Debian HIGH sans correctif indiqué par le scan restent
-à trier avant la bêta ; voir `docs/operations/IMAGE_SUPPLY_CHAIN.md`.
+Node 24 LTS et des dépendances corrigées. `TC-210` a promu ces images par digest,
+exercé le retour aux anciennes images puis la nouvelle promotion sans perte de
+données ni changement de secrets/volume. Sauvegarde/restauration, HTTPS et
+observabilité sont vérifiés après la bascule. La Phase 2 est terminée sur le
+staging ; la prochaine tâche est le prototype MLS/OpenMLS de `TC-301` (Phase 3).
+Les 8 CVE Debian HIGH sans correctif indiqué par le scan et le stockage de
+backup transitoire restent des portes avant bêta ; voir
+`docs/operations/IMAGE_SUPPLY_CHAIN.md` et `BACKUP_RESTORE.md`.
 
 
 Les principaux bloqueurs restants sont : stockage SQLite insuffisamment protégé, protocole V3 choisi mais non implémenté ni audité, fiabilité hors ligne fragile, compatibilité desktop incomplète et configuration de release non préparée. La confusion entre access et refresh tokens a été fermée par `TC-102`, l'identité d'envoi est dérivée du JWT par `TC-103`, les autorisations cercle/conversation/rôle sont centralisées par `TC-104`, et `TC-105` rend atomiques les contrôles et écritures Messaging critiques avec événements post-commit. Les lots A à D de `TC-106`, désormais validés sur staging, isolent l'identité locale, prouvent sa possession, permettent l'approbation signée, lient chaque access token à la clé privée de l'appareil et propagent rotation ou révocation globale sans détruire les clés historiques. `TC-107` borne les corps, structures, identifiants, collections et données cryptographiques HTTP/Socket.IO. `TC-108` applique une allowlist CORS exacte, une confiance proxy par CIDR, des quotas HTTP/Socket.IO sans aller-retour supplémentaire et des ACK d'abonnement immédiats ; son fonctionnement est décrit dans `security/NETWORK_BOUNDARY.md`. `TC-109` retire du client, des backends et du staging le faux secret partagé extractible, sans le remplacer ni ajouter d'appel réseau. `TC-111` rend les scénarios négatifs d'identité, ACL, rôles, appareils, clés et Socket.IO reproductibles sur les suites locales et PostgreSQL staging. `TC-110` met les deux backends à zéro avis `npm audit`, met notamment Fastify et Socket.IO à niveau et conserve les 117 tests backend ainsi que le smoke adversarial. `TC-114` impose désormais l'authentification du message avant tout usage du texte et respecte les budgets Android/Windows. Avec l'exposition TLS restreinte de `TC-113`, la Phase 1 est terminée. `TC-201` adopte Sqitch 1.6.1 et valide une baseline réversible sur PostgreSQL 16 jetable ; `TC-202` recrée le staging à vide depuis cette baseline et enregistre ses six changements. L'inventaire Docker détaillé est dans `docs/operations/PRODUCTION_INVENTORY.md`.

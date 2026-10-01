@@ -80,9 +80,10 @@ de vulnérabilité. Le rapport complet peut contenir des avis de sévérité moi
 ou sans correctif : ils doivent être triés avant la bêta. La sécurité du compte
 mainteneur et la revue des changements du workflow restent essentielles.
 
-Le staging en service conserve sa release précédente. TC-210 remplacera les
-builds locaux par les deux références vérifiées, exercera migration, smoke et
-rollback, et consignera la paire de digests. Les images PostgreSQL, Nginx et
+TC-210 a remplacé les builds locaux par les deux références vérifiées et
+exercé migration, smoke, rollback puis nouvelle promotion. La sélection est
+conservée dans `release.env` séparément des secrets ; voir `DEPLOYMENT.md` et
+`STAGING_INVENTORY.md`. Les images PostgreSQL, Nginx et
 Sqitch restent des images tierces épinglées dans la configuration de déploiement.
 Le Dockerfile PostgreSQL historique n'est pas publié par ce workflow.
 

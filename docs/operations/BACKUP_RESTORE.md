@@ -99,6 +99,21 @@ systemctl show trust-circle-restore-test.service -p Result -p ExecMainStatus
 Ne jamais exécuter directement le script de restauration avec une identité
 privée passée sur la ligne de commande.
 
+## Articulation avec les déploiements
+
+Depuis `TC-210`, `DEPLOYMENT.md` impose un test de sauvegarde/restauration
+avant puis après la promotion. Pendant le changement de conteneurs et de
+pointeur `current`, l'opérateur conserve le même verrou
+`/run/lock/trust-circle-backup.lock` que les jobs de reprise ; aucun dump ne
+doit associer le schéma d'une release au label d'une autre. Ne jamais démarrer
+les services de backup/restauration en gardant ce verrou : le libérer d'abord.
+
+Les assertions suivent `/opt/trust-circle-staging/current`, basculé seulement
+après les contrôles de santé et les tests fonctionnels. Un rollback applicatif
+compatible ne restaure pas un ancien dump : il conserve le volume actif et
+les données écrites depuis la promotion. La restauration demeure un exercice
+isolé, pas un écrasement du staging.
+
 ## Métriques et alertes
 
 Le `node_exporter` de LXC106 expose :

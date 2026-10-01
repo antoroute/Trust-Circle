@@ -1,7 +1,7 @@
 # Inventaire du staging backend
 
 Statut : opérationnel, publication TLS restreinte, reprise et alertes validées
-Dernier changement d'exploitation : 2026-10-01 (`TC-208` terminée)
+Dernier changement d'exploitation : 2026-10-01 (`TC-210` terminée)
 Environnement : LXC106, stack Compose `trust-circle-staging`
 
 ## Résumé
@@ -12,8 +12,10 @@ Le staging backend est une installation neuve et isolée des anciennes ressource
 
 | Élément | Valeur assainie |
 |---|---|
-| Commit source | `44f99d0778a97460c0e696b2310d1fe07c69a6ca` |
-| Release | `/opt/trust-circle-staging/releases/44f99d0778a97460c0e696b2310d1fe07c69a6ca` |
+| Commit de déploiement | `5bd5831afc1e6ba3a0e3c24e7f5cd35513105a7d` |
+| Commit source des images | `f6c8fe4e43a1a149e3f54a290a02b9e418877d5a` |
+| Release | `/opt/trust-circle-staging/releases/5bd5831afc1e6ba3a0e3c24e7f5cd35513105a7d` |
+| Sélection publique | `release.env` dans la release ; quatre références validées |
 | Pointeur actif | `/opt/trust-circle-staging/current` |
 | Fichier de secrets | `/opt/trust-circle-staging/shared/staging.env`, mode `0600` |
 | Secrets DB | répertoire frère `staging.env.d`, mode `0700`, quatre fichiers distincts |
@@ -26,15 +28,17 @@ Le fichier de secrets n'est pas versionné et ses valeurs n'ont pas été affich
 
 | Service | Image | Preuve | État final |
 |---|---|---|---|
-| Auth | `trust-circle-staging-auth:staging-44f99d0778a9` | image ID `2e34975390e7`, label revision complet | sain, 0 redémarrage |
-| Messaging | `trust-circle-staging-messaging:staging-44f99d0778a9` | image ID `0d7744dbb104`, label revision complet | sain, 0 redémarrage |
+| Auth | `ghcr.io/antoroute/circlehaven-auth` par digest ci-dessous | attestation GitHub vérifiée, Node 24.21.0 | sain, 0 redémarrage |
+| Messaging | `ghcr.io/antoroute/circlehaven-messaging` par digest ci-dessous | attestation GitHub vérifiée, Node 24.21.0 | sain, 0 redémarrage |
 | PostgreSQL | `postgres:16-alpine` résolue par digest | image ID `75f5a96988cd` | sain, 0 redémarrage |
 | Bootstrap rôles | même image PostgreSQL par digest | image ID `75f5a96988cd`, utilisateur `postgres` | terminé, code 0 |
 | Migration | Sqitch 1.6.1 résolue par digest | image ID `44f627f9a86a`, utilisateur `sqitch` | terminé, code 0 |
 | Gateway | `nginx:stable-alpine` résolue par digest | image ID `6e01bfae6f79` | sain, 0 redémarrage |
 
-Les références tierces exactes observées au déploiement sont :
+Les références exactes observées au déploiement sont :
 
+- Auth : `ghcr.io/antoroute/circlehaven-auth@sha256:c98715e8a90c19871a98a7877774bd3aadb5f6609af757d5c0ab731400443569` ;
+- Messaging : `ghcr.io/antoroute/circlehaven-messaging@sha256:8f84cb736f5c4dfdd7d79437abb273610a74c3a198e1fbdfb68cfaec24697867` ;
 - PostgreSQL : `postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685` ;
 - Nginx : `nginx@sha256:97d490c12ba55b4946b01546d1c3ed324e8d41ab1c9fcb2a616aa470620e5b46` ;
 - Sqitch : `sqitch/sqitch@sha256:f247ab0e0b66e9c2d09a400864f7314358893f5cf209cddcc4f213f7d5bfe4d3`.
@@ -58,7 +62,8 @@ Les références tierces exactes observées au déploiement sont :
 - Aucun e-mail ou fournisseur push configuré.
 - Redis absent car non utilisé par le code.
 
-Les tests backend sont exécutés via `pct exec 106` et la gateway loopback. Toute exposition LAN/Internet exige une décision séparée après la fermeture des vulnérabilités Phase 1.
+Les tests backend sont exécutés via `pct exec 106`, la gateway interne et
+HTTPS depuis NPM. Aucune règle réseau ni ACL n'a été élargie par TC-210.
 
 ## Durcissement appliqué
 
@@ -76,8 +81,10 @@ inutilisé de l'image PostgreSQL et ne laisse donc aucun volume anonyme.
 - Schéma construit exclusivement par le plan Sqitch ; `init.sql` n'est plus
   monté ni exécuté.
 - 17 tables publiques observées ; `user_groups.role` reste contraint à `admin` ou `member`, et le propriétaire reste dérivé de `groups.creator_id`.
-- Aucune donnée métier persistante après `TC-202` ; les fixtures synthétiques
-  du smoke final ont été supprimées après validation.
+- Après TC-210, neuf comptes et six messages synthétiques issus des trois
+  smoke tests sont conservés pour les contrôles de reprise. Aucune donnée
+  réelle n'a été introduite. Les nettoyages des étapes antérieures ci-dessous
+  sont des états historiques, pas l'état courant.
 - Sept changements sont enregistrés dans `trust_circle_sqitch`. Les anciens
   scripts manuels restent des archives d'audit non exécutées.
 
@@ -562,13 +569,37 @@ précédentes avaient réussi, les trois générations présentes avaient un che
 valide et la restauration durcie avait été rejouée avec succès. Les quatre
 services applicatifs restaient sains et à zéro redémarrage.
 
-## Limites assumées
+## Exercice TC-210 — 2026-10-01
 
-Note TC-209 du 2026-10-01 : les deux images CI du commit `f6c8fe4e…` ont été
-publiées, attestées, vérifiées puis téléchargées dans LXC106. Leur exécution
-éphémère confirme Node 24.21.0 et l'UID 1000. Les quatre conteneurs persistants
-conservent la release `44f99d…` ci-dessus ; TC-210 exercera la promotion et le
-rollback. Voir `IMAGE_SUPPLY_CHAIN.md` et le manifeste sous `deploy/releases/`.
+1. Sauvegarde puis restauration isolée réussies avant le remplacement.
+2. Release archivée depuis Git, run CI source vert et deux attestations
+   revérifiées indépendamment ; arbres backend/SQL identiques au commit image.
+3. Promotion des deux digests, rollback sur `44f99d…`, puis nouvelle promotion :
+   readiness en **46 / 45 / 45 secondes**, validation incluant smoke et logs
+   en **51 / 50 / 50 secondes**. Ce sont des durées d'opération de maintenance,
+   pas des latences utilisateur ni des mesures exactes d'indisponibilité.
+4. Trois parcours HTTP/JWT/appareils/ACL/Socket.IO réussis et trois contrôles
+   de sentinelles sensibles/corrélation dans les logs réussis.
+5. Empreintes du contenu des 17 tables comparées avant/après chaque bascule,
+   avant de créer les fixtures suivantes : aucune perte ni altération.
+6. Volume toujours créé le `2026-09-14T18:34:16+02:00`, secrets inchangés et
+   anciens image IDs retrouvés lors du rollback. Aucun `revert`, `down` ou
+   effacement de données. Sept migrations Sqitch check/deploy/verify réussies,
+   assertions de schéma/rôles conformes.
+7. Après promotion : nouvelle sauvegarde/restauration réussie, quatre services
+   sains sans redémarrage, trois routes HTTPS santé en `200`, trois routes
+   métriques en `404`, collecte à `1` et aucune alerte CircleHaven active.
+8. Preuves privées conservées sous
+   `/root/homelab/sauvegardes/incidents/tc210-deployment-20261001/` ; procédure
+   reproductible et verrous dans `DEPLOYMENT.md`. L'ancienne release et ses
+   images sont conservées pour le rollback.
+
+La CI du commit de déploiement a aussi réussi ses cinq jobs :
+[run 36905626936](https://github.com/antoroute/Trust-Circle/actions/runs/36905626936).
+Ses images nouvellement produites ne remplacent pas implicitement la paire
+TC-209 sélectionnée et exercée : toute promotion reste explicite par digest.
+
+## Limites assumées
 
 - Le domaine staging est volontairement inaccessible hors de l'ACL NPM ; ce
   refus ne doit pas être confondu avec une panne du backend.
@@ -580,8 +611,9 @@ rollback. Voir `IMAGE_SUPPLY_CHAIN.md` et le manifeste sous `deploy/releases/`.
   propres est obligatoire avant toute donnée personnelle réelle.
 - Les scénarios d'autorisation croisée cercle/conversation/clé sont couverts
   par `TC-111` et le smoke adversarial courant.
-- La release active historique possède une traçabilité locale uniquement.
-  La paire CI suivante dispose d'une provenance signée distante vérifiée.
+- La paire active possède une provenance signée distante vérifiée. Les huit
+  CVE Debian HIGH sans correctif au scan TC-209 restent à trier avant bêta ;
+  voir `IMAGE_SUPPLY_CHAIN.md`.
 - Le LXC reste partagé et privilégié.
 
 ## Commandes de référence

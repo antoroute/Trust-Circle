@@ -69,8 +69,9 @@ fermées ou des modèles de routes Fastify :
 métriques runtime Node avec les préfixes `circlehaven_auth_` et
 `circlehaven_messaging_` : CPU, mémoire, event loop, garbage collector,
 handles et temps de démarrage. Cette version est épinglée car elle supporte
-Node 20 ; la bibliothèque renommée `@prometheus-io/client` exige Node 22 ou
-plus et sera réévaluée avec la montée de version runtime.
+Node 20 lors de TC-207 et reste conservée après le passage à Node 24 de
+TC-209/210. Le changement de bibliothèque est distinct de la mise à jour du
+runtime ; aucune nouvelle instrumentation n'est nécessaire pour la promotion.
 
 Il est interdit d'ajouter comme label une URL brute, query string, IP, compte,
 appareil, socket, groupe, conversation, message, room, clé, token, payload,

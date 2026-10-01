@@ -72,9 +72,16 @@ engagé dans ce lot.
 | TC-207 | Ajouter health/readiness checks et métriques minimales — Terminée | TC-206 |
 | TC-208 | Automatiser sauvegardes, alertes et tests de restauration — Terminée sur staging | TC-003, TC-201 |
 | TC-209 | Construire/publier des images immuables avec provenance en CI — Terminée, images vérifiées | TC-204 |
-| TC-210 | Exercer déploiement, migration et rollback en staging | TC-202 à TC-209 |
+| TC-210 | Exercer déploiement, migration et rollback en staging — Terminée, retour arrière et persistance prouvés | TC-202 à TC-209 |
 
 Porte de sortie : environnement reproductible, migrations versionnées, restauration et rollback prouvés, observabilité sans contenu sensible.
+
+**Phase 2 terminée sur staging le 2026-10-01.** TC-210 a exercé promotion,
+rollback et nouvelle promotion des images attestées, avec conservation des
+17 tables, secrets et volume, puis sauvegarde/restauration et contrôles HTTPS.
+La prochaine tâche est le prototype de TC-301, pas une publication : CVE des
+images, stockage de backup dédié et preuves cryptographiques/plateformes
+restent des portes avant bêta.
 
 ## Phase 3 — Protocole E2EE V3 et multi-appareil
 
