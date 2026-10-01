@@ -24,7 +24,9 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
   passe PostgreSQL en `0700` et quatre fichiers distincts montés en lecture
   seule. Les valeurs DB ne figurent pas dans le fichier d'environnement ni
   dans la configuration Docker inspectable des runtimes.
-- Images backend étiquetées avec le commit et la version de staging.
+- Images backend GHCR attestées, sélectionnées par digest dans `release.env` ;
+  aucun build sur le serveur. Le commit de déploiement peut différer du commit
+  image uniquement si les arbres backend et migrations sont identiques.
 - Images backend basées sur Node fixé par digest et déclarant `USER node`.
 - Images PostgreSQL/Nginx fournies par digest dans le fichier d'environnement privé.
 - Configuration backend validée avant écoute selon `docs/operations/BACKEND_CONFIGURATION.md` ; aucun fallback de secret ou de connexion PostgreSQL.
@@ -45,8 +47,15 @@ Cette stack remplace les anciens projets génériques `app` et `infra`. Son nom 
 
 Le code source est copié dans un répertoire de release sous `/opt/trust-circle-staging/releases/<commit>`. La configuration reste dans `/opt/trust-circle-staging/shared/staging.env` et les quatre mots de passe PostgreSQL dans son répertoire frère `staging.env.d`.
 
-1. Tirer les tags officiels approuvés, puis relever leurs `RepoDigests`.
-2. Créer le fichier privé une seule fois :
+La procédure de promotion et rollback, avec verrous et sauvegarde, est dans
+`docs/operations/DEPLOYMENT.md`. Préparer d'abord une release avec
+`deploy/ci/prepare-staging-release.sh` depuis le poste de contrôle disposant de
+Git, jq et gh authentifié. Ce script archive un commit, vérifie le run CI et
+les deux attestations, puis produit les références publiques `release.env`.
+Transférer cette release complète, preuves comprises, vers LXC106.
+
+Sur une **première installation seulement**, choisir les digests tiers
+approuvés puis créer le fichier privé une seule fois :
 
 ```bash
 bash deploy/staging/generate-env.sh \
@@ -56,50 +65,44 @@ bash deploy/staging/generate-env.sh \
   sqitch/sqitch@sha256:<DIGEST>
 ```
 
-3. Valider sans afficher la configuration résolue :
+Ne pas régénérer ce fichier lors d'une promotion. Ses anciens champs
+`TC_GIT_COMMIT` et `TC_IMAGE_TAG` ne sélectionnent plus les images : le wrapper
+impose les quatre références publiques vérifiées de `release.env`.
+
+Depuis le répertoire de release, valider sans afficher les secrets :
 
 ```bash
-docker compose \
-  --project-name trust-circle-staging \
-  --env-file /opt/trust-circle-staging/shared/staging.env \
-  -f deploy/staging/compose.yml config --quiet
+bash deploy/staging/compose-release.sh \
+  /opt/trust-circle-staging/shared/staging.env config --quiet
 ```
 
-4. Construire et démarrer. Compose attend d'abord le bootstrap réussi des rôles,
-   puis la fin réussie du job `migrate`, avant de lancer Auth et Messaging :
+Après sauvegarde, précontrôles et acquisition des verrous du runbook, tirer
+les deux images approuvées par digest, puis démarrer sans build ni pull
+implicite. Compose attend le bootstrap réussi puis le job de migration :
 
 ```bash
-docker compose \
-  --project-name trust-circle-staging \
-  --env-file /opt/trust-circle-staging/shared/staging.env \
-  -f deploy/staging/compose.yml up -d --build
+bash deploy/staging/compose-release.sh \
+  /opt/trust-circle-staging/shared/staging.env \
+  up -d --no-build --pull never --wait --wait-timeout 180
 ```
 
-Vérifier que les deux jobs sont sortis avec le code `0` et que Sqitch connaît les sept
-changements avant les smoke tests :
+Vérifier les deux jobs en code `0`, les sept changements Sqitch et le schéma
+avant les smoke tests :
 
 ```bash
-docker compose --project-name trust-circle-staging \
-  --env-file /opt/trust-circle-staging/shared/staging.env \
-  -f deploy/staging/compose.yml ps --all
+bash deploy/staging/compose-release.sh \
+  /opt/trust-circle-staging/shared/staging.env ps --all
 ```
 
 Ne pas employer `docker-entrypoint-initdb.d` ni exécuter `init.sql` : le plan
 `infrastructure/postgres/sqitch.plan` est l'unique source de vérité.
 
-Le passage à l'IPAM explicite recrée le réseau edge au premier déploiement de
-ce changement. Vérifier que la stack `trust-circle-staging` est la cible,
-arrêter uniquement cette stack puis la relancer sans `--volumes`; le volume
-PostgreSQL n'est pas concerné. Ne jamais supprimer un réseau ou volume partagé
-sans avoir démontré son absence d'usage.
+Le réseau et le volume sont conservés pendant la promotion. Ne pas exécuter
+`down`, supprimer le réseau ni recréer PostgreSQL à vide pour mettre à jour
+les images. Les cas de changement de topologie nécessitent une procédure
+distincte et approuvée.
 
-Le durcissement PostgreSQL de `TC-204` ne requiert aucune recréation de volume.
-Avant remplacement du conteneur, vérifier que le processus PostgreSQL courant
-utilise bien l'UID attendu par le digest épinglé. Après démarrage, contrôler les
-flags effectifs Docker et tenter une écriture refusée hors des tmpfs/volume,
-selon `docs/security/CONTAINER_HARDENING.md`.
-
-5. Attendre les healthchecks puis exécuter :
+Après les healthchecks, exécuter :
 
 ```bash
 bash deploy/staging/smoke-test.sh \
@@ -141,16 +144,17 @@ Ne jamais exécuter `docker compose config` sans `--quiet` dans une sortie parta
 ## Inspection sûre
 
 ```bash
-docker compose --project-name trust-circle-staging \
-  --env-file /opt/trust-circle-staging/shared/staging.env \
-  -f deploy/staging/compose.yml ps
+bash deploy/staging/compose-release.sh \
+  /opt/trust-circle-staging/shared/staging.env ps
 ```
 
 Pour documenter les variables, extraire uniquement leurs noms via `docker inspect` et `jq`; ne pas copier la sortie brute. Les conteneurs Auth, Messaging et migration ne doivent exposer ni mot de passe, ni `PGPASSWORD`, ni `DATABASE_URL` dans `Config.Env`.
 
 ## Accès client
 
-La première livraison est volontairement locale au LXC. L'ajout d'un domaine staging TLS, d'une restriction d'accès et d'une configuration Flutter dédiée reste requis avant un test sur appareil physique. Aucun client ne doit utiliser les domaines de production historiques.
+Le staging est accessible sous `https://trust-circle.kavalek.fr`, derrière
+une ACL NPM restreinte aux accès autorisés. Aucun client ne doit utiliser les
+domaines de production historiques.
 
 Pour `TC-113`, le seul bind interne autorisé est `10.0.20.20:18081`. Installer
 au préalable les deux fichiers de `host/` dans `/usr/local/sbin` et
@@ -192,9 +196,8 @@ rétention et les limites de la cible staging sont dans
 La suppression du volume PostgreSQL est irréversible. Elle exige une autorisation explicite distincte et une résolution exacte du projet :
 
 ```bash
-docker compose --project-name trust-circle-staging \
-  --env-file /opt/trust-circle-staging/shared/staging.env \
-  -f deploy/staging/compose.yml down
+bash deploy/staging/compose-release.sh \
+  /opt/trust-circle-staging/shared/staging.env down
 ```
 
 La commande ci-dessus conserve volontairement le volume. Ne pas ajouter `--volumes` sans décision explicite sur les données de staging.

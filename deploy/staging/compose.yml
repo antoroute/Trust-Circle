@@ -168,13 +168,7 @@ services:
 
   auth:
     <<: *service-defaults
-    image: "trust-circle-staging-auth:${TC_IMAGE_TAG:?TC_IMAGE_TAG is required}"
-    build:
-      context: ../../backend/auth
-      labels:
-        org.opencontainers.image.revision: "${TC_GIT_COMMIT:?TC_GIT_COMMIT is required}"
-        org.opencontainers.image.version: "${TC_IMAGE_TAG:?TC_IMAGE_TAG is required}"
-        org.opencontainers.image.title: trust-circle-staging-auth
+    image: "${TC_AUTH_IMAGE:?TC_AUTH_IMAGE must be verified and pinned by digest}"
     user: node
     entrypoint: ["/bin/sh", "-ec"]
     command:
@@ -209,13 +203,7 @@ services:
 
   messaging:
     <<: *service-defaults
-    image: "trust-circle-staging-messaging:${TC_IMAGE_TAG:?TC_IMAGE_TAG is required}"
-    build:
-      context: ../../backend/messaging
-      labels:
-        org.opencontainers.image.revision: "${TC_GIT_COMMIT:?TC_GIT_COMMIT is required}"
-        org.opencontainers.image.version: "${TC_IMAGE_TAG:?TC_IMAGE_TAG is required}"
-        org.opencontainers.image.title: trust-circle-staging-messaging
+    image: "${TC_MESSAGING_IMAGE:?TC_MESSAGING_IMAGE must be verified and pinned by digest}"
     user: node
     entrypoint: ["/bin/sh", "-ec"]
     command:

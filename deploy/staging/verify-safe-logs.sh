@@ -13,11 +13,10 @@ if [[ ! -f "$env_file" ]]; then
 fi
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-compose_file="$script_dir/compose.yml"
 work_dir=$(mktemp -d)
 trap 'rm -rf -- "$work_dir"' EXIT
 
-compose=(docker compose --project-name trust-circle-staging --env-file "$env_file" -f "$compose_file")
+compose=(bash "$script_dir/compose-release.sh" "$env_file")
 auth_container=$("${compose[@]}" ps -q auth)
 messaging_container=$("${compose[@]}" ps -q messaging)
 gateway_container=$("${compose[@]}" ps -q gateway)

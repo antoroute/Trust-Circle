@@ -62,10 +62,7 @@ if [[ "$native_socket_status" != "200" ]]; then
 fi
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-docker compose \
-  --project-name trust-circle-staging \
-  --env-file "$env_file" \
-  -f "$script_dir/compose.yml" \
+bash "$script_dir/compose-release.sh" "$env_file" \
   exec -T \
   -e TC_DEVICE_TRUST_SMOKE_BASE_URL=http://gateway:8080 \
   messaging node dist/tools/deviceTrustStagingSmoke.js
