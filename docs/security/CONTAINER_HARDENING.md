@@ -1,7 +1,7 @@
 # Durcissement des images et conteneurs
 
 Statut : contrat déployable (`TC-204`)
-Dernière mise à jour : 2026-09-14
+Dernière mise à jour : 2026-10-01
 
 ## Objectif
 
@@ -25,9 +25,14 @@ Tous les conteneurs de la stack staging appliquent :
 
 Les images Auth et Messaging déclarent également `USER node`. Cette seconde
 barrière reste valable lorsqu'une image est lancée en dehors du Compose prévu.
-Leur image de base Node 20 slim est fixée par digest dans chaque étage de
-build. La publication dans un registre, le SBOM et la provenance signée restent
-du ressort de `TC-209`/`TC-805`.
+Les nouvelles images CI utilisent Node 24 LTS / Debian Trixie slim, fixé par
+digest dans chaque étage. La release staging antérieure conserve Node 20
+jusqu'à la promotion TC-210. La chaîne de publication, le SBOM, l'analyse et la
+provenance signée sont décrits dans `docs/operations/IMAGE_SUPPLY_CHAIN.md`.
+
+Les dépendances de production sont copiées depuis le builder après `npm prune`.
+Les gestionnaires npm/npx/Yarn sont retirés du runtime : ils ne servent pas au
+démarrage et leurs propres dépendances peuvent contenir des vulnérabilités.
 
 ## Écritures autorisées
 
@@ -80,7 +85,7 @@ plafonds ; la charge/capacité complète reste à mesurer dans `TC-806`.
 - Le profil seccomp par défaut de Docker reste utilisé ; un profil personnalisé
   exige des traces représentatives et une tâche dédiée pour éviter les
   régressions multi-architecture.
-- Les images backend sont encore construites localement sur le staging et non
-  publiées avec provenance ; voir `TC-209`.
+- La release staging historique a été construite localement. TC-210 exercera
+  la promotion des images CI vérifiées par digest et le rollback.
 - La sécurité hôte, les mises à jour du moteur Docker et l'accès administratif
   restent des contrôles d'exploitation distincts.

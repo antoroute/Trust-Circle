@@ -108,7 +108,7 @@ jobs:
           exit-code: '0'
       - name: Enforce vulnerability gate
         run: |
-          jq -e '[.Results[]?.Vulnerabilities[]? | select((.Severity == "HIGH" or .Severity == "CRITICAL") and (.FixedVersion // "") != "")] | length == 0' trivy.json
+          jq -e '(.Results | type == "array" and length > 0) and ([.Results[]?.Vulnerabilities[]? | select((.Severity == "HIGH" or .Severity == "CRITICAL") and (.FixedVersion // "") != "")] | length == 0)' trivy.json
       - name: Inspect SBOM, provenance and runtime by digest
         env:
           DIGEST: ${{ steps.build.outputs.digest }}

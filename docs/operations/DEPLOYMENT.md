@@ -1,7 +1,7 @@
 # Déploiement
 
 Statut : garde-fous définis, baseline et rôles séparés intégrés au staging
-Dernière mise à jour : 2026-09-15
+Dernière mise à jour : 2026-10-01
 
 ## Préconditions
 
@@ -13,6 +13,13 @@ Dernière mise à jour : 2026-09-15
 - Autorisation humaine explicite pour la production.
 
 ## Séquence cible
+
+Les images Auth/Messaging sont préparées par le workflow TC-209 décrit dans
+`IMAGE_SUPPLY_CHAIN.md`. Avant promotion, vérifier le succès du run complet,
+les deux digests et leur attestation avec `deploy/ci/verify-image.sh`. Conserver
+les deux `release.json` et les rapports dans le dossier de release. La
+conversion du Compose staging aux images distantes et son rollback seront
+exercés dans TC-210.
 
 1. Capturer l'état avant déploiement sans secret : versions, santé, schéma, espace disque et dernière sauvegarde vérifiée.
 2. Exécuter le bootstrap idempotent des rôles, puis un job Sqitch unique :

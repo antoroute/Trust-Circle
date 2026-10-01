@@ -1,5 +1,5 @@
 # ---- Builder ----
-FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS builder
+FROM node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -7,16 +7,19 @@ RUN npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+RUN npm run build && npm prune --omit=dev
 
 # ---- Runner ----
-FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS runner
+FROM node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# Package managers are build tools, not runtime dependencies.
+RUN rm -rf /usr/local/lib/node_modules/npm /opt/yarn-v1.22.22 \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg
+COPY --from=builder /app/node_modules ./node_modules
 
 COPY --from=builder /app/dist ./dist
 EXPOSE 3000
