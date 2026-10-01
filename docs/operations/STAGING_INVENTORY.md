@@ -564,6 +564,12 @@ services applicatifs restaient sains et à zéro redémarrage.
 
 ## Limites assumées
 
+Note TC-209 du 2026-10-01 : les deux images CI du commit `f6c8fe4e…` ont été
+publiées, attestées, vérifiées puis téléchargées dans LXC106. Leur exécution
+éphémère confirme Node 24.21.0 et l'UID 1000. Les quatre conteneurs persistants
+conservent la release `44f99d…` ci-dessus ; TC-210 exercera la promotion et le
+rollback. Voir `IMAGE_SUPPLY_CHAIN.md` et le manifeste sous `deploy/releases/`.
+
 - Le domaine staging est volontairement inaccessible hors de l'ACL NPM ; ce
   refus ne doit pas être confondu avec une panne du backend.
 - Configuration de build Flutter staging validée par `TC-114` sur Windows 11
@@ -574,7 +580,8 @@ services applicatifs restaient sains et à zéro redémarrage.
   propres est obligatoire avant toute donnée personnelle réelle.
 - Les scénarios d'autorisation croisée cercle/conversation/clé sont couverts
   par `TC-111` et le smoke adversarial courant.
-- Images backend locales non publiées dans un registre ; l'image ID et les labels assurent la traçabilité locale, pas une provenance distante.
+- La release active historique possède une traçabilité locale uniquement.
+  La paire CI suivante dispose d'une provenance signée distante vérifiée.
 - Le LXC reste partagé et privilégié.
 
 ## Commandes de référence

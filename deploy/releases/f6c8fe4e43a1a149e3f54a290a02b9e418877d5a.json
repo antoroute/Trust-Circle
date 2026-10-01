@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "commit": "f6c8fe4e43a1a149e3f54a290a02b9e418877d5a",
+  "workflow": "antoroute/Trust-Circle/.github/workflows/backend-images.yml",
+  "run": "https://github.com/antoroute/Trust-Circle/actions/runs/36873395448",
+  "platform": "linux/amd64",
+  "images": {
+    "auth": "ghcr.io/antoroute/circlehaven-auth@sha256:c98715e8a90c19871a98a7877774bd3aadb5f6609af757d5c0ab731400443569",
+    "messaging": "ghcr.io/antoroute/circlehaven-messaging@sha256:8f84cb736f5c4dfdd7d79437abb273610a74c3a198e1fbdfb68cfaec24697867"
+  }
+}

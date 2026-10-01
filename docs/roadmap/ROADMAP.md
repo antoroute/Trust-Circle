@@ -71,7 +71,7 @@ engagé dans ce lot.
 | TC-206 | Ajouter logs structurés, corrélation et redaction — Terminée | TC-112 |
 | TC-207 | Ajouter health/readiness checks et métriques minimales — Terminée | TC-206 |
 | TC-208 | Automatiser sauvegardes, alertes et tests de restauration — Terminée sur staging | TC-003, TC-201 |
-| TC-209 | Construire/publier des images immuables avec provenance en CI | TC-204 |
+| TC-209 | Construire/publier des images immuables avec provenance en CI — Terminée, images vérifiées | TC-204 |
 | TC-210 | Exercer déploiement, migration et rollback en staging | TC-202 à TC-209 |
 
 Porte de sortie : environnement reproductible, migrations versionnées, restauration et rollback prouvés, observabilité sans contenu sensible.
