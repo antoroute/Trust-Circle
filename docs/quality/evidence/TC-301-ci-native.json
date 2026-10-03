@@ -1,0 +1,133 @@
+{
+  "run_url": "https://github.com/antoroute/Trust-Circle/actions/runs/37127130938",
+  "code_commit": "1290cd8bf918ba4b326113880e0d366d12484af7",
+  "scope": "Different hosted machines; synthetic native RustCrypto benchmark; not comparable OS rankings or user-device UX",
+  "runs": [
+    {
+      "runner": "mls-native-macos-15",
+      "add_commit_ms": 3.114125,
+      "arch": "aarch64",
+      "initial_members": 10,
+      "join": {
+        "p50_ms": 1.421458,
+        "p95_ms": 1.9122080000000001,
+        "samples": 9
+      },
+      "os": "macos",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 84.997458,
+        "p95_ms": 126.85220899999999,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 0.766416,
+        "p95_ms": 1.0797910000000002,
+        "samples": 50
+      },
+      "remaining_members": 10,
+      "reopen_and_receive": {
+        "p50_ms": 0.978208,
+        "p95_ms": 1.370334,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 0.8448340000000001,
+        "p95_ms": 1.375167,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 3.688583,
+        "p95_ms": 6.015375,
+        "samples": 50
+      }
+    },
+    {
+      "runner": "mls-native-ubuntu-24.04",
+      "add_commit_ms": 4.581847,
+      "arch": "x86_64",
+      "initial_members": 10,
+      "join": {
+        "p50_ms": 2.3229290000000002,
+        "p95_ms": 6.865693,
+        "samples": 9
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 127.794345,
+        "p95_ms": 135.98859,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 1.220285,
+        "p95_ms": 1.849091,
+        "samples": 50
+      },
+      "remaining_members": 10,
+      "reopen_and_receive": {
+        "p50_ms": 1.5409950000000001,
+        "p95_ms": 1.844132,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 1.2952549999999998,
+        "p95_ms": 1.5726939999999998,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 6.174258999999999,
+        "p95_ms": 7.079992,
+        "samples": 50
+      }
+    },
+    {
+      "runner": "mls-native-windows-2025",
+      "add_commit_ms": 27.142599999999998,
+      "arch": "x86_64",
+      "initial_members": 10,
+      "join": {
+        "p50_ms": 23.59,
+        "p95_ms": 26.2442,
+        "samples": 9
+      },
+      "os": "windows",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 2476.7187000000004,
+        "p95_ms": 2526.0951999999997,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 23.1285,
+        "p95_ms": 26.1586,
+        "samples": 50
+      },
+      "remaining_members": 10,
+      "reopen_and_receive": {
+        "p50_ms": 24.390700000000002,
+        "p95_ms": 34.5426,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 26.298,
+        "p95_ms": 30.9897,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 86.30210000000001,
+        "p95_ms": 97.5052,
+        "samples": 50
+      }
+    }
+  ]
+}

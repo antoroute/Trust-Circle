@@ -1,6 +1,7 @@
 # TC-301 — Choisir et prototyper le protocole E2EE V3
 
-Statut : En cours — ADR acceptée, prototypes et preuves plateforme non réalisés
+Statut : En cours — lot A natif réalisé ; pont Flutter et preuves appareils restants
+Dernière mise à jour : 2026-10-04
 Priorité : P0 sécurité
 Décision : propriétaire
 Dépendances : TC-006, TC-112
@@ -27,14 +28,17 @@ appareil par membre MLS et aucun brouillon post-quantique en production.
 La comparaison et ses sources sont dans
 [CRYPTOGRAPHY_V3_DECISION.md](../security/CRYPTOGRAPHY_V3_DECISION.md).
 
-## Hors périmètre de ce premier lot documentaire
+## Périmètre du prototype autorisé après la Phase 2
 
-- Ajouter Rust, OpenMLS ou un pont FFI au client.
-- Modifier le schéma ou déployer une route MLS.
-- Migrer un groupe ou une enveloppe V2.
-- Revendiquer publiquement FS, PCS, post-quantique ou un niveau équivalent à
-  une autre messagerie.
-- Commencer la Phase 2 ou l'implémentation de la Phase 3.
+Le premier lot documentaire est terminé. Le propriétaire a demandé
+l'implémentation de TC-301 après TC-210. Le laboratoire isolé
+`prototypes/mls` est désormais autorisé ; cela ne constitue pas l'activation
+de MLS dans Flutter ni sur le backend. Aucun compte, groupe ou historique
+n'est à migrer, conformément à sa décision de repartir à vide.
+
+Restent hors périmètre : déploiement de routes MLS, changement de données
+réelles, activation V3 dans l'application, revendications publiques FS/PCS ou
+post-quantiques. Le backend staging n'est pas modifié par ce prototype.
 
 ## Composants pressentis
 
@@ -55,7 +59,7 @@ La comparaison et ses sources sont dans
 - [x] Limites de l'audit OpenMLS et risques résiduels documentés.
 - [x] Décision explicitement demandée et acceptée par le propriétaire le
       2026-09-13.
-- [ ] Prototype crée un groupe, ajoute/retire un appareil, renouvelle une
+- [x] Prototype crée un groupe, ajoute/retire un appareil, renouvelle une
       feuille et échange des messages.
 - [ ] Crash/reprise prouve l'atomicité de chaque transition et l'absence de
       rollback d'époque silencieux.
@@ -65,9 +69,45 @@ La comparaison et ses sources sont dans
       face à la baseline V2 sur les appareils cibles.
 - [ ] Le fournisseur cryptographique final est choisi après comparaison
       RustCrypto/libcrux et revue de leurs dépendances.
-- [ ] SBOM et allowlist de licences transitives passent en CI.
+- [x] SBOM et allowlist de licences transitives passent en CI (lot natif,
+      avis de maintenance documenté ; pas un paquet Flutter de distribution).
 
 ## Plan de tests et preuves restantes
+
+Le [rapport TC-301](../quality/TC-301-MLS_PROTOTYPE.md) et le
+[README du laboratoire](../../prototypes/mls/README.md) distinguent les preuves
+natives, les mesures synthétiques et les portes non franchies.
+
+### Lot A — moteur natif isolé (réalisé localement)
+
+- OpenMLS 0.9.0, suite 0x0001 ; deux fournisseurs comparés, versions verrouillées.
+- 15 tests par fournisseur, dont 18 scénarios d'arrêt brutal dans un test
+  paramétré, saturation SQLite, reprise, négatifs et interopérabilité mls-rs.
+- Sous-ensemble de vecteurs publics épinglés ; le corpus complet reste ouvert.
+- Groupes denses de 2/10/64/256 appareils et clairsemés de 10/64/256,
+  mesures natives sur disque ; aucune mesure Flutter/batterie revendiquée.
+- Allowlist ciblée des licences MPL, SBOM CycloneDX et avis de maintenance
+  transitive documentés, sans exception silencieuse à l'audit.
+
+Les tests de reprise empêchent un état partiellement persisté ; ils ne
+détectent pas la restauration malveillante d'un ancien fichier complet.
+Pour cette raison, le critère global crash/rollback n'est pas coché.
+
+### Lot B — preuve du pont et exécution mobile (prochaine intervention)
+
+- Pont Flutter/Rust asynchrone isolé, file bornée, aucune primitive Dart ajoutée.
+- Même scénario exécuté via Flutter sur Android/Windows puis simulateur iOS.
+- Étendre les vecteurs et la direction inverse de création/Welcome interop.
+- Vérifier l'impact du pont, du stockage et du traitement en lot sur l'UI.
+
+### Lot C — mesures physiques et décision finale
+
+- Comparaison V2/V3 sur les mêmes Android/Windows et, dès disponibilité,
+  iPhone/Mac ; distinguer compilation, simulation et matériel réel.
+- Mémoire par appareil, taille de l'artefact Flutter, consommation et p95.
+- Fournisseur final seulement après revue des preuves de chaque cible.
+
+Plan initial conservé comme checklist :
 
 1. Créer un harness Rust déterministe sans backend de production.
 2. Couvrir groupe de 2, 10, 64 et 256 appareils, arbre dense/clairsemé et
@@ -87,7 +127,7 @@ La comparaison et ses sources sont dans
   intégration.
 - Une transition MLS non persistée peut désynchroniser un groupe : une
   transaction et un acteur unique par groupe sont obligatoires.
-- La migration crée un groupe V3 neuf ; aucune dérivation depuis V2.
+- Le reset crée un groupe V3 neuf ; aucune migration de données ni dérivation depuis V2.
 - Après point de bascule, un rollback ne réactive pas l'envoi V2, afin d'éviter
   un downgrade silencieux.
 - Le prototype reste derrière un flag de développement local et ne touche ni
@@ -102,6 +142,11 @@ La comparaison et ses sources sont dans
 - contrats API et modèle de données de `TC-310`.
 
 ## Décisions humaines restantes
+
+Aucune nouvelle décision de protocole n'est nécessaire pour le lot suivant.
+Le propriétaire confirme le 2026-10-03 disposer uniquement d'Android et
+Windows. Aucun accès SSH à son PC n'a été rouvert par cette tâche. Les runners
+hébergés ne remplacent pas la validation physique et énergétique Apple.
 
 - Valider le comportement utilisateur exact lors d'un changement de membre ou
   d'un conflit d'époque.

@@ -83,6 +83,13 @@ Ces écarts sont des bloqueurs de validation, pas des raisons d'abaisser la matr
 
 ## Prototypes et preuves attendues
 
+Point TC-301 au 2026-10-03 : le prototype MLS natif possède une matrice CI
+distincte de Flutter. Les résultats effectivement exécutés sont consignés
+dans [TC-301-MLS_PROTOTYPE.md](../quality/TC-301-MLS_PROTOTYPE.md).
+Une compilation croisée iOS/Android ne vaut pas exécution mobile ni validation
+du stockage sécurisé. Le propriétaire confirme toujours Android et Windows
+uniquement ; les mesures physiques Apple ne sont pas déclarées réalisées.
+
 Chaque cible obligatoire doit exécuter le même probe dans les tâches `TC-306`, `TC-505`/`TC-508` et `TC-701` à `TC-707`, avant toute bêta ou annonce de compatibilité :
 
 1. build debug/release sans secret partagé embarqué ;

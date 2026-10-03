@@ -85,10 +85,12 @@ restent des portes avant bêta.
 
 ## Phase 3 — Protocole E2EE V3 et multi-appareil
 
-La direction de l'ADR-0003 a été acceptée par anticipation le 2026-09-13 :
-MLS 1.0 via OpenMLS en Rust. Cela ne démarre pas l'implémentation de cette phase
-et ne clôt pas `TC-301` : prototypes, stockage crash-safe et benchmarks sur les
-quatre OS restent obligatoires après la Phase 2.
+Au 2026-10-03, le lot A natif de TC-301 est réalisé dans un laboratoire
+isolé, sans activation MLS dans l'application. TC-301 reste en cours : pont
+Flutter et preuves appareils/énergie attendus avant clôture. Voir le
+[rapport de preuves](../quality/TC-301-MLS_PROTOTYPE.md) et le
+[prompt de reprise](../prompts/CONTINUE_TC-301.md). L'ADR-0003 acceptée
+reste la décision de référence, sans nouvelle migration de données V2.
 
 | ID | Tâche | Dépend de |
 |---|---|---|

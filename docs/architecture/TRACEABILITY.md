@@ -7,6 +7,14 @@ Cette matrice aide à retrouver rapidement le code réellement responsable d'un 
 
 ## Client Flutter
 
+Le laboratoire natif MLS est séparé du client :
+[`prototypes/mls/src/lib.rs`](../../prototypes/mls/src/lib.rs), tests
+`lifecycle`, `crash`, `interop`, `vectors`, CI `mls-prototype.yml`.
+Il couvre partiellement les invariants 14–18 et 21–22, sans stockage chiffré
+ni liaison aux comptes réels. Voir les limites et preuves de
+[TC-301](../quality/TC-301-MLS_PROTOTYPE.md). Aucune API MLS n'est activée
+dans Flutter par ce laboratoire.
+
 | Domaine | Entrées principales | Stockage/transport | Risques ou travail lié |
 |---|---|---|---|
 | démarrage et injection | [`main.dart`](../../frontend-mobile/flutter_message_app/lib/main.dart) | secure storage, SQLite, Socket.IO | `TC-601`, `TC-602` |

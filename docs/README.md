@@ -12,6 +12,8 @@ Cette documentation est la source de contexte pour le produit, l'architecture, l
 - [Audit initial](audit/AUDIT-2026-08-23.md)
 - [Roadmap](roadmap/ROADMAP.md)
 - [Tâches](tasks/README.md)
+- [Prototype MLS TC-301 : preuves et limites](quality/TC-301-MLS_PROTOTYPE.md)
+- [Reprendre TC-301 : prompt structuré](prompts/CONTINUE_TC-301.md)
 - [Règles pour assistants](../AGENTS.md)
 
 ## Références par domaine

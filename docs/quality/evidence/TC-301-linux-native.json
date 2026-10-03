@@ -1,0 +1,599 @@
+{
+  "measurement_date": "2026-10-03",
+  "code_commit": "1290cd8bf918ba4b326113880e0d366d12484af7",
+  "cpu": "Intel Core i3-12100",
+  "os": "Linux x86_64",
+  "storage": "ext4, private temporary directories, SQLite synchronous=FULL",
+  "builds": {
+    "rustcrypto": "cargo build --locked --release --features prototype",
+    "libcrux": "cargo build --locked --release --features libcrux"
+  },
+  "binary_bytes": {
+    "rustcrypto": 9279024,
+    "libcrux": 9930496
+  },
+  "caveats": [
+    "Synthetic native harness, not Flutter application",
+    "Shared host; no battery or device UI measurement",
+    "No V2 comparison on same hardware",
+    "No encrypted storage",
+    "Group loaded on each transaction; long-lived crypto provider",
+    "All members join; only author and one peer process benchmark updates"
+  ],
+  "runs": [
+    {
+      "add_commit_ms": 5.986351,
+      "arch": "x86_64",
+      "initial_members": 2,
+      "join": {
+        "p50_ms": 5.892492,
+        "p95_ms": 5.892492,
+        "samples": 1
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 601.977328,
+        "p95_ms": 708.036197,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 5.977397,
+        "p95_ms": 6.103721,
+        "samples": 50
+      },
+      "remaining_members": 2,
+      "reopen_and_receive": {
+        "p50_ms": 5.997986,
+        "p95_ms": 6.036543,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 6.005904,
+        "p95_ms": 6.088357,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 17.996893,
+        "p95_ms": 18.061094999999998,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 8.029107,
+      "arch": "x86_64",
+      "initial_members": 10,
+      "join": {
+        "p50_ms": 5.9526889999999995,
+        "p95_ms": 6.073416,
+        "samples": 9
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 600.031693,
+        "p95_ms": 603.942396,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 6.0010840000000005,
+        "p95_ms": 6.104369,
+        "samples": 50
+      },
+      "remaining_members": 10,
+      "reopen_and_receive": {
+        "p50_ms": 6.0013119999999995,
+        "p95_ms": 6.073622,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 5.948727,
+        "p95_ms": 6.084747,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 18.032626,
+        "p95_ms": 21.971394,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 17.957344,
+      "arch": "x86_64",
+      "initial_members": 64,
+      "join": {
+        "p50_ms": 9.990965,
+        "p95_ms": 10.103198,
+        "samples": 63
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 600.0619270000001,
+        "p95_ms": 606.0291920000001,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 5.9930900000000005,
+        "p95_ms": 6.025652,
+        "samples": 50
+      },
+      "remaining_members": 64,
+      "reopen_and_receive": {
+        "p50_ms": 6.019106,
+        "p95_ms": 6.098604,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 5.964938,
+        "p95_ms": 6.015099,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 22.048374,
+        "p95_ms": 24.02514,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 58.171107,
+      "arch": "x86_64",
+      "initial_members": 256,
+      "join": {
+        "p50_ms": 17.989686000000003,
+        "p95_ms": 18.129944,
+        "samples": 255
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 800.092534,
+        "p95_ms": 803.9887,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 7.995324999999999,
+        "p95_ms": 8.106265,
+        "samples": 50
+      },
+      "remaining_members": 256,
+      "reopen_and_receive": {
+        "p50_ms": 7.996605000000001,
+        "p95_ms": 8.113581,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 7.914254000000001,
+        "p95_ms": 7.951098,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 28.066878,
+        "p95_ms": 34.082440999999996,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 7.9161079999999995,
+      "arch": "x86_64",
+      "initial_members": 10,
+      "join": {
+        "p50_ms": 6.045318,
+        "p95_ms": 6.069833,
+        "samples": 9
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 601.978106,
+        "p95_ms": 603.239748,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 5.995677,
+        "p95_ms": 6.104073,
+        "samples": 50
+      },
+      "remaining_members": 6,
+      "reopen_and_receive": {
+        "p50_ms": 6.001323999999999,
+        "p95_ms": 6.037071,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 5.957217,
+        "p95_ms": 6.093917,
+        "samples": 50
+      },
+      "sparse": true,
+      "update_and_two_merges": {
+        "p50_ms": 18.000163999999998,
+        "p95_ms": 18.126087,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 18.042255,
+      "arch": "x86_64",
+      "initial_members": 64,
+      "join": {
+        "p50_ms": 9.998937,
+        "p95_ms": 10.088226,
+        "samples": 63
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 601.990059,
+        "p95_ms": 614.1118650000001,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 6.024076,
+        "p95_ms": 6.066299,
+        "samples": 50
+      },
+      "remaining_members": 33,
+      "reopen_and_receive": {
+        "p50_ms": 6.0499339999999995,
+        "p95_ms": 6.099158,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 5.963002,
+        "p95_ms": 6.022409000000001,
+        "samples": 50
+      },
+      "sparse": true,
+      "update_and_two_merges": {
+        "p50_ms": 20.019842,
+        "p95_ms": 22.021392000000002,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 58.045989999999996,
+      "arch": "x86_64",
+      "initial_members": 256,
+      "join": {
+        "p50_ms": 17.985567,
+        "p95_ms": 18.101705,
+        "samples": 255
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "rustcrypto",
+      "receive_100": {
+        "p50_ms": 616.0067809999999,
+        "p95_ms": 713.956228,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 5.990461,
+        "p95_ms": 6.080894,
+        "samples": 50
+      },
+      "remaining_members": 129,
+      "reopen_and_receive": {
+        "p50_ms": 7.927639,
+        "p95_ms": 8.052280999999999,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 5.9614769999999995,
+        "p95_ms": 7.875171,
+        "samples": 50
+      },
+      "sparse": true,
+      "update_and_two_merges": {
+        "p50_ms": 26.048172,
+        "p95_ms": 26.121116999999998,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 8.094664,
+      "arch": "x86_64",
+      "initial_members": 2,
+      "join": {
+        "p50_ms": 6.126327,
+        "p95_ms": 6.126327,
+        "samples": 1
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "libcrux",
+      "receive_100": {
+        "p50_ms": 601.925214,
+        "p95_ms": 616.0893130000001,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 6.0017,
+        "p95_ms": 6.107392,
+        "samples": 50
+      },
+      "remaining_members": 2,
+      "reopen_and_receive": {
+        "p50_ms": 5.984684,
+        "p95_ms": 6.115902,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 5.976536,
+        "p95_ms": 6.075082,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 18.026058000000003,
+        "p95_ms": 21.996076,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 10.024966999999998,
+      "arch": "x86_64",
+      "initial_members": 10,
+      "join": {
+        "p50_ms": 8.032867000000001,
+        "p95_ms": 8.083212,
+        "samples": 9
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "libcrux",
+      "receive_100": {
+        "p50_ms": 600.03787,
+        "p95_ms": 619.993859,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 5.951638,
+        "p95_ms": 6.08407,
+        "samples": 50
+      },
+      "remaining_members": 10,
+      "reopen_and_receive": {
+        "p50_ms": 5.9912350000000005,
+        "p95_ms": 6.12027,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 6.050299,
+        "p95_ms": 6.096235999999999,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 19.904838,
+        "p95_ms": 20.155183,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 22.025731999999998,
+      "arch": "x86_64",
+      "initial_members": 64,
+      "join": {
+        "p50_ms": 10.03394,
+        "p95_ms": 10.074233,
+        "samples": 63
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "libcrux",
+      "receive_100": {
+        "p50_ms": 604.0065999999999,
+        "p95_ms": 855.546644,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 5.997040999999999,
+        "p95_ms": 6.124245,
+        "samples": 50
+      },
+      "remaining_members": 64,
+      "reopen_and_receive": {
+        "p50_ms": 5.991944,
+        "p95_ms": 6.4755910000000005,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 5.966222,
+        "p95_ms": 6.064149,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 22.075402,
+        "p95_ms": 25.940595000000002,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 102.132807,
+      "arch": "x86_64",
+      "initial_members": 256,
+      "join": {
+        "p50_ms": 22.013154,
+        "p95_ms": 24.065517,
+        "samples": 255
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "libcrux",
+      "receive_100": {
+        "p50_ms": 800.000275,
+        "p95_ms": 801.885416,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 8.03884,
+        "p95_ms": 8.096239,
+        "samples": 50
+      },
+      "remaining_members": 256,
+      "reopen_and_receive": {
+        "p50_ms": 7.992032,
+        "p95_ms": 8.112433000000001,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 7.907882,
+        "p95_ms": 8.036789,
+        "samples": 50
+      },
+      "sparse": false,
+      "update_and_two_merges": {
+        "p50_ms": 32.010999999999996,
+        "p95_ms": 34.087196,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 9.949789,
+      "arch": "x86_64",
+      "initial_members": 10,
+      "join": {
+        "p50_ms": 8.030281,
+        "p95_ms": 8.072595,
+        "samples": 9
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "libcrux",
+      "receive_100": {
+        "p50_ms": 602.072808,
+        "p95_ms": 606.124094,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 5.959213,
+        "p95_ms": 6.5516630000000005,
+        "samples": 50
+      },
+      "remaining_members": 6,
+      "reopen_and_receive": {
+        "p50_ms": 5.9823189999999995,
+        "p95_ms": 6.123006999999999,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 6.044214,
+        "p95_ms": 6.070418,
+        "samples": 50
+      },
+      "sparse": true,
+      "update_and_two_merges": {
+        "p50_ms": 17.986495,
+        "p95_ms": 19.944887,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 22.156537,
+      "arch": "x86_64",
+      "initial_members": 64,
+      "join": {
+        "p50_ms": 10.026343,
+        "p95_ms": 10.07924,
+        "samples": 63
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "libcrux",
+      "receive_100": {
+        "p50_ms": 599.975805,
+        "p95_ms": 611.946592,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 5.984668,
+        "p95_ms": 6.110245,
+        "samples": 50
+      },
+      "remaining_members": 33,
+      "reopen_and_receive": {
+        "p50_ms": 5.99765,
+        "p95_ms": 6.113976,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 5.951568,
+        "p95_ms": 6.087152000000001,
+        "samples": 50
+      },
+      "sparse": true,
+      "update_and_two_merges": {
+        "p50_ms": 21.999985,
+        "p95_ms": 22.140013,
+        "samples": 50
+      }
+    },
+    {
+      "add_commit_ms": 98.138046,
+      "arch": "x86_64",
+      "initial_members": 256,
+      "join": {
+        "p50_ms": 22.013863,
+        "p95_ms": 24.058724,
+        "samples": 255
+      },
+      "os": "linux",
+      "payload_bytes": 1024,
+      "provider": "libcrux",
+      "receive_100": {
+        "p50_ms": 612.0969259999999,
+        "p95_ms": 856.005999,
+        "samples": 10
+      },
+      "receive_transaction": {
+        "p50_ms": 6.029392,
+        "p95_ms": 8.07274,
+        "samples": 50
+      },
+      "remaining_members": 129,
+      "reopen_and_receive": {
+        "p50_ms": 7.968012999999999,
+        "p95_ms": 8.069919,
+        "samples": 50
+      },
+      "scope": "synthetic native + SQLite FULL; excludes Flutter, network, encrypted storage and real-device energy",
+      "send_transaction": {
+        "p50_ms": 6.013781,
+        "p95_ms": 8.015244,
+        "samples": 50
+      },
+      "sparse": true,
+      "update_and_two_merges": {
+        "p50_ms": 27.967579999999998,
+        "p95_ms": 30.093818000000002,
+        "samples": 50
+      }
+    }
+  ]
+}
