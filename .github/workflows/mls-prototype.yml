@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: rustup show active-toolchain
+      - run: rustup toolchain install 1.99.0 --profile minimal --component rustfmt --component clippy
       - run: cargo fmt --check
       - run: cargo clippy --locked --all-targets --features interop -- -D warnings
       - run: cargo test --locked --features interop
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: rustup show active-toolchain
+      - run: rustup toolchain install 1.99.0 --profile minimal --component rustfmt --component clippy
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: cargo install cargo-deny --version 0.20.2 --locked
       - run: cargo install cargo-cyclonedx --version 0.5.9 --locked
@@ -84,6 +84,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - run: rustup toolchain install 1.99.0 --profile minimal
       - run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim
       - name: Compile native library for iPhone and simulator (not runtime proof)
         run: |
@@ -99,8 +100,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - run: rustup toolchain install 1.99.0 --profile minimal
       - run: rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
-      - run: sdkmanager 'ndk;28.2.13676358'
+      - run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;28.2.13676358"'
       - name: Compile three Android ABIs at API 28 (not runtime proof)
         run: |
           tc_ndk="$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin"
