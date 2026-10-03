@@ -102,9 +102,10 @@ Son résultat global reste en échec car le job Android n'a pas trouvé
 `sdkmanager` dans le PATH. La correction appelle son chemin SDK explicite
 et installe Rust explicitement, sans changer les primitives ni les tests.
 Le [run de correction](https://github.com/antoroute/Trust-Circle/actions/runs/37158065352)
-a validé les trois compilations Android, macOS/Linux, iOS et les dépendances.
-Son dernier benchmark Windows reste en cours à cet instant ; ne pas annoncer
-le run entier réussi avant son résultat final.
+est **terminé avec succès, six jobs sur six**, sur le commit `85c4f74` :
+tests natifs Linux/Windows/macOS, compilations Android et iOS, contrôle des
+dépendances/SBOM. Il valide les mêmes sources Rust que `1290cd8` ; les
+commits documentaires suivants ne modifient pas le code testé.
 
 - Linux/Windows/macOS : compilation et exécution des mêmes tests, comparaison
   des deux fournisseurs, puis benchmark natif release.

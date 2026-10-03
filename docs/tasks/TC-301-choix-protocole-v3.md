@@ -78,7 +78,7 @@ Le [rapport TC-301](../quality/TC-301-MLS_PROTOTYPE.md) et le
 [README du laboratoire](../../prototypes/mls/README.md) distinguent les preuves
 natives, les mesures synthétiques et les portes non franchies.
 
-### Lot A — moteur natif isolé (réalisé localement)
+### Lot A — moteur natif isolé (validé localement et en CI)
 
 - OpenMLS 0.9.0, suite 0x0001 ; deux fournisseurs comparés, versions verrouillées.
 - 15 tests par fournisseur, dont 18 scénarios d'arrêt brutal dans un test
@@ -88,6 +88,9 @@ natives, les mesures synthétiques et les portes non franchies.
   mesures natives sur disque ; aucune mesure Flutter/batterie revendiquée.
 - Allowlist ciblée des licences MPL, SBOM CycloneDX et avis de maintenance
   transitive documentés, sans exception silencieuse à l'audit.
+- CI six jobs sur six réussis : tests Linux/Windows/macOS, compilations
+  Android trois ABI et iOS appareil/simulateur, audit/licences/SBOM.
+  La compilation mobile ne constitue pas une preuve d'exécution mobile.
 
 Les tests de reprise empêchent un état partiellement persisté ; ils ne
 détectent pas la restauration malveillante d'un ancien fichier complet.
