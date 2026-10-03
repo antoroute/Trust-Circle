@@ -1,0 +1,123 @@
+name: MLS prototype
+
+on:
+  push:
+    branches: [main, tc301-mls-prototype]
+    paths: [prototypes/mls/**, .github/workflows/mls-prototype.yml]
+  pull_request:
+    paths: [prototypes/mls/**, .github/workflows/mls-prototype.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mls-prototype-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: prototypes/mls
+    shell: bash
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '3'
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup show active-toolchain
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets --features interop -- -D warnings
+      - run: cargo test --locked --features interop
+      - run: cargo test --locked --features interop,libcrux
+      - run: cargo metadata --locked --all-features --format-version 1 | node scripts/check-features.mjs
+      - name: Synthetic native release benchmark, not device UX
+        run: |
+          mkdir -p reports
+          cargo run --locked --release --features prototype -- benchmark 10 50 dense > reports/benchmark-native.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mls-native-${{ matrix.os }}
+          path: prototypes/mls/reports/
+          retention-days: 30
+
+  supply-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '3'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup show active-toolchain
+      - run: cargo install cargo-audit --version 0.22.2 --locked
+      - run: cargo install cargo-deny --version 0.20.2 --locked
+      - run: cargo install cargo-cyclonedx --version 0.5.9 --locked
+      - run: cargo audit
+      - run: cargo deny check licenses sources
+      - run: cargo metadata --locked --all-features --format-version 1 | node scripts/check-features.mjs
+      - run: cargo cyclonedx --format json --all-features --target all --override-filename mls.cdx
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mls-sbom
+          path: prototypes/mls/*.cdx.json
+          retention-days: 90
+
+  ios-cross-build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      IPHONEOS_DEPLOYMENT_TARGET: '15.0'
+      CARGO_BUILD_JOBS: '3'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+      - name: Compile native library for iPhone and simulator (not runtime proof)
+        run: |
+          cargo build --locked --release --features prototype --lib --target aarch64-apple-ios
+          cargo build --locked --release --features prototype --lib --target aarch64-apple-ios-sim
+
+  android-cross-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '3'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+      - run: sdkmanager 'ndk;28.2.13676358'
+      - name: Compile three Android ABIs at API 28 (not runtime proof)
+        run: |
+          tc_ndk="$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          export CC_aarch64_linux_android="$tc_ndk/aarch64-linux-android28-clang"
+          export AR_aarch64_linux_android="$tc_ndk/llvm-ar"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$CC_aarch64_linux_android"
+          export CC_armv7_linux_androideabi="$tc_ndk/armv7a-linux-androideabi28-clang"
+          export AR_armv7_linux_androideabi="$tc_ndk/llvm-ar"
+          export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="$CC_armv7_linux_androideabi"
+          export CC_x86_64_linux_android="$tc_ndk/x86_64-linux-android28-clang"
+          export AR_x86_64_linux_android="$tc_ndk/llvm-ar"
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$CC_x86_64_linux_android"
+          for tc_target in aarch64-linux-android armv7-linux-androideabi x86_64-linux-android; do
+            cargo build --locked --release --features prototype --bin mls-probe --target "$tc_target"
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mls-android-native-probes
+          path: prototypes/mls/target/*android*/release/mls-probe
+          retention-days: 30
