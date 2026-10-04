@@ -7,6 +7,8 @@ environment:
   sdk: ^3.13.3
 
 dependencies:
+  # Native-assets hooks need this even when dev dependencies are omitted.
+  code_assets: 1.2.1
   flutter:
     sdk: flutter
   flutter_rust_bridge: 2.13.0

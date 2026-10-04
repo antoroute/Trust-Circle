@@ -39,7 +39,9 @@ Résultat attendu : **1 025 réceptions et 62 contrôles**, puis nettoyage.
 
 Flutter **3.47.4** (Dart 3.13.3), Rust **1.99.0**, outils natifs de la plateforme.
 La CI vérifie le commit Flutter `9584c6713b324636289d067944a46fd6b49df14b`.
-Android API minimum 28 et NDK `28.2.13676358` ; iOS minimum 15 ; lab macOS 14 ARM.
+Android API minimum 28 et NDK `28.2.13676358` ; iOS minimum 15 ; lab macOS 14.
+Flutter construit un paquet Mac universel ARM/Intel ; le runner exécute ARM.
+La compilation Intel ne prouve pas une exécution sur un Mac Intel.
 Les lockfiles Dart et Rust sont versionnés. L'app existante garde son propre SDK.
 
 ```bash
@@ -53,6 +55,12 @@ flutter test --reporter expanded
 ```
 
 Le hook officiel Native Assets compile Rust en **release**, avec `--locked`.
+L'adaptateur `hook/android_toolchain.dart` corrige le niveau API 35 codé en dur
+dans `native_toolchain_rust 1.0.4+0` : CC/CXX/linker suivent `targetNdkApi`
+fourni par Flutter (minSdk de l'application). Il est testé sur les trois ABI,
+API 28/35 et chemins Windows/Linux. Le NDK épinglé n'est pas rétrogradé.
+Supprimer cet adaptateur quand une mise à jour compatible du hook respecte
+cette configuration ; l'API minimale d'exécution reste à tester sur API 28.
 Le test hôte charge explicitement la bibliothèque produite dans
 `build/native_assets/<os>` car le tester n'est pas un paquet applicatif.
 L'app et les tests d'intégration utilisent le chargeur standard de FRB : leur
@@ -101,6 +109,14 @@ FRB et son générateur sont MIT ; les règles MPL du moteur sont détaillées d
 [`../mls/SUPPLY_CHAIN.md`](../mls/SUPPLY_CHAIN.md). Le lockfile initial du template
 contenait d'anciennes versions ; celui du laboratoire a été résolu à nouveau,
 notamment Tokio 1.53.2 et futures 0.3.34, puis audité. Aucun ignore RustSec.
+Exception de compatibilité temporaire : `libc =0.2.189` pour iOS (résolution
+unifiée dans le lockfile du pont). `backtrace 0.3.76`, imposé par FRB/allo-isolate,
+utilise quatre déclarations dyld absentes sur iOS dans libc 0.2.190 : échec
+reproduit par `cargo check -p backtrace --target aarch64-apple-ios-sim`, corrigé
+avec 0.2.189, sans shim unsafe ni fork. Les
+[notes amont 0.2.190](https://github.com/rust-lang/libc/releases/tag/0.2.190)
+signalent des retraits d'API Apple. Relever le verrou seulement après correction
+amont, audit et réexécution des deux builds Apple. Le moteur MLS est inchangé.
 L'avis `RUSTSEC-2026-0173` reste : `proc-macro-error2 2.0.1` non maintenu, compilé
 via hax/libcrux-sha3 même avec RustCrypto. `allo-isolate 0.1.27` n'a pas de champ
 licence Cargo ; `cargo deny` reconnaît son fichier de licence Apache-2.0, avec avertissement.
