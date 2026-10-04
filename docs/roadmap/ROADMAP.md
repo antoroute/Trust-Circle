@@ -86,9 +86,11 @@ restent des portes avant bêta.
 ## Phase 3 — Protocole E2EE V3 et multi-appareil
 
 Au 2026-10-04, le lot A natif et le pont Flutter du lot B sont implémentés dans
-des laboratoires isolés, sans activation MLS dans l'application. TC-301 reste
-en cours : validation Flutter multiplateforme et preuves appareils/énergie
-attendues avant clôture. Voir les rapports
+des laboratoires isolés, sans activation MLS dans l'application. Le scénario
+graphique est validé en CI sur les quatre OS, six jobs sur six (`37211775266`).
+TC-301 reste en cours : lot C, mesures comparables, budgets et preuves
+appareils/énergie attendus avant clôture. Les pointes de latence ne sont pas
+masquées par la réussite fonctionnelle. Voir les rapports
 [natif](../quality/TC-301-MLS_PROTOTYPE.md),
 [Flutter](../quality/TC-301-FLUTTER_BRIDGE.md) et le
 [prompt de reprise](../prompts/CONTINUE_TC-301.md). L'ADR-0003 acceptée

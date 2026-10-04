@@ -6,6 +6,11 @@ Code : `prototypes/mls`, branche `tc301-mls-prototype`.
 Le backend staging et le client Flutter existant ne sont pas modifiés.
 Ce rapport conserve les preuves initiales du lot A. La suite, avec un client
 Flutter de laboratoire séparé, est dans [le rapport du lot B](TC-301-FLUTTER_BRIDGE.md).
+La suite native étendue (19 tests/fournisseur, 20 cas de crash, lots atomiques,
+interop inverse et RefHash) passe également les six jobs du
+[run 37194481919](https://github.com/antoroute/Trust-Circle/actions/runs/37194481919).
+Les scénarios Flutter passent maintenant leur propre matrice ; les tableaux
+et limites « pas encore Flutter » ci-dessous décrivent uniquement le lot A initial.
 
 ## Résultat et portée
 

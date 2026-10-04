@@ -1,6 +1,6 @@
 # TC-301 — Choisir et prototyper le protocole E2EE V3
 
-Statut : En cours — lot B implémenté et testé localement ; validation Flutter multiplateforme en cours
+Statut : En cours — pont du lot B validé sur les quatre OS en CI ; mesures du lot C à poursuivre
 Dernière mise à jour : 2026-10-04
 Priorité : P0 sécurité
 Décision : propriétaire
@@ -33,7 +33,7 @@ La comparaison et ses sources sont dans
 Le premier lot documentaire est terminé. Le propriétaire a demandé
 l'implémentation de TC-301 après TC-210. Le laboratoire isolé
 `prototypes/mls` est désormais autorisé ; cela ne constitue pas l'activation
-de MLS dans Flutter ni sur le backend. Aucun compte, groupe ou historique
+de MLS dans l'app de messagerie ni sur le backend. Aucun compte, groupe ou historique
 n'est à migrer, conformément à sa décision de repartir à vide.
 
 Restent hors périmètre : déploiement de routes MLS, changement de données
@@ -64,7 +64,8 @@ post-quantiques. Le backend staging n'est pas modifié par ce prototype.
 - [ ] Crash/reprise prouve l'atomicité de chaque transition et l'absence de
       rollback d'époque silencieux.
 - [ ] Vecteurs RFC et interopérabilité avec une deuxième implémentation passent.
-- [ ] Android, iOS, Windows et macOS compilent et exécutent le même scénario.
+- [x] Android, iOS, Windows et macOS compilent et exécutent le même scénario
+      de laboratoire en CI (mobile émulé/simulé, pas une preuve physique).
 - [ ] Les budgets p95, la mémoire, la batterie et la taille binaire sont mesurés
       face à la baseline V2 sur les appareils cibles.
 - [ ] Le fournisseur cryptographique final est choisi après comparaison
@@ -96,7 +97,7 @@ Les tests de reprise empêchent un état partiellement persisté ; ils ne
 détectent pas la restauration malveillante d'un ancien fichier complet.
 Pour cette raison, le critère global crash/rollback n'est pas coché.
 
-### Lot B — preuve du pont et exécution mobile (en cours)
+### Lot B — preuve du pont et exécution mobile (validée en CI)
 
 - Pont Flutter/Rust asynchrone isolé, file bornée, aucune primitive Dart ajoutée.
 - Même scénario exécuté via Flutter sur Android/Windows puis simulateur iOS.
@@ -106,14 +107,21 @@ Pour cette raison, le critère global crash/rollback n'est pas coché.
 Implémenté dans `prototypes/mls_flutter` : acteur Rust unique, file bornée,
 scénario Flutter asynchrone, 1 025 réceptions synthétiques et 62 contrôles,
 réception atomique en lot (100 messages maximum). Localement : 19 tests moteur
-par fournisseur, dont 20 cas de crash, 3 tests acteur et 2 tests Dart/FFI.
+par fournisseur, dont 20 cas de crash, 3 tests acteur et 15 tests Dart/FFI
+(dont 13 tests de configuration du compilateur NDK).
 Interop création/Welcome dans les deux directions et vecteur RefHash ajoutés.
-Le rendu UI sur les quatre OS reste à prouver par les jobs dédiés ; les tests
-hôtes Flutter seuls ne suffisent pas. Voir le
+Le scénario graphique passe sur les quatre OS : CI `37211775266`, commit
+`b66f188`, six jobs sur six réussis. Les rapports sont archivés ; Windows/macOS
+en profile, Android/iOS émulés/simulés en debug. Les tests hôtes seuls ne sont
+pas présentés comme une preuve de rendu. Les budgets restent non validés,
+notamment avec les pointes Windows et les frames lentes en émulation. Voir le
 [rapport du lot B](../quality/TC-301-FLUTTER_BRIDGE.md) pour l'état réel de CI.
 
 ### Lot C — mesures physiques et décision finale
 
+- Préparation : [procédure Windows 11 / Pixel virtuel](../quality/TC-301-LOCAL_VALIDATION.md),
+  conforme à la préférence du propriétaire ; aucun essai utilisateur effectué
+  et aucune réouverture SSH. La simulation ne valide pas la batterie du S23.
 - Comparaison V2/V3 sur les mêmes Android/Windows et, dès disponibilité,
   iPhone/Mac ; distinguer compilation, simulation et matériel réel.
 - Mémoire par appareil, taille de l'artefact Flutter, consommation et p95.

@@ -14,6 +14,7 @@ Cette documentation est la source de contexte pour le produit, l'architecture, l
 - [Tâches](tasks/README.md)
 - [Prototype MLS TC-301 : preuves et limites](quality/TC-301-MLS_PROTOTYPE.md)
 - [Pont Flutter TC-301 : lots atomiques et preuves multiplateformes](quality/TC-301-FLUTTER_BRIDGE.md)
+- [TC-301 : procédure locale Windows 11 / Pixel virtuel](quality/TC-301-LOCAL_VALIDATION.md)
 - [Reprendre TC-301 : prompt structuré](prompts/CONTINUE_TC-301.md)
 - [Règles pour assistants](../AGENTS.md)
 

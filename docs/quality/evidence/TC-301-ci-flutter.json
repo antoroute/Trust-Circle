@@ -1,0 +1,448 @@
+{
+  "date": "2026-10-04",
+  "commit": "b66f188815b335cb1717aeb27a7c562ccf2a21a8",
+  "run": "https://github.com/antoroute/Trust-Circle/actions/runs/37211775266",
+  "scope": "Synthetic offline lab only. Six-job CI completed successfully; not product budgets, physical-device validation, encrypted storage, or V2 comparison.",
+  "flutter": "3.47.4",
+  "rust": "1.99.0",
+  "provider": "RustCrypto",
+  "notes": [
+    "Each lifecycle has 1025 receipts and 62 checks, with 3 synthetic devices in the same process.",
+    "Host tests do not render UI. Windows/macOS use profile; Android/iOS emulators/simulators use debug.",
+    "SQLite FULL; runner storage and load are not controlled. RSS is not per-device.",
+    "100-receive timings exclude sender preparation; 5 samples are exploratory.",
+    "UI frame timings are collected under a tester pumping every 100 ms; not a 60 FPS proof.",
+    "Windows profile single roundtrip p95=253.599 ms exceeds the 100 ms warm target. Do not mark performance accepted."
+  ],
+  "samples": [
+    {
+      "platform": "ubuntu-24.04",
+      "scope": "host-only",
+      "reports": [
+        {
+          "file": "flutter-host.json",
+          "sha256": "73c007c8f65c61ad8808d5b08f217b14fc680a748bf12d6d6c3d0b242211dc68",
+          "data": {
+            "scope": "synthetic Flutter/native; unencrypted lab SQLite; no network or V2 baseline",
+            "os": "linux",
+            "dart_mode": "debug",
+            "rust_mode": "release (native-assets hook)",
+            "process_rss_sample_max_bytes": 145076224,
+            "lifecycle_checks": 62,
+            "delivered": 1025,
+            "heartbeat_ticks": 156,
+            "heartbeat_interval": {
+              "samples": 156,
+              "p50_ms": 15.997,
+              "p95_ms": 16.046
+            },
+            "bridge_1kib_roundtrip": {
+              "samples": 30,
+              "p50_ms": 0.071,
+              "p95_ms": 0.208
+            },
+            "single_send_and_receive_roundtrip": {
+              "samples": 20,
+              "p50_ms": 2.952,
+              "p95_ms": 3.823
+            },
+            "native_receive_transaction": {
+              "samples": 20,
+              "p50_ms": 1.127806,
+              "p95_ms": 1.211613
+            },
+            "native_queue_wait": {
+              "samples": 20,
+              "p50_ms": 0.011668000000000001,
+              "p95_ms": 0.021046000000000002
+            },
+            "native_receive_100_individual_transactions": {
+              "samples": 5,
+              "p50_ms": 106.353705,
+              "p95_ms": 291.65058999999997
+            },
+            "native_receive_100_one_transaction": {
+              "samples": 5,
+              "p50_ms": 6.396789,
+              "p95_ms": 7.581721
+            },
+            "total_ms": 2501.14
+          }
+        }
+      ]
+    },
+    {
+      "platform": "windows-2025",
+      "scope": "host-and-rendered-profile",
+      "reports": [
+        {
+          "file": "flutter-host.json",
+          "sha256": "03ab3725e8915ee5d2d9dd03de0dc34988239cd670f432c6cae5d8e5dddd70cd",
+          "data": {
+            "scope": "synthetic Flutter/native; unencrypted lab SQLite; no network or V2 baseline",
+            "os": "windows",
+            "dart_mode": "debug",
+            "rust_mode": "release (native-assets hook)",
+            "process_rss_sample_max_bytes": 143077376,
+            "lifecycle_checks": 62,
+            "delivered": 1025,
+            "heartbeat_ticks": 8568,
+            "heartbeat_interval": {
+              "samples": 8568,
+              "p50_ms": 15.998,
+              "p95_ms": 17.039
+            },
+            "bridge_1kib_roundtrip": {
+              "samples": 30,
+              "p50_ms": 0.076,
+              "p95_ms": 0.151
+            },
+            "single_send_and_receive_roundtrip": {
+              "samples": 20,
+              "p50_ms": 92.243,
+              "p95_ms": 209.304
+            },
+            "native_receive_transaction": {
+              "samples": 20,
+              "p50_ms": 28.869200000000003,
+              "p95_ms": 68.3842
+            },
+            "native_queue_wait": {
+              "samples": 20,
+              "p50_ms": 0.0192,
+              "p95_ms": 0.0214
+            },
+            "native_receive_100_individual_transactions": {
+              "samples": 5,
+              "p50_ms": 4515.4945,
+              "p95_ms": 6486.7163
+            },
+            "native_receive_100_one_transaction": {
+              "samples": 5,
+              "p50_ms": 35.958400000000005,
+              "p95_ms": 869.1462
+            },
+            "total_ms": 137107.847
+          }
+        },
+        {
+          "file": "flutter-ui.json",
+          "sha256": "87e7f9bba856721a60c36b77289e678b62f5025683a16f88f9be9fa74697cfe2",
+          "data": {
+            "mls_lab": {
+              "scope": "synthetic Flutter/native; unencrypted lab SQLite; no network or V2 baseline",
+              "os": "windows",
+              "dart_mode": "profile",
+              "rust_mode": "release (native-assets hook)",
+              "process_rss_sample_max_bytes": 153219072,
+              "lifecycle_checks": 62,
+              "delivered": 1025,
+              "heartbeat_ticks": 6987,
+              "heartbeat_interval": {
+                "samples": 6987,
+                "p50_ms": 15.994,
+                "p95_ms": 17.055
+              },
+              "bridge_1kib_roundtrip": {
+                "samples": 30,
+                "p50_ms": 0.054,
+                "p95_ms": 0.1
+              },
+              "single_send_and_receive_roundtrip": {
+                "samples": 20,
+                "p50_ms": 63.467,
+                "p95_ms": 253.599
+              },
+              "native_receive_transaction": {
+                "samples": 20,
+                "p50_ms": 24.6223,
+                "p95_ms": 221.0824
+              },
+              "native_queue_wait": {
+                "samples": 20,
+                "p50_ms": 0.0089,
+                "p95_ms": 0.013
+              },
+              "native_receive_100_individual_transactions": {
+                "samples": 5,
+                "p50_ms": 4025.8202,
+                "p95_ms": 10614.5888
+              },
+              "native_receive_100_one_transaction": {
+                "samples": 5,
+                "p50_ms": 30.9962,
+                "p95_ms": 142.41590000000002
+              },
+              "total_ms": 111795.491,
+              "ui_frame_build": {
+                "samples": 1023,
+                "p50_ms": 0.335,
+                "p95_ms": 0.396
+              },
+              "ui_frame_raster": {
+                "samples": 1023,
+                "p50_ms": 1.355,
+                "p95_ms": 1.462
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "platform": "macos-15",
+      "scope": "host-and-rendered-profile",
+      "reports": [
+        {
+          "file": "flutter-host.json",
+          "sha256": "4e7a4ead9546ece86aeb25a7a2c4eb4e3c180ae79c7fe1659d4a26ed58d1b6c6",
+          "data": {
+            "scope": "synthetic Flutter/native; unencrypted lab SQLite; no network or V2 baseline",
+            "os": "macos",
+            "dart_mode": "debug",
+            "rust_mode": "release (native-assets hook)",
+            "process_rss_sample_max_bytes": 155648000,
+            "lifecycle_checks": 62,
+            "delivered": 1025,
+            "heartbeat_ticks": 111,
+            "heartbeat_interval": {
+              "samples": 111,
+              "p50_ms": 16.191,
+              "p95_ms": 18.729
+            },
+            "bridge_1kib_roundtrip": {
+              "samples": 30,
+              "p50_ms": 0.132,
+              "p95_ms": 0.342
+            },
+            "single_send_and_receive_roundtrip": {
+              "samples": 20,
+              "p50_ms": 2.891,
+              "p95_ms": 4.02
+            },
+            "native_receive_transaction": {
+              "samples": 20,
+              "p50_ms": 0.8310000000000001,
+              "p95_ms": 1.208666
+            },
+            "native_queue_wait": {
+              "samples": 20,
+              "p50_ms": 0.014375,
+              "p95_ms": 0.024083
+            },
+            "native_receive_100_individual_transactions": {
+              "samples": 5,
+              "p50_ms": 87.429833,
+              "p95_ms": 89.78975
+            },
+            "native_receive_100_one_transaction": {
+              "samples": 5,
+              "p50_ms": 9.280042,
+              "p95_ms": 9.601084
+            },
+            "total_ms": 1804.616
+          }
+        },
+        {
+          "file": "flutter-ui.json",
+          "sha256": "92db0c6654828ff5632550de4ab185604e1914996e2f9b28f232f7c3b836a129",
+          "data": {
+            "mls_lab": {
+              "scope": "synthetic Flutter/native; unencrypted lab SQLite; no network or V2 baseline",
+              "os": "macos",
+              "dart_mode": "profile",
+              "rust_mode": "release (native-assets hook)",
+              "process_rss_sample_max_bytes": 142901248,
+              "lifecycle_checks": 62,
+              "delivered": 1025,
+              "heartbeat_ticks": 166,
+              "heartbeat_interval": {
+                "samples": 166,
+                "p50_ms": 16.165,
+                "p95_ms": 18.204
+              },
+              "bridge_1kib_roundtrip": {
+                "samples": 30,
+                "p50_ms": 0.089,
+                "p95_ms": 0.143
+              },
+              "single_send_and_receive_roundtrip": {
+                "samples": 20,
+                "p50_ms": 4.498,
+                "p95_ms": 8.951
+              },
+              "native_receive_transaction": {
+                "samples": 20,
+                "p50_ms": 1.313292,
+                "p95_ms": 2.644292
+              },
+              "native_queue_wait": {
+                "samples": 20,
+                "p50_ms": 0.009125,
+                "p95_ms": 0.017542
+              },
+              "native_receive_100_individual_transactions": {
+                "samples": 5,
+                "p50_ms": 111.007958,
+                "p95_ms": 268.016375
+              },
+              "native_receive_100_one_transaction": {
+                "samples": 5,
+                "p50_ms": 10.161084,
+                "p95_ms": 10.96525
+              },
+              "total_ms": 2661.37,
+              "ui_frame_build": {
+                "samples": 24,
+                "p50_ms": 0.322,
+                "p95_ms": 2.134
+              },
+              "ui_frame_raster": {
+                "samples": 24,
+                "p50_ms": 0.744,
+                "p95_ms": 5.367
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "platform": "android-api35-x86_64-pixel6",
+      "scope": "rendered-debug-emulator",
+      "reports": [
+        {
+          "file": "flutter-ui.json",
+          "sha256": "1602f15e4e75992f4b1b0344a84d5b88b1e3037a8701215a7a25696239807efb",
+          "data": {
+            "mls_lab": {
+              "scope": "synthetic Flutter/native; unencrypted lab SQLite; no network or V2 baseline",
+              "os": "android",
+              "dart_mode": "debug",
+              "rust_mode": "release (native-assets hook)",
+              "process_rss_sample_max_bytes": 356601856,
+              "lifecycle_checks": 62,
+              "delivered": 1025,
+              "heartbeat_ticks": 442,
+              "heartbeat_interval": {
+                "samples": 442,
+                "p50_ms": 15.981,
+                "p95_ms": 22.4
+              },
+              "bridge_1kib_roundtrip": {
+                "samples": 30,
+                "p50_ms": 4.452,
+                "p95_ms": 44.174
+              },
+              "single_send_and_receive_roundtrip": {
+                "samples": 20,
+                "p50_ms": 15.709,
+                "p95_ms": 55.714
+              },
+              "native_receive_transaction": {
+                "samples": 20,
+                "p50_ms": 5.183246,
+                "p95_ms": 17.611452999999997
+              },
+              "native_queue_wait": {
+                "samples": 20,
+                "p50_ms": 0.011742,
+                "p95_ms": 0.309945
+              },
+              "native_receive_100_individual_transactions": {
+                "samples": 5,
+                "p50_ms": 333.478463,
+                "p95_ms": 409.867501
+              },
+              "native_receive_100_one_transaction": {
+                "samples": 5,
+                "p50_ms": 14.682591,
+                "p95_ms": 46.485989
+              },
+              "total_ms": 8199.373,
+              "ui_frame_build": {
+                "samples": 61,
+                "p50_ms": 1.844,
+                "p95_ms": 26.673
+              },
+              "ui_frame_raster": {
+                "samples": 61,
+                "p50_ms": 6.242,
+                "p95_ms": 229.064
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "platform": "ios-simulator-arm64-iphone16pro",
+      "scope": "rendered-debug-simulator",
+      "reports": [
+        {
+          "file": "flutter-ui.json",
+          "sha256": "ffc7eac2a6f6e91c7e3742e859ff12e5da633da8773ddc30ce3bdc75165f571d",
+          "data": {
+            "mls_lab": {
+              "scope": "synthetic Flutter/native; unencrypted lab SQLite; no network or V2 baseline",
+              "os": "ios",
+              "dart_mode": "debug",
+              "rust_mode": "release (native-assets hook)",
+              "process_rss_sample_max_bytes": 233521152,
+              "lifecycle_checks": 62,
+              "delivered": 1025,
+              "heartbeat_ticks": 236,
+              "heartbeat_interval": {
+                "samples": 236,
+                "p50_ms": 16.198,
+                "p95_ms": 18.416
+              },
+              "bridge_1kib_roundtrip": {
+                "samples": 30,
+                "p50_ms": 0.115,
+                "p95_ms": 0.293
+              },
+              "single_send_and_receive_roundtrip": {
+                "samples": 20,
+                "p50_ms": 6.354,
+                "p95_ms": 10.321
+              },
+              "native_receive_transaction": {
+                "samples": 20,
+                "p50_ms": 1.6853339999999999,
+                "p95_ms": 3.636959
+              },
+              "native_queue_wait": {
+                "samples": 20,
+                "p50_ms": 0.010958,
+                "p95_ms": 0.271792
+              },
+              "native_receive_100_individual_transactions": {
+                "samples": 5,
+                "p50_ms": 218.113875,
+                "p95_ms": 223.980291
+              },
+              "native_receive_100_one_transaction": {
+                "samples": 5,
+                "p50_ms": 9.032958,
+                "p95_ms": 13.353167000000001
+              },
+              "total_ms": 3819.081,
+              "ui_frame_build": {
+                "samples": 35,
+                "p50_ms": 1.97,
+                "p95_ms": 64.841
+              },
+              "ui_frame_raster": {
+                "samples": 35,
+                "p50_ms": 0.854,
+                "p95_ms": 16.959
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "ci_conclusion": "success (6/6 jobs)"
+}

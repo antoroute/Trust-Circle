@@ -5,6 +5,13 @@ Identifiant `fr.kavalek.circlehaven.lab.mls_flutter` (variante camelCase Apple).
 Uniquement des identités/messages synthétiques. Les bases SQLite temporaires
 ne sont **pas chiffrées**. Ne pas y introduire de données réelles.
 
+Validation fonctionnelle : les six jobs de la
+[CI 37211775266](https://github.com/antoroute/Trust-Circle/actions/runs/37211775266)
+passent sur `b66f188`, dont les scénarios graphiques des quatre OS.
+Ce n'est pas une validation des budgets de performance ou du produit.
+Voir le [rapport et ses limites](../../docs/quality/TC-301-FLUTTER_BRIDGE.md)
+et la [procédure Windows 11 / Pixel virtuel](../../docs/quality/TC-301-LOCAL_VALIDATION.md).
+
 ## Architecture et bornes
 
 - Flutter appelle des fonctions Rust asynchrones générées par
