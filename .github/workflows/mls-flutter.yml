@@ -75,11 +75,15 @@ jobs:
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --name tc301-lab --package 'system-images;android-35;google_apis;x86_64' --device pixel_6
           sudo chmod 666 /dev/kvm
           "$ANDROID_HOME/emulator/emulator" -avd tc301-lab -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/tc301-emulator.log" 2>&1 &
-          "$ANDROID_HOME/platform-tools/adb" wait-for-device
+          if ! timeout 120 "$ANDROID_HOME/platform-tools/adb" wait-for-device; then
+            tail -80 "$RUNNER_TEMP/tc301-emulator.log"
+            exit 1
+          fi
           for attempt in $(seq 1 120); do
             if "$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r' | grep -q '^1$'; then exit 0; fi
             sleep 2
           done
+          tail -80 "$RUNNER_TEMP/tc301-emulator.log"
           exit 1
       - name: Execute actual Flutter scenario on Android emulator
         run: flutter drive --debug -d emulator-5554 --driver test_driver/integration_test.dart --target integration_test/lab_test.dart

@@ -55,8 +55,11 @@ backup transitoire restent des portes avant bêta ; voir
 `TC-301` reste en cours : son lot A natif isolé est réalisé dans
 `prototypes/mls` sur la branche `tc301-mls-prototype`. Cycle de groupe,
 persistance atomique, 18 cas de crash et interopérabilité mls-rs sont testés
-avec RustCrypto et libcrux. Le pont Flutter, les mesures comparées V2/V3 sur
-appareils et les preuves physiques Apple restent ouverts. Aucune activation
+avec RustCrypto et libcrux. Le lot B ajoute un pont Flutter isolé dans
+`prototypes/mls_flutter`, la réception atomique en lot et des tests locaux
+réussis ; la validation Flutter multiplateforme et les mesures physiques restent
+ouvertes. Le moteur compte maintenant 19 tests/fournisseur et 20 cas de crash.
+Voir `quality/TC-301-FLUTTER_BRIDGE.md` pour l'état CI exact. Aucune activation
 V3 ni modification du staging : voir `quality/TC-301-MLS_PROTOTYPE.md` et le
 prompt `prompts/CONTINUE_TC-301.md`. Aucun compte/historique n'est à migrer.
 

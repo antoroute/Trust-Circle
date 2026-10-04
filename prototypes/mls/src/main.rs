@@ -24,7 +24,7 @@ fn run() -> Result<()> {
             };
             let action = args[3].as_str();
             let actor = match action {
-                "receive" | "merge-peer" => "b",
+                "receive" | "receive-batch" | "merge-peer" => "b",
                 "join" => "c",
                 _ => "a",
             };
@@ -47,6 +47,15 @@ fn run() -> Result<()> {
                 "join" => {
                     let wire = std::fs::read(root.join("wire")).map_err(|_| Error::Storage)?;
                     device.join(b"synthetic-group", &wire, fault)?;
+                }
+                "receive-batch" => {
+                    let wires = (0..3)
+                        .map(|n| {
+                            std::fs::read(root.join(format!("wire-{n}")))
+                                .map_err(|_| Error::Storage)
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    device.receive_batch(b"synthetic-group", &wires, fault)?;
                 }
                 "receive" | "merge-own" | "merge-peer" => {
                     let wire = std::fs::read(root.join("wire")).map_err(|_| Error::Storage)?;

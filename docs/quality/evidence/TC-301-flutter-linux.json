@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-04",
+  "source": "prototypes/mls_flutter/reports/flutter-host.json",
+  "scope": "synthetic Flutter/native; unencrypted lab SQLite; no network or V2 baseline",
+  "os": "linux",
+  "storage": "ext4; TMPDIR=/root/.cache/trust-circle/bench-tmp; SQLite synchronous=FULL",
+  "flutter_version": "3.47.4",
+  "dart_mode": "debug",
+  "rust_mode": "release (native-assets hook)",
+  "process_rss_sample_max_bytes": 144408576,
+  "lifecycle_checks": 62,
+  "delivered": 1025,
+  "heartbeat_ticks": 626,
+  "heartbeat_interval": {"samples": 626, "p50_ms": 15.992, "p95_ms": 16.058},
+  "bridge_1kib_roundtrip": {"samples": 30, "p50_ms": 0.055, "p95_ms": 0.112},
+  "single_send_and_receive_roundtrip": {"samples": 20, "p50_ms": 11.987, "p95_ms": 12.111},
+  "native_receive_transaction": {"samples": 20, "p50_ms": 5.95017, "p95_ms": 6.077403},
+  "native_queue_wait": {"samples": 20, "p50_ms": 0.002945, "p95_ms": 0.005626},
+  "native_receive_100_individual_transactions": {"samples": 5, "p50_ms": 602.020915, "p95_ms": 805.959149},
+  "native_receive_100_one_transaction": {"samples": 5, "p50_ms": 11.947529, "p95_ms": 11.962324},
+  "total_ms": 10019.803
+}

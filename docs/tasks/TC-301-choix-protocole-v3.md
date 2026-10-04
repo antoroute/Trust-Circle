@@ -1,6 +1,6 @@
 # TC-301 — Choisir et prototyper le protocole E2EE V3
 
-Statut : En cours — lot A natif réalisé ; pont Flutter et preuves appareils restants
+Statut : En cours — lot B implémenté et testé localement ; validation Flutter multiplateforme en cours
 Dernière mise à jour : 2026-10-04
 Priorité : P0 sécurité
 Décision : propriétaire
@@ -96,12 +96,21 @@ Les tests de reprise empêchent un état partiellement persisté ; ils ne
 détectent pas la restauration malveillante d'un ancien fichier complet.
 Pour cette raison, le critère global crash/rollback n'est pas coché.
 
-### Lot B — preuve du pont et exécution mobile (prochaine intervention)
+### Lot B — preuve du pont et exécution mobile (en cours)
 
 - Pont Flutter/Rust asynchrone isolé, file bornée, aucune primitive Dart ajoutée.
 - Même scénario exécuté via Flutter sur Android/Windows puis simulateur iOS.
 - Étendre les vecteurs et la direction inverse de création/Welcome interop.
 - Vérifier l'impact du pont, du stockage et du traitement en lot sur l'UI.
+
+Implémenté dans `prototypes/mls_flutter` : acteur Rust unique, file bornée,
+scénario Flutter asynchrone, 1 025 réceptions synthétiques et 62 contrôles,
+réception atomique en lot (100 messages maximum). Localement : 19 tests moteur
+par fournisseur, dont 20 cas de crash, 3 tests acteur et 2 tests Dart/FFI.
+Interop création/Welcome dans les deux directions et vecteur RefHash ajoutés.
+Le rendu UI sur les quatre OS reste à prouver par les jobs dédiés ; les tests
+hôtes Flutter seuls ne suffisent pas. Voir le
+[rapport du lot B](../quality/TC-301-FLUTTER_BRIDGE.md) pour l'état réel de CI.
 
 ### Lot C — mesures physiques et décision finale
 

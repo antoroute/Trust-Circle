@@ -67,8 +67,8 @@ octets supplémentaires, longueurs malveillantes, hors-ordre, Commit concurrent,
 faux écho local, KeyPackage expiré/réutilisé et échec de Welcome.
 
 Les processus enfants quittent brutalement avant/après le commit SQLite pour
-neuf chemins : création, envoi, réception, ajout, retrait, mise à jour,
-jonction, fusion locale et fusion distante. Ce sont 18 scénarios, **pas une
+dix chemins : création, envoi, réception, réception en lot, ajout, retrait, mise à jour,
+jonction, fusion locale et fusion distante. Ce sont 20 scénarios, **pas une
 simulation de coupure électrique du stockage**. Un quota SQLite de pages
 force aussi une erreur de capacité pendant l'envoi et vérifie la reprise.
 Restaurer malicieusement un ancien fichier complet n'est pas détecté ici.

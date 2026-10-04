@@ -39,7 +39,7 @@ Résultat attendu : **1 025 réceptions et 62 contrôles**, puis nettoyage.
 
 Flutter **3.47.4** (Dart 3.13.3), Rust **1.99.0**, outils natifs de la plateforme.
 La CI vérifie le commit Flutter `9584c6713b324636289d067944a46fd6b49df14b`.
-Android API minimum 28 et NDK `28.2.13676358` ; iOS minimum 15 ; runner macOS ARM.
+Android API minimum 28 et NDK `28.2.13676358` ; iOS minimum 15 ; lab macOS 14 ARM.
 Les lockfiles Dart et Rust sont versionnés. L'app existante garde son propre SDK.
 
 ```bash

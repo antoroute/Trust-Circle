@@ -3,7 +3,9 @@
 Mesures initiales : 2026-10-03. Mise à jour : 2026-10-04.
 Statut : **lot A réalisé, TC-301 reste en cours**.
 Code : `prototypes/mls`, branche `tc301-mls-prototype`.
-Le backend staging et le client Flutter ne sont pas modifiés.
+Le backend staging et le client Flutter existant ne sont pas modifiés.
+Ce rapport conserve les preuves initiales du lot A. La suite, avec un client
+Flutter de laboratoire séparé, est dans [le rapport du lot B](TC-301-FLUTTER_BRIDGE.md).
 
 ## Résultat et portée
 
@@ -157,7 +159,7 @@ validation juridique du futur paquet store.
 | 21, 22 | outbox durable, reprise atomique, rejet des replays | ACK/cursor transport, invalidation/GC et livraison idempotente |
 | 13, 20, 23 | aucune revendication produit étendue | base chiffrée, stockage OS, effacement et audit FS/PCS |
 
-Prochaine intervention : **TC-301 lot B**, pont Flutter isolé et exécution
+Suite des travaux : **TC-301 lot B**, pont Flutter isolé et exécution
 mobile, puis lot C, mesures physiques comparées. TC-302 ne doit pas être
 présentée comme débloquée par une clôture fictive de TC-301.
 Les comportements de conflit d'époque, de retard inter-époques et de

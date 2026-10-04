@@ -8,6 +8,7 @@ fn abrupt_process_exit_preserves_transaction_boundaries() {
     for action in [
         "send",
         "receive",
+        "receive-batch",
         "update",
         "create",
         "add",
@@ -35,6 +36,14 @@ fn abrupt_process_exit_preserves_transaction_boundaries() {
                     .send(GROUP, "delivery", b"synthetic", Fault::None)
                     .unwrap();
                 std::fs::write(dir.path().join("wire"), wire.message).unwrap();
+            }
+            if action == "receive-batch" {
+                for n in 0..3 {
+                    let wire = a
+                        .send(GROUP, &format!("batch-{n}"), b"synthetic", Fault::None)
+                        .unwrap();
+                    std::fs::write(dir.path().join(format!("wire-{n}")), wire.message).unwrap();
+                }
             }
             if action == "add" || action == "join" {
                 let kp = c.key_package().unwrap();
@@ -84,6 +93,20 @@ fn abrupt_process_exit_preserves_transaction_boundaries() {
                         phase == "before"
                     );
                     assert_eq!(b.inbox(GROUP).unwrap().len(), 1);
+                }
+                "receive-batch" => {
+                    assert_eq!(
+                        b.inbox(GROUP).unwrap().len(),
+                        if phase == "after" { 3 } else { 0 }
+                    );
+                    let wires = (0..3)
+                        .map(|n| std::fs::read(dir.path().join(format!("wire-{n}"))).unwrap())
+                        .collect::<Vec<_>>();
+                    assert_eq!(
+                        b.receive_batch(GROUP, &wires, Fault::None).is_ok(),
+                        phase == "before"
+                    );
+                    assert_eq!(b.inbox(GROUP).unwrap().len(), 3);
                 }
                 "update" => {
                     assert_eq!(a.epoch(GROUP).unwrap(), 1);

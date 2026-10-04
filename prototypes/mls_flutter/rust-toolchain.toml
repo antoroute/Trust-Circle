@@ -1,0 +1,6 @@
+[toolchain]
+# Cargo resolves overrides from the working directory, not --manifest-path.
+# Keep in sync with rust/rust-toolchain.toml (also required by Native Assets).
+channel = "1.99.0"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
