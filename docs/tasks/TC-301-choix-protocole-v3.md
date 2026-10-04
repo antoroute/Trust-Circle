@@ -160,6 +160,12 @@ Le propriétaire confirme le 2026-10-03 disposer uniquement d'Android et
 Windows. Aucun accès SSH à son PC n'a été rouvert par cette tâche. Les runners
 hébergés ne remplacent pas la validation physique et énergétique Apple.
 
+Précision du 2026-10-04 : Samsung S23 disponible, mais préférence explicite
+pour les émulateurs Pixel du SDK Android sur son PC Windows. Préparer les
+tests locaux dans ce mode en priorité, sans réouvrir SSH. Une comparaison
+V2/V3 dans le même émulateur doit rester identifiée comme émulée ; elle ne
+valide ni batterie ni budgets physiques du S23 ou d'un iPhone.
+
 - Valider le comportement utilisateur exact lors d'un changement de membre ou
   d'un conflit d'époque.
 - Choisir le niveau de transparence des clés après le prototype `TC-303`.

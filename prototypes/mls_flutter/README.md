@@ -103,7 +103,7 @@ contenait d'anciennes versions ; celui du laboratoire a été résolu à nouveau
 notamment Tokio 1.53.2 et futures 0.3.34, puis audité. Aucun ignore RustSec.
 L'avis `RUSTSEC-2026-0173` reste : `proc-macro-error2 2.0.1` non maintenu, compilé
 via hax/libcrux-sha3 même avec RustCrypto. `allo-isolate 0.1.27` n'a pas de champ
-licence Cargo ; `cargo deny` reconnaît son fichier de licence MIT, avec avertissement.
+licence Cargo ; `cargo deny` reconnaît son fichier de licence Apache-2.0, avec avertissement.
 
 ```bash
 cargo audit --file rust/Cargo.lock

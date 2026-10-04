@@ -7,12 +7,18 @@ on:
   pull_request:
     paths: [prototypes/mls/**, prototypes/mls_flutter/**, .github/workflows/mls-flutter.yml, .github/actions/setup-mls-flutter/**]
   workflow_dispatch:
+    inputs:
+      target:
+        description: Limit a diagnostic rerun to one platform family
+        type: choice
+        default: all
+        options: [all, host, android, ios-simulator, supply-chain]
 
 permissions:
   contents: read
 
 concurrency:
-  group: mls-flutter-${{ github.ref }}
+  group: mls-flutter-${{ github.ref }}-${{ inputs.target || 'all' }}
   cancel-in-progress: true
 
 defaults:
@@ -27,6 +33,7 @@ env:
 
 jobs:
   host:
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'host'
     strategy:
       fail-fast: false
       matrix:
@@ -61,6 +68,7 @@ jobs:
           retention-days: 30
 
   android:
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'android'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -71,8 +79,14 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - name: Install emulator and pinned NDK
         run: |
+          export ANDROID_USER_HOME="$RUNNER_TEMP/tc301-android-user"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_USER_HOME=$ANDROID_USER_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;28.2.13676358' 'platforms;android-36' 'system-images;android-35;google_apis;x86_64' emulator
-          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --name tc301-lab --package 'system-images;android-35;google_apis;x86_64' --device pixel_6
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --name tc301-lab --path "$ANDROID_AVD_HOME/tc301-lab.avd" --package 'system-images;android-35;google_apis;x86_64' --device pixel_6
+          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx tc301-lab
           sudo chmod 666 /dev/kvm
           "$ANDROID_HOME/emulator/emulator" -avd tc301-lab -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/tc301-emulator.log" 2>&1 &
           if ! timeout 120 "$ANDROID_HOME/platform-tools/adb" wait-for-device; then
@@ -95,6 +109,7 @@ jobs:
           retention-days: 30
 
   ios-simulator:
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'ios-simulator'
     runs-on: macos-15
     timeout-minutes: 45
     steps:
@@ -119,6 +134,7 @@ jobs:
           retention-days: 30
 
   supply-chain:
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'supply-chain'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

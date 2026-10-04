@@ -42,7 +42,7 @@ restent séparés et ordonnés ; les bornes d'entrée ne sont pas relevées.
 - Formatage, Flutter analyze et Clippy avec avertissements refusés : réussis.
 - Audit Rust : aucune vulnérabilité connue signalée ; avis de maintenance
   `RUSTSEC-2026-0173` conservé. Licences/sources : passent, avertissement de champ
-  licence manquant pour allo-isolate (fichier MIT reconnu). Aucun ignore ajouté.
+  licence manquant pour allo-isolate (fichier Apache-2.0 reconnu). Aucun ignore ajouté.
 
 Le premier test Flutter a exposé un problème du chargeur dans le **tester non
 empaqueté** : le hook produisait bien la bibliothèque, mais le chargeur standard
@@ -108,4 +108,7 @@ Prochaine sous-tâche : **TC-301 lot B, finir la validation multiplateforme**,
 puis lot C, protocole de mesures physiques. Aucune nouvelle décision produit
 n'est nécessaire pour ces tests. L'absence de matériel Apple limite les preuves
 énergétiques, pas la poursuite du travail local ou en simulateur.
+Le propriétaire précise disposer d'un Samsung S23, mais préfère d'abord les
+émulateurs Pixel d'Android Studio sur son PC Windows. Cette préférence est
+retenue pour le prochain essai utilisateur ; aucune réouverture SSH implicite.
 Ne pas passer à TC-302 sur la base d'une clôture fictive de TC-301.

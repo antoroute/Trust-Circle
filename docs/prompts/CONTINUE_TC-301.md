@@ -42,6 +42,9 @@ approuvés CircleHaven. Tout doit rester synthétique.
 Le propriétaire n'a toujours qu'Android et Windows. Aucun accès SSH à son PC
 n'est autorisé à réouvrir automatiquement. Préparer des commandes/artéfacts
 à exécuter ou demander un nouvel accès temporaire si vraiment nécessaire.
+Il possède un Samsung S23 mais préfère les émulateurs Pixel d'Android Studio
+sur son PC : privilégier cette voie, sans présenter les résultats comme des
+mesures sur téléphone physique. La version Android du S23 n'est pas connue.
 Les runners Apple permettent compilation/simulation, pas les mesures batterie.
 Le backend staging n'a pas à être modifié pour ce lot.
 
