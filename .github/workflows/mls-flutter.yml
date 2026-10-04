@@ -1,0 +1,136 @@
+name: MLS Flutter laboratory
+
+on:
+  push:
+    branches: [main, tc301-mls-prototype]
+    paths: [prototypes/mls/**, prototypes/mls_flutter/**, .github/workflows/mls-flutter.yml, .github/actions/setup-mls-flutter/**]
+  pull_request:
+    paths: [prototypes/mls/**, prototypes/mls_flutter/**, .github/workflows/mls-flutter.yml, .github/actions/setup-mls-flutter/**]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mls-flutter-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: prototypes/mls_flutter
+    shell: bash
+
+env:
+  CARGO_BUILD_JOBS: '3'
+  MACOSX_DEPLOYMENT_TARGET: '14.0'
+  IPHONEOS_DEPLOYMENT_TARGET: '15.0'
+
+jobs:
+  host:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-mls-flutter
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed lib test integration_test test_driver hook
+      - run: flutter analyze
+      - run: cargo fmt --manifest-path rust/Cargo.toml --check
+      - run: cargo clippy --manifest-path rust/Cargo.toml --locked --all-targets -- -D warnings
+      - run: cargo test --manifest-path rust/Cargo.toml --locked
+      - name: Dart bridge scenario (host tester, not a rendered device)
+        run: TC_MLS_REPORT_DIR=reports flutter test --reporter expanded
+      - name: Rendered Windows scenario
+        if: runner.os == 'Windows'
+        run: flutter drive --profile -d windows --driver test_driver/integration_test.dart --target integration_test/lab_test.dart
+      - name: Rendered macOS scenario
+        if: runner.os == 'macOS'
+        run: flutter drive --profile -d macos --driver test_driver/integration_test.dart --target integration_test/lab_test.dart
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: mls-flutter-${{ matrix.os }}
+          path: prototypes/mls_flutter/reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-mls-flutter
+      - run: flutter pub get --enforce-lockfile
+      - name: Install emulator and pinned NDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;28.2.13676358' 'platforms;android-36' 'system-images;android-35;google_apis;x86_64' emulator
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --name tc301-lab --package 'system-images;android-35;google_apis;x86_64' --device pixel_6
+          sudo chmod 666 /dev/kvm
+          "$ANDROID_HOME/emulator/emulator" -avd tc301-lab -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/tc301-emulator.log" 2>&1 &
+          "$ANDROID_HOME/platform-tools/adb" wait-for-device
+          for attempt in $(seq 1 120); do
+            if "$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r' | grep -q '^1$'; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Execute actual Flutter scenario on Android emulator
+        run: flutter drive --debug -d emulator-5554 --driver test_driver/integration_test.dart --target integration_test/lab_test.dart
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: mls-flutter-android-emulator
+          path: prototypes/mls_flutter/reports/
+          retention-days: 30
+
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-mls-flutter
+      - run: flutter pub get --enforce-lockfile
+      - name: Boot an available iPhone simulator on the disposable runner
+        run: |
+          tc_ios=$(xcrun simctl list devices available --json | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{const d=Object.values(JSON.parse(s).devices).flat().find(d=>d.name.startsWith("iPhone"));if(!d)process.exit(1);process.stdout.write(d.udid)})')
+          xcrun simctl boot "$tc_ios"
+          xcrun simctl bootstatus "$tc_ios" -b
+          echo "TC_IOS_DEVICE=$tc_ios" >> "$GITHUB_ENV"
+      - name: Execute actual Flutter scenario in simulator (not physical battery proof)
+        run: flutter drive --debug -d "$TC_IOS_DEVICE" --driver test_driver/integration_test.dart --target integration_test/lab_test.dart
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: mls-flutter-ios-simulator
+          path: prototypes/mls_flutter/reports/
+          retention-days: 30
+
+  supply-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.99.0 --profile minimal
+      - run: cargo install cargo-audit --version 0.22.2 --locked
+      - run: cargo install cargo-deny --version 0.20.2 --locked
+      - run: cargo install cargo-cyclonedx --version 0.5.9 --locked
+      - run: cargo audit --file rust/Cargo.lock
+      - run: cargo deny --manifest-path rust/Cargo.toml --locked --config ../mls/deny.toml check licenses sources
+      - run: cargo metadata --manifest-path rust/Cargo.toml --locked --format-version 1 | node ../mls/scripts/check-features.mjs
+      - run: cargo cyclonedx --manifest-path rust/Cargo.toml --format json --target all --override-filename bridge.cdx
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mls-flutter-rust-sbom
+          path: prototypes/mls_flutter/rust/*.cdx.json
+          retention-days: 90

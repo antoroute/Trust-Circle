@@ -14,6 +14,85 @@ use mls_rs::{
 use mls_rs_crypto_rustcrypto::RustCryptoProvider;
 
 #[test]
+fn mls_rs_creates_welcome_then_openmls_joins_updates_and_exchanges() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut open = Device::open_synthetic(&dir.path().join("open-reverse")).unwrap();
+    open.initialize(b"synthetic-openmls-joiner").unwrap();
+    let provider = RustCryptoProvider::new();
+    let suite = CipherSuite::CURVE25519_AES128;
+    let (secret, public) = provider
+        .cipher_suite_provider(suite)
+        .unwrap()
+        .signature_key_generate()
+        .unwrap();
+    let identity = SigningIdentity::new(
+        BasicCredential::new(b"synthetic-mls-rs-creator".to_vec()).into_credential(),
+        public,
+    );
+    let peer = Client::builder()
+        .crypto_provider(provider)
+        .identity_provider(BasicIdentityProvider)
+        .mls_rules(
+            DefaultMlsRules::new()
+                .with_encryption_options(EncryptionOptions::new(true, Default::default())),
+        )
+        .signing_identity(identity, secret, suite)
+        .build();
+    let id = b"reverse-interop";
+    let mut group = peer
+        .create_group_with_id(id.to_vec(), Default::default(), Default::default(), None)
+        .unwrap();
+    let package = MlsMessage::from_bytes(&open.key_package().unwrap()).unwrap();
+    let added = group
+        .commit_builder()
+        .add_member(package)
+        .unwrap()
+        .build()
+        .unwrap();
+    group.apply_pending_commit().unwrap();
+    let welcome = added.welcome_messages[0].to_bytes().unwrap();
+    let mut tampered = welcome.clone();
+    *tampered.last_mut().unwrap() ^= 1;
+    assert!(open.join(id, &tampered, Fault::None).is_err());
+    open.join(id, &welcome, Fault::None).unwrap();
+    let from_peer = group
+        .encrypt_application_message(b"reverse-peer", Default::default())
+        .unwrap()
+        .to_bytes()
+        .unwrap();
+    open.receive(id, &from_peer, Fault::None).unwrap();
+    assert!(open.receive(id, &from_peer, Fault::None).is_err());
+    assert!(open.inbox(id).unwrap() == [b"reverse-peer"]);
+    let from_open = open
+        .send(id, "reverse-open", b"reverse-open", Fault::None)
+        .unwrap();
+    let ReceivedMessage::ApplicationMessage(received) = group
+        .process_incoming_message(MlsMessage::from_bytes(&from_open.message).unwrap())
+        .unwrap()
+    else {
+        panic!("expected application message")
+    };
+    assert!(received.data() == b"reverse-open");
+    let update = open.update(id, "reverse-update", Fault::None).unwrap();
+    group
+        .process_incoming_message(MlsMessage::from_bytes(&update.message).unwrap())
+        .unwrap();
+    open.receive(id, &update.message, Fault::None).unwrap();
+    let update = group.commit_builder().build().unwrap();
+    open.receive(id, &update.commit_message.to_bytes().unwrap(), Fault::None)
+        .unwrap();
+    group.apply_pending_commit().unwrap();
+    let wire = group
+        .encrypt_application_message(b"reverse-after", Default::default())
+        .unwrap()
+        .to_bytes()
+        .unwrap();
+    open.receive(id, &wire, Fault::None).unwrap();
+    assert_eq!(open.epoch(id).unwrap(), 3);
+    assert!(open.inbox(id).unwrap() == [b"reverse-peer".to_vec(), b"reverse-after".to_vec()]);
+}
+
+#[test]
 fn openmls_and_mls_rs_exchange_private_messages_and_commits() {
     let dir = tempfile::tempdir().unwrap();
     let mut open = Device::open_synthetic(&dir.path().join("open")).unwrap();

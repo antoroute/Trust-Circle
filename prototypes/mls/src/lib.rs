@@ -20,6 +20,7 @@ pub const SUITE: Ciphersuite = Ciphersuite::MLS_128_DHKEMX25519_AES128GCM_SHA256
 pub const MAX_WIRE: usize = 1_048_576;
 pub const MAX_PLAINTEXT: usize = 16_384;
 pub const MAX_MEMBERS: usize = 256;
+pub const MAX_BATCH: usize = 100;
 pub const PROVIDER: &str = if cfg!(feature = "libcrux") {
     "libcrux"
 } else {
@@ -532,6 +533,54 @@ impl Device {
                 }
                 _ => Err(Error::Input),
             }
+        })
+    }
+
+    /// Application-only batch: every message authenticates and all ratchet/inbox
+    /// writes commit together. A bad message rolls back the entire batch.
+    /// Commits must be delivered separately in epoch order.
+    pub fn receive_batch(
+        &mut self,
+        group: &[u8],
+        wires: &[Vec<u8>],
+        fault: Fault,
+    ) -> Result<usize> {
+        group_input(group)?;
+        if wires.is_empty()
+            || wires.len() > MAX_BATCH
+            || wires.iter().any(|wire| wire.len() > MAX_WIRE)
+            || wires.iter().map(Vec::len).sum::<usize>() > MAX_WIRE
+        {
+            return Err(Error::Input);
+        }
+        let messages = wires
+            .iter()
+            .map(|wire| {
+                let message = decode(wire)?;
+                if message.wire_format() != WireFormat::PrivateMessage {
+                    return Err(Error::Input);
+                }
+                mls(message.try_into_protocol_message())
+            })
+            .collect::<Result<Vec<_>>>()?;
+        self.atomic(fault, |tx, provider| {
+            let mut state = load(provider, group)?;
+            for message in messages {
+                let processed = mls(state.process_message(provider, message))?;
+                let ProcessedMessageContent::ApplicationMessage(message) = processed.into_content()
+                else {
+                    return Err(Error::Input);
+                };
+                let payload = message.into_bytes();
+                if payload.len() > MAX_PLAINTEXT {
+                    return Err(Error::Input);
+                }
+                db(tx.execute(
+                    "INSERT INTO probe_inbox(group_id,payload) VALUES(?1,?2)",
+                    params![group, payload],
+                ))?;
+            }
+            Ok(wires.len())
         })
     }
 

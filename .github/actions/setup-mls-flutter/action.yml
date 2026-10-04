@@ -1,0 +1,14 @@
+name: Set up pinned MLS lab toolchains
+description: Official Flutter source and Rust toolchain, no app secrets
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        git clone --depth 1 --branch 3.47.4 https://github.com/flutter/flutter.git "$RUNNER_TEMP/tc301-flutter"
+        test "$(git -C "$RUNNER_TEMP/tc301-flutter" rev-parse HEAD)" = "9584c6713b324636289d067944a46fd6b49df14b"
+        echo "$RUNNER_TEMP/tc301-flutter/bin" >> "$GITHUB_PATH"
+        export PATH="$RUNNER_TEMP/tc301-flutter/bin:$PATH"
+        flutter --version
+        flutter config --no-analytics
+        rustup toolchain install 1.99.0 --profile minimal --component rustfmt --component clippy

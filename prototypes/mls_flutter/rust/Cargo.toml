@@ -1,0 +1,21 @@
+[package]
+name = "circlehaven_mls_bridge"
+version = "0.1.0"
+edition = "2021"
+publish = false
+rust-version = "1.99"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.13.0"
+circlehaven-mls-probe = { path = "../../mls", features = ["prototype"] }
+futures-channel = "0.3"
+tempfile = "3.23"
+
+[dev-dependencies]
+futures-executor = "0.3"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

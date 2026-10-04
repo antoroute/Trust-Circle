@@ -6,6 +6,31 @@ use openmls::prelude::{
 };
 use openmls_traits::{crypto::OpenMlsCrypto, types::SignatureScheme};
 
+#[test]
+fn rfc_ref_hash_known_answer_and_label_separation() {
+    use circlehaven_mls_probe::SUITE;
+    use openmls::ciphersuite::hash_ref::HashReference;
+    let vectors: serde_json::Value =
+        serde_json::from_str(include_str!("vectors/rfc9420-subset.json")).unwrap();
+    let v = &vectors["ref_hash"];
+    #[cfg(not(feature = "libcrux"))]
+    let crypto = openmls_rust_crypto::RustCrypto::default();
+    #[cfg(feature = "libcrux")]
+    let crypto = openmls_libcrux_crypto::CryptoProvider::new().unwrap();
+    let value = hex(v["value"].as_str().unwrap());
+    let expected = hex(v["out"].as_str().unwrap());
+    let reference = HashReference::new(
+        &value,
+        SUITE,
+        &crypto,
+        v["label"].as_str().unwrap().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(reference.as_slice(), expected);
+    let other = HashReference::new(&value, SUITE, &crypto, b"DifferentLabel").unwrap();
+    assert_ne!(other.as_slice(), expected);
+}
+
 fn hex(s: &str) -> Vec<u8> {
     s.as_bytes()
         .as_chunks::<2>()

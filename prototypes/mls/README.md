@@ -45,7 +45,12 @@ un format réseau ni une invention cryptographique.
   service de livraison simulé. Le destinataire vérifie via OpenMLS avant fusion.
 - Reprise : aucune instance `MlsGroup` modifiée ne survit à un rollback SQL.
   L'instance crypto reste vivante ; le groupe est actuellement rechargé à chaque
-  transaction. Le futur cache et l'acteur asynchrone restent à concevoir.
+  transaction. Le cache produit reste à concevoir ; un acteur asynchrone de
+  laboratoire est maintenant expérimenté dans `../mls_flutter`.
+- Réception en lot : `receive_batch` accepte 1–100 messages applicatifs privés,
+  au plus 1 Mio au total, dans une transaction unique. Un message altéré,
+  rejoué, un Commit ou une erreur SQL annule tout le lot, état et inbox compris.
+  Les messages de contrôle doivent être traités séparément dans leur ordre.
 
 Important : l'erreur OpenMLS `OwnPrivateMessage` seule n'est **pas une
 authentification** du message local. L'auteur a déjà consommé sa clé d'envoi
@@ -71,7 +76,8 @@ Restaurer malicieusement un ancien fichier complet n'est pas détecté ici.
 L'interopérabilité utilise mls-rs, sans en faire notre moteur produit.
 `tests/vectors` contient un **sous-ensemble** de fixtures publiques OpenMLS
 épinglées, avec provenance, SHA-256 des fichiers amont et notice MIT : formats
-TLS et vérification SignWithLabel. Ni la totalité du corpus RFC ni un audit
+TLS, vérification SignWithLabel et RefHash/séparation des labels. Les Welcome
+sont testés dans les deux directions OpenMLS ↔ mls-rs. Ni la totalité du corpus RFC ni un audit
 indépendant ne sont revendiqués.
 
 ## Mesures reproductibles et limites

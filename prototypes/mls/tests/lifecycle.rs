@@ -217,3 +217,62 @@ fn expired_keypackage_and_forged_own_echo_are_rejected() {
     a.receive(GROUP, &update.message, Fault::None).unwrap();
     assert_eq!(a.epoch(GROUP).unwrap(), 2);
 }
+
+#[test]
+fn bounded_batch_is_atomic_on_tampering_duplicates_and_storage_failure() {
+    let (_dir, mut a, mut b) = pair();
+    let wires: Vec<_> = (0..100)
+        .map(|i| {
+            a.send(GROUP, &format!("batch-{i}"), b"synthetic", Fault::None)
+                .unwrap()
+                .message
+        })
+        .collect();
+    let mut bad = wires.clone();
+    *bad[50].last_mut().unwrap() ^= 1;
+    assert!(b.receive_batch(GROUP, &bad, Fault::None).is_err());
+    assert!(b.inbox(GROUP).unwrap().is_empty());
+    let duplicate = vec![wires[0].clone(), wires[0].clone()];
+    assert!(b.receive_batch(GROUP, &duplicate, Fault::None).is_err());
+    assert!(b.inbox(GROUP).unwrap().is_empty());
+    assert_eq!(
+        b.receive_batch(GROUP, &wires, Fault::BeforeCommit),
+        Err(Error::BeforeCommit)
+    );
+    assert!(b.inbox(GROUP).unwrap().is_empty());
+    assert_eq!(
+        b.receive_batch(GROUP, &wires, Fault::AfterCommit),
+        Err(Error::AfterCommit)
+    );
+    assert_eq!(b.inbox(GROUP).unwrap().len(), 100);
+    assert!(b.receive_batch(GROUP, &wires, Fault::None).is_err());
+    assert_eq!(b.inbox(GROUP).unwrap().len(), 100);
+}
+
+#[test]
+fn batch_rejects_control_messages_and_excess_without_consuming_state() {
+    let (_dir, mut a, mut b) = pair();
+    let wire = a
+        .send(GROUP, "first", b"synthetic", Fault::None)
+        .unwrap()
+        .message;
+    assert!(
+        b.receive_batch(GROUP, &vec![wire.clone(); 101], Fault::None)
+            .is_err()
+    );
+    assert!(
+        b.receive_batch(GROUP, &[vec![0; MAX_WIRE + 1]], Fault::None)
+            .is_err()
+    );
+    assert!(b.receive_batch(GROUP, &[], Fault::None).is_err());
+    let update = a.update(GROUP, "rotate", Fault::None).unwrap();
+    assert!(
+        b.receive_batch(GROUP, &[wire.clone(), update.message.clone()], Fault::None)
+            .is_err()
+    );
+    assert!(b.inbox(GROUP).unwrap().is_empty());
+    assert_eq!(b.epoch(GROUP).unwrap(), 1);
+    b.receive(GROUP, &wire, Fault::None).unwrap();
+    b.receive(GROUP, &update.message, Fault::None).unwrap();
+    assert_eq!(b.epoch(GROUP).unwrap(), 2);
+}

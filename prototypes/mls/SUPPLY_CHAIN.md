@@ -55,6 +55,11 @@ Avant sélection finale du fournisseur, vérifier les graphes pour chaque OS
 et obtenir une trajectoire de remplacement amont si ce chemin est activé.
 Un nouveau diagnostic doit faire l'objet d'une nouvelle revue.
 
+Complément du 2026-10-04 : le lockfile propre au pont Flutter inclut et compile
+`hax-lib-macros` sur Linux via `openmls_rust_crypto → hpke-rs → libcrux-sha3`.
+L'absence constatée dans certains graphes du lot A ne s'étend donc pas au pont.
+Voir `../mls_flutter/README.md` ; l'avis reste visible, sans exception audit.
+
 Sources : [avis RustSec](https://rustsec.org/advisories/RUSTSEC-2026-0173.html),
 [dépôt archivé du mainteneur](https://github.com/GnomedDev/proc-macro-error-2/issues/17).
 
