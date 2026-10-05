@@ -48,6 +48,7 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test integration_test test_driver hook
       - run: flutter analyze
+      - run: node --test scripts/package-lab.test.mjs
       - run: cargo fmt --manifest-path rust/Cargo.toml --check
       - run: cargo clippy --manifest-path rust/Cargo.toml --locked --all-targets -- -D warnings
       - run: cargo test --manifest-path rust/Cargo.toml --locked
@@ -59,6 +60,33 @@ jobs:
       - name: Rendered macOS scenario
         if: runner.os == 'macOS'
         run: flutter drive --profile -d macos --driver test_driver/integration_test.dart --target integration_test/lab_test.dart
+      - name: Rendered transaction measurements
+        if: runner.os == 'Windows' || runner.os == 'macOS'
+        run: |
+          device=macos
+          if [ "$RUNNER_OS" = Windows ]; then device=windows; fi
+          flutter drive --profile -d "$device" --dart-define=LAB_COMMIT="$GITHUB_SHA" --driver test_driver/measurements.dart --target integration_test/measurements_test.dart
+      - name: Build standalone Windows laboratory (not the test entrypoint)
+        if: runner.os == 'Windows'
+        run: |
+          flutter build windows --release --target lib/main.dart --dart-define=LAB_COMMIT="$GITHUB_SHA"
+          node scripts/package-lab.mjs windows
+      - name: Verify and execute the packaged Windows release
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & ./distribution/windows/Verify-Lab.ps1
+          $tcProcess = Start-Process -FilePath ./distribution/windows/app/mls_flutter.exe -ArgumentList '--lab-self-test' -PassThru
+          if (-not $tcProcess.WaitForExit(240000)) { $tcProcess.Kill(); throw 'Packaged lab timed out' }
+          if ($tcProcess.ExitCode -ne 0) { throw 'Packaged lab self-test failed' }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: runner.os == 'Windows'
+        with:
+          name: tc301-lab-windows-x64-${{ github.sha }}
+          path: prototypes/mls_flutter/distribution/windows/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -101,6 +129,22 @@ jobs:
           exit 1
       - name: Execute actual Flutter scenario on Android emulator
         run: flutter drive --debug -d emulator-5554 --driver test_driver/integration_test.dart --target integration_test/lab_test.dart
+      - name: Measure transactions on Android emulator
+        run: flutter drive --debug -d emulator-5554 --dart-define=LAB_COMMIT="$GITHUB_SHA" --driver test_driver/measurements.dart --target integration_test/measurements_test.dart
+      - name: Build standalone Pixel laboratory (not the test entrypoint)
+        run: |
+          flutter build apk --debug --target-platform android-x64 --target lib/main.dart --dart-define=LAB_COMMIT="$GITHUB_SHA"
+          node scripts/package-lab.mjs android
+          "$ANDROID_HOME/platform-tools/adb" install -r distribution/android/circlehaven-mls-lab-x86_64-debug.apk
+          "$ANDROID_HOME/platform-tools/adb" shell am start -W -n fr.kavalek.circlehaven.lab.mls_flutter/.MainActivity
+          "$ANDROID_HOME/platform-tools/adb" shell pidof fr.kavalek.circlehaven.lab.mls_flutter
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tc301-lab-android-x64-debug-${{ github.sha }}
+          path: prototypes/mls_flutter/distribution/android/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -126,6 +170,8 @@ jobs:
           echo "TC_IOS_DEVICE=$tc_ios" >> "$GITHUB_ENV"
       - name: Execute actual Flutter scenario in simulator (not physical battery proof)
         run: flutter drive --debug -d "$TC_IOS_DEVICE" --driver test_driver/integration_test.dart --target integration_test/lab_test.dart
+      - name: Measure transactions in iOS simulator
+        run: flutter drive --debug -d "$TC_IOS_DEVICE" --dart-define=LAB_COMMIT="$GITHUB_SHA" --driver test_driver/measurements.dart --target integration_test/measurements_test.dart
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

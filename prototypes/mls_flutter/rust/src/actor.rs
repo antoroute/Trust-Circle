@@ -93,6 +93,11 @@ fn empty(session: u32) -> LabReply {
         native_ms: 0.0,
         send_ms: 0.0,
         receive_ms: 0.0,
+        receive_begin_ms: 0.0,
+        receive_group_load_ms: 0.0,
+        receive_work_and_sql_ms: 0.0,
+        receive_commit_ms: 0.0,
+        receive_transactions: 0,
     }
 }
 #[derive(Default)]
@@ -232,6 +237,7 @@ impl Session {
                 }
                 let send_ms = ms(start);
                 let start = Instant::now();
+                let mut timings = empty(self.id);
                 for device in
                     self.devices
                         .iter_mut()
@@ -240,9 +246,11 @@ impl Session {
                 {
                     if matches!(action, LabAction::ExchangeBatch) {
                         checked(device.receive_batch(GROUP, &wires, Fault::None))?;
+                        add_receive_timing(&mut timings, device)?;
                     } else {
                         for wire in &wires {
                             checked(device.receive(GROUP, wire, Fault::None))?;
+                            add_receive_timing(&mut timings, device)?;
                         }
                     }
                 }
@@ -260,6 +268,11 @@ impl Session {
                 reply.delivered = count * if self.third_active { 2 } else { 1 };
                 reply.send_ms = send_ms;
                 reply.receive_ms = receive_ms;
+                reply.receive_begin_ms = timings.receive_begin_ms;
+                reply.receive_group_load_ms = timings.receive_group_load_ms;
+                reply.receive_work_and_sql_ms = timings.receive_work_and_sql_ms;
+                reply.receive_commit_ms = timings.receive_commit_ms;
+                reply.receive_transactions = timings.receive_transactions;
                 Ok(reply)
             }
             LabAction::Update => {
@@ -301,6 +314,16 @@ impl Session {
         drop(self.devices);
         self.directory.close().map_err(|_| "cleanup_failed".into())
     }
+}
+
+fn add_receive_timing(reply: &mut LabReply, device: &Device) -> Result<(), String> {
+    let timing = device.last_transaction_timing().ok_or("missing_timing")?;
+    reply.receive_begin_ms += timing.begin_ms;
+    reply.receive_group_load_ms += timing.group_load_ms;
+    reply.receive_work_and_sql_ms += timing.work_and_sql_ms;
+    reply.receive_commit_ms += timing.commit_ms;
+    reply.receive_transactions += 1;
+    Ok(())
 }
 
 #[cfg(test)]

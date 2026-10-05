@@ -40,6 +40,11 @@ class LabReply {
   final double nativeMs;
   final double sendMs;
   final double receiveMs;
+  final double receiveBeginMs;
+  final double receiveGroupLoadMs;
+  final double receiveWorkAndSqlMs;
+  final double receiveCommitMs;
+  final int receiveTransactions;
 
   const LabReply({
     required this.session,
@@ -50,6 +55,11 @@ class LabReply {
     required this.nativeMs,
     required this.sendMs,
     required this.receiveMs,
+    required this.receiveBeginMs,
+    required this.receiveGroupLoadMs,
+    required this.receiveWorkAndSqlMs,
+    required this.receiveCommitMs,
+    required this.receiveTransactions,
   });
 
   @override
@@ -61,7 +71,12 @@ class LabReply {
       queueMs.hashCode ^
       nativeMs.hashCode ^
       sendMs.hashCode ^
-      receiveMs.hashCode;
+      receiveMs.hashCode ^
+      receiveBeginMs.hashCode ^
+      receiveGroupLoadMs.hashCode ^
+      receiveWorkAndSqlMs.hashCode ^
+      receiveCommitMs.hashCode ^
+      receiveTransactions.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -75,5 +90,10 @@ class LabReply {
           queueMs == other.queueMs &&
           nativeMs == other.nativeMs &&
           sendMs == other.sendMs &&
-          receiveMs == other.receiveMs;
+          receiveMs == other.receiveMs &&
+          receiveBeginMs == other.receiveBeginMs &&
+          receiveGroupLoadMs == other.receiveGroupLoadMs &&
+          receiveWorkAndSqlMs == other.receiveWorkAndSqlMs &&
+          receiveCommitMs == other.receiveCommitMs &&
+          receiveTransactions == other.receiveTransactions;
 }

@@ -19,6 +19,11 @@ pub struct LabReply {
     pub native_ms: f64,
     pub send_ms: f64,
     pub receive_ms: f64,
+    pub receive_begin_ms: f64,
+    pub receive_group_load_ms: f64,
+    pub receive_work_and_sql_ms: f64,
+    pub receive_commit_ms: f64,
+    pub receive_transactions: u32,
 }
 
 pub async fn start_lab(parent: String) -> Result<LabReply, String> {

@@ -1,31 +1,53 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 
 import 'lab_runner.dart';
+import 'measurements.dart';
 import 'src/rust/frb_generated.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Standalone Windows bundle check; no Flutter driver or backend required.
+  // Numerical result only, no report paths or private data accepted via CLI.
+  if (args.length == 1 && args.single == '--lab-self-test') {
+    try {
+      await RustLib.init();
+      final result = await runLab();
+      exit(
+        result['delivered'] == 1025 && result['lifecycle_checks'] == 62 ? 0 : 1,
+      );
+    } catch (_) {
+      exit(1);
+    }
+  }
   await RustLib.init();
   runApp(const LabApp());
 }
 
 class LabApp extends StatelessWidget {
-  const LabApp({super.key, this.onReport});
+  const LabApp({
+    super.key,
+    this.onReport,
+    this.measurementPlan = MeasurementPlan.standard,
+  });
   final ValueChanged<Map<String, Object>>? onReport;
+  final MeasurementPlan measurementPlan;
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'CircleHaven — MLS Lab',
     theme: ThemeData(colorSchemeSeed: const Color(0xff20534e)),
-    home: LabPage(onReport: onReport),
+    home: LabPage(onReport: onReport, measurementPlan: measurementPlan),
   );
 }
 
 class LabPage extends StatefulWidget {
-  const LabPage({super.key, this.onReport});
+  const LabPage({super.key, this.onReport, required this.measurementPlan});
   final ValueChanged<Map<String, Object>>? onReport;
+  final MeasurementPlan measurementPlan;
   @override
   State<LabPage> createState() => _LabPageState();
 }
@@ -34,7 +56,7 @@ class _LabPageState extends State<LabPage> {
   bool _running = false;
   String _status = 'Prêt';
   String? _report;
-  Future<void> _run() async {
+  Future<void> _run({bool measure = false}) async {
     if (_running) return;
     setState(() {
       _running = true;
@@ -50,16 +72,24 @@ class _LabPageState extends State<LabPage> {
 
     SchedulerBinding.instance.addTimingsCallback(timings);
     try {
-      final report = await runLab(
-        onProgress: (text) {
-          if (mounted) setState(() => _status = text);
-        },
-      );
+      void progress(String text) {
+        if (mounted) setState(() => _status = text);
+      }
+
+      final report = measure
+          ? await runMeasurements(
+              plan: widget.measurementPlan,
+              onProgress: progress,
+            )
+          : await runLab(onProgress: progress);
+      report['source_commit'] = labSourceCommit;
       report['ui_frame_build'] = statistics(buildTimes);
       report['ui_frame_raster'] = statistics(rasterTimes);
       if (mounted) {
         setState(() {
-          _status = 'Scénario validé';
+          _status = measure
+              ? 'Mesures terminées — budgets non validés'
+              : 'Scénario validé';
           _report = const JsonEncoder.withIndent('  ').convert(report);
         });
       }
@@ -94,11 +124,31 @@ class _LabPageState extends State<LabPage> {
             child: const Text('Exécuter les vérifications'),
           ),
           const SizedBox(height: 16),
+          OutlinedButton(
+            key: const Key('lab-measure'),
+            onPressed: _running ? null : () => _run(measure: true),
+            child: Text('Mesurer (${widget.measurementPlan.sessions} séries)'),
+          ),
+          const Text(
+            'Les mesures répètent des écritures durables et peuvent prendre plusieurs minutes. Ce n’est pas le temps de connexion.',
+          ),
           Text(_status, key: const Key('lab-status')),
           if (_running)
             const Padding(
               padding: EdgeInsets.all(16),
               child: CircularProgressIndicator(),
+            ),
+          if (_report != null)
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: _report!));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Rapport synthétique copié')),
+                  );
+                }
+              },
+              child: const Text('Copier le rapport JSON'),
             ),
           if (_report != null)
             Padding(

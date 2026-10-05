@@ -246,6 +246,11 @@ impl SseDecode for crate::api::lab::LabReply {
         let mut var_nativeMs = <f64>::sse_decode(deserializer);
         let mut var_sendMs = <f64>::sse_decode(deserializer);
         let mut var_receiveMs = <f64>::sse_decode(deserializer);
+        let mut var_receiveBeginMs = <f64>::sse_decode(deserializer);
+        let mut var_receiveGroupLoadMs = <f64>::sse_decode(deserializer);
+        let mut var_receiveWorkAndSqlMs = <f64>::sse_decode(deserializer);
+        let mut var_receiveCommitMs = <f64>::sse_decode(deserializer);
+        let mut var_receiveTransactions = <u32>::sse_decode(deserializer);
         return crate::api::lab::LabReply {
             session: var_session,
             epoch: var_epoch,
@@ -255,6 +260,11 @@ impl SseDecode for crate::api::lab::LabReply {
             native_ms: var_nativeMs,
             send_ms: var_sendMs,
             receive_ms: var_receiveMs,
+            receive_begin_ms: var_receiveBeginMs,
+            receive_group_load_ms: var_receiveGroupLoadMs,
+            receive_work_and_sql_ms: var_receiveWorkAndSqlMs,
+            receive_commit_ms: var_receiveCommitMs,
+            receive_transactions: var_receiveTransactions,
         };
     }
 }
@@ -354,6 +364,11 @@ impl flutter_rust_bridge::IntoDart for crate::api::lab::LabReply {
             self.native_ms.into_into_dart().into_dart(),
             self.send_ms.into_into_dart().into_dart(),
             self.receive_ms.into_into_dart().into_dart(),
+            self.receive_begin_ms.into_into_dart().into_dart(),
+            self.receive_group_load_ms.into_into_dart().into_dart(),
+            self.receive_work_and_sql_ms.into_into_dart().into_dart(),
+            self.receive_commit_ms.into_into_dart().into_dart(),
+            self.receive_transactions.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -416,6 +431,11 @@ impl SseEncode for crate::api::lab::LabReply {
         <f64>::sse_encode(self.native_ms, serializer);
         <f64>::sse_encode(self.send_ms, serializer);
         <f64>::sse_encode(self.receive_ms, serializer);
+        <f64>::sse_encode(self.receive_begin_ms, serializer);
+        <f64>::sse_encode(self.receive_group_load_ms, serializer);
+        <f64>::sse_encode(self.receive_work_and_sql_ms, serializer);
+        <f64>::sse_encode(self.receive_commit_ms, serializer);
+        <u32>::sse_encode(self.receive_transactions, serializer);
     }
 }
 

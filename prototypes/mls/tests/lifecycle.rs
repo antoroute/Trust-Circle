@@ -27,6 +27,42 @@ fn pair() -> (TempDir, Device, Device) {
 }
 
 #[test]
+fn profiling_is_success_only_and_preserves_atomic_receive() {
+    let (_dir, mut a, mut b) = pair();
+    let wire = a
+        .send(GROUP, "timed", b"synthetic", Fault::None)
+        .unwrap()
+        .message;
+    assert!(b.receive(GROUP, &wire, Fault::BeforeCommit).is_err());
+    assert!(b.last_transaction_timing().is_none());
+    assert!(b.inbox(GROUP).unwrap().is_empty());
+    b.receive(GROUP, &wire, Fault::None).unwrap();
+    let timing = b.last_transaction_timing().unwrap();
+    for value in [
+        timing.begin_ms,
+        timing.group_load_ms,
+        timing.work_and_sql_ms,
+        timing.commit_ms,
+    ] {
+        assert!(value.is_finite() && value >= 0.0);
+    }
+    assert!(b.receive(GROUP, &[], Fault::None).is_err());
+    assert!(b.last_transaction_timing().is_none());
+    let batch = vec![
+        a.send(GROUP, "timed-batch", b"synthetic", Fault::None)
+            .unwrap()
+            .message,
+    ];
+    assert!(b.receive_batch(GROUP, &batch, Fault::BeforeCommit).is_err());
+    assert!(b.last_transaction_timing().is_none());
+    b.receive_batch(GROUP, &batch, Fault::None).unwrap();
+    assert!(b.last_transaction_timing().is_some());
+    assert!(b.receive_batch(GROUP, &batch, Fault::None).is_err());
+    assert!(b.last_transaction_timing().is_none());
+    assert_eq!(b.inbox(GROUP).unwrap().len(), 2);
+}
+
+#[test]
 fn lifecycle_add_update_remove_and_future_confidentiality() {
     let (_dir, mut a, mut b) = pair();
     let message = a

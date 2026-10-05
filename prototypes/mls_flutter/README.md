@@ -95,6 +95,13 @@ ces commandes sans nouvel accord du propriétaire.
 
 ## Rapports, mesures et limites
 
+Lot C : le bouton « Mesurer (3 séries) » et le rapport
+`tc301-measurements-v1` détaillent réception/chargement/SQL/commit sans retirer
+les pointes. La copie JSON est explicite. Voir le
+[protocole de mesure et ses limites](../../docs/quality/TC-301-MEASUREMENTS.md).
+La CI teste un plan réduit de 656 réceptions ; le mode interactif en fait
+6 333 en trois sessions indépendantes. Le scénario fonctionnel reste inchangé.
+
 Le bouton affiche le rapport JSON. Le test d'intégration actionne réellement
 ce bouton et recueille les temps des frames Flutter pendant le travail Rust,
 puis écrit `reports/flutter-ui.json`. Il vérifie le rendu de frames, pas un
@@ -136,7 +143,7 @@ cargo cyclonedx --manifest-path rust/Cargo.toml --format json --target all --ove
 ```
 
 Ce SBOM couvre Rust, **pas l'ensemble du paquet Flutter/OS**. Notices et sources
-MPL devront accompagner une distribution. Le graphe Dart est verrouillé, mais la
+MPL accompagnent les paquets internes Windows/Pixel du lot C. Le graphe Dart est verrouillé, mais la
 revue de publication complète reste à faire ; pas de revendication « zéro risque ».
 
 Pour régénérer uniquement les bindings après changement d'API :

@@ -1,7 +1,7 @@
 # TC-301 — Choisir et prototyper le protocole E2EE V3
 
 Statut : En cours — pont du lot B validé sur les quatre OS en CI ; mesures du lot C à poursuivre
-Dernière mise à jour : 2026-10-04
+Dernière mise à jour : 2026-10-05
 Priorité : P0 sécurité
 Décision : propriétaire
 Dépendances : TC-006, TC-112
@@ -118,6 +118,14 @@ notamment avec les pointes Windows et les frames lentes en émulation. Voir le
 [rapport du lot B](../quality/TC-301-FLUTTER_BRIDGE.md) pour l'état réel de CI.
 
 ### Lot C — mesures physiques et décision finale
+
+Sous-lot C1 implémenté, validation CI en cours : chronométrages transactionnels
+sans réduire la durabilité, séries indépendantes, rapports conservant les
+pointes, packaging Windows release / Pixel x86_64 debug avec notices et
+vérification SHA-256. Voir le [rapport C1](../quality/TC-301-MEASUREMENTS.md).
+20 tests moteur/fournisseur et 18 tests Flutter passent localement. Cela ne
+clôture ni les budgets ni le choix fournisseur. C2 : baseline V2 équivalente
+et essais locaux du propriétaire, sans SSH.
 
 - Préparation : [procédure Windows 11 / Pixel virtuel](../quality/TC-301-LOCAL_VALIDATION.md),
   conforme à la préférence du propriétaire ; aucun essai utilisateur effectué

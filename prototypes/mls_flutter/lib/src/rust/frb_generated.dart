@@ -248,8 +248,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   LabReply dco_decode_lab_reply(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return LabReply(
       session: dco_decode_u_32(arr[0]),
       epoch: dco_decode_u_32(arr[1]),
@@ -259,6 +259,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       nativeMs: dco_decode_f_64(arr[5]),
       sendMs: dco_decode_f_64(arr[6]),
       receiveMs: dco_decode_f_64(arr[7]),
+      receiveBeginMs: dco_decode_f_64(arr[8]),
+      receiveGroupLoadMs: dco_decode_f_64(arr[9]),
+      receiveWorkAndSqlMs: dco_decode_f_64(arr[10]),
+      receiveCommitMs: dco_decode_f_64(arr[11]),
+      receiveTransactions: dco_decode_u_32(arr[12]),
     );
   }
 
@@ -323,6 +328,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_nativeMs = sse_decode_f_64(deserializer);
     var var_sendMs = sse_decode_f_64(deserializer);
     var var_receiveMs = sse_decode_f_64(deserializer);
+    var var_receiveBeginMs = sse_decode_f_64(deserializer);
+    var var_receiveGroupLoadMs = sse_decode_f_64(deserializer);
+    var var_receiveWorkAndSqlMs = sse_decode_f_64(deserializer);
+    var var_receiveCommitMs = sse_decode_f_64(deserializer);
+    var var_receiveTransactions = sse_decode_u_32(deserializer);
     return LabReply(
       session: var_session,
       epoch: var_epoch,
@@ -332,6 +342,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       nativeMs: var_nativeMs,
       sendMs: var_sendMs,
       receiveMs: var_receiveMs,
+      receiveBeginMs: var_receiveBeginMs,
+      receiveGroupLoadMs: var_receiveGroupLoadMs,
+      receiveWorkAndSqlMs: var_receiveWorkAndSqlMs,
+      receiveCommitMs: var_receiveCommitMs,
+      receiveTransactions: var_receiveTransactions,
     );
   }
 
@@ -402,6 +417,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_f_64(self.nativeMs, serializer);
     sse_encode_f_64(self.sendMs, serializer);
     sse_encode_f_64(self.receiveMs, serializer);
+    sse_encode_f_64(self.receiveBeginMs, serializer);
+    sse_encode_f_64(self.receiveGroupLoadMs, serializer);
+    sse_encode_f_64(self.receiveWorkAndSqlMs, serializer);
+    sse_encode_f_64(self.receiveCommitMs, serializer);
+    sse_encode_u_32(self.receiveTransactions, serializer);
   }
 
   @protected

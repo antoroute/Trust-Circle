@@ -14,7 +14,11 @@ use openmls_traits::OpenMlsProvider;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{io::Cursor, path::Path, time::Duration};
+use std::{
+    io::Cursor,
+    path::Path,
+    time::{Duration, Instant},
+};
 
 pub const SUITE: Ciphersuite = Ciphersuite::MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519;
 pub const MAX_WIRE: usize = 1_048_576;
@@ -119,11 +123,26 @@ pub enum Received {
     Commit,
 }
 
+/// Successful transaction timings only; contains no identity, key or payload.
+/// Work includes MLS AND its SQLite calls, not isolated cryptographic CPU time.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct TransactionTiming {
+    pub begin_ms: f64,
+    pub group_load_ms: f64,
+    pub work_and_sql_ms: f64,
+    pub commit_ms: f64,
+}
+
+fn elapsed_ms(start: Instant) -> f64 {
+    start.elapsed().as_secs_f64() * 1000.0
+}
+
 /// Exclusive actor-like ownership, plus SQLite BEGIN IMMEDIATE for competing
 /// processes. No cached MlsGroup survives a failed transaction.
 pub struct Device {
     connection: Connection,
     crypto: Engine,
+    last_transaction: Option<TransactionTiming>,
 }
 
 fn decode(wire: &[u8]) -> Result<MlsMessageIn> {
@@ -190,7 +209,11 @@ impl Device {
         let crypto = Engine::default();
         #[cfg(feature = "libcrux")]
         let crypto = mls(Engine::new())?;
-        Ok(Self { connection, crypto })
+        Ok(Self {
+            connection,
+            crypto,
+            last_transaction: None,
+        })
     }
 
     fn atomic<T>(
@@ -198,24 +221,46 @@ impl Device {
         fault: Fault,
         op: impl FnOnce(&Connection, &Provider<'_>) -> Result<T>,
     ) -> Result<T> {
+        self.atomic_profiled(fault, |tx, provider, _timing| op(tx, provider))
+    }
+
+    /// Diagnostic accessor, never a success flag or authorization decision.
+    pub fn last_transaction_timing(&self) -> Option<TransactionTiming> {
+        self.last_transaction
+    }
+
+    fn atomic_profiled<T>(
+        &mut self,
+        fault: Fault,
+        op: impl FnOnce(&Connection, &Provider<'_>, &mut TransactionTiming) -> Result<T>,
+    ) -> Result<T> {
+        self.last_transaction = None;
+        let mut timing = TransactionTiming::default();
+        let started = Instant::now();
         let tx = db(self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate))?;
+        timing.begin_ms = elapsed_ms(started);
+        let started = Instant::now();
         let value = {
             let provider = Provider::new(&tx, &self.crypto);
-            op(&tx, &provider)?
+            op(&tx, &provider, &mut timing)?
         };
+        timing.work_and_sql_ms = (elapsed_ms(started) - timing.group_load_ms).max(0.0);
         match fault {
             Fault::BeforeCommit => return Err(Error::BeforeCommit),
             Fault::CrashBeforeCommit => std::process::exit(86),
             _ => {}
         }
+        let started = Instant::now();
         db(tx.commit())?;
+        timing.commit_ms = elapsed_ms(started);
         match fault {
             Fault::AfterCommit => return Err(Error::AfterCommit),
             Fault::CrashAfterCommit => std::process::exit(87),
             _ => {}
         }
+        self.last_transaction = Some(timing);
         Ok(value)
     }
 
@@ -487,13 +532,16 @@ impl Device {
     /// match with its atomically persisted pending ciphertext may confirm it.
     /// OpenMLS's OwnPrivateMessage hint alone is NEVER sufficient authority.
     pub fn receive(&mut self, group: &[u8], wire: &[u8], fault: Fault) -> Result<Received> {
+        self.last_transaction = None;
         group_input(group)?;
         let message = decode(wire)?;
         if message.wire_format() != WireFormat::PrivateMessage {
             return Err(Error::Input);
         }
-        self.atomic(fault, |tx, provider| {
+        self.atomic_profiled(fault, |tx, provider, timing| {
+            let started = Instant::now();
             let mut state = load(provider, group)?;
+            timing.group_load_ms = elapsed_ms(started);
             let own: Option<Vec<u8>> = db(tx
                 .query_row(
                     "SELECT wire FROM probe_pending WHERE group_id=?1",
@@ -545,6 +593,7 @@ impl Device {
         wires: &[Vec<u8>],
         fault: Fault,
     ) -> Result<usize> {
+        self.last_transaction = None;
         group_input(group)?;
         if wires.is_empty()
             || wires.len() > MAX_BATCH
@@ -563,8 +612,10 @@ impl Device {
                 mls(message.try_into_protocol_message())
             })
             .collect::<Result<Vec<_>>>()?;
-        self.atomic(fault, |tx, provider| {
+        self.atomic_profiled(fault, |tx, provider, timing| {
+            let started = Instant::now();
             let mut state = load(provider, group)?;
+            timing.group_load_ms = elapsed_ms(started);
             for message in messages {
                 let processed = mls(state.process_message(provider, message))?;
                 let ProcessedMessageContent::ApplicationMessage(message) = processed.into_content()
