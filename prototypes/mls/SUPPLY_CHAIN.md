@@ -1,6 +1,14 @@
 # Dépendances du laboratoire TC-301
 
-Revue : 2026-10-03. Ce document n'autorise pas une publication sur les stores.
+Revue initiale : 2026-10-03 ; alerte actualisée : 2026-10-11.
+Ce document n'autorise pas une publication sur les stores.
+
+**Suspension des nouveaux paquets**, décidée par le propriétaire le 11 octobre.
+Les audits actualisés échouent sur `RUSTSEC-2026-0329/0330/0331` (les deux
+derniers dans le lockfile du pont). La release publiée du fournisseur impose
+encore les versions affectées ; attendre une release compatible, sans fork,
+ignore RustSec ou remplacement de fournisseur. Les constats historiques
+restent ci-dessous. Voir [l'analyse et la reprise](../../docs/quality/TC-301-SECURITY_HOLD.md).
 
 ## Versions et frontières
 

@@ -26,6 +26,11 @@ test('inventory detects changes, sorts paths and rejects symlinks', () => {
 test('unknown package targets fail before any writes', () => {
   assert.throws(() => packageLab('../escape'), /Unsupported/);
 });
+test('owner suspension blocks both bundle targets before any build or writes', () => {
+  for (const target of ['windows', 'android']) {
+    assert.throws(() => packageLab(target), /distribution suspended/);
+  }
+});
 
 test('PowerShell verifier accepts intact bundle and rejects tamper, extras and traversal', {
   skip: spawnSync('pwsh', ['-NoProfile', '-Command', 'exit 0']).status !== 0,

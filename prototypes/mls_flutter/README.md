@@ -5,6 +5,12 @@ Identifiant `fr.kavalek.circlehaven.lab.mls_flutter` (variante camelCase Apple).
 Uniquement des identités/messages synthétiques. Les bases SQLite temporaires
 ne sont **pas chiffrées**. Ne pas y introduire de données réelles.
 
+**2026-10-11 : nouveaux paquets suspendus par décision du propriétaire**, en
+attendant des versions amont compatibles après de nouveaux avis RustSec.
+Pas de fork ni de changement de fournisseur. Voir
+[le blocage et la reprise](../../docs/quality/TC-301-SECURITY_HOLD.md).
+Les succès CI ci-dessous sont historiques, pas un audit actuel réussi.
+
 Validation fonctionnelle : les six jobs de la
 [CI 37211775266](https://github.com/antoroute/Trust-Circle/actions/runs/37211775266)
 passent sur `b66f188`, dont les scénarios graphiques des quatre OS.

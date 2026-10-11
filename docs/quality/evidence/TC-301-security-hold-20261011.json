@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-11",
+  "owner_decision": "Suspend new bundles pending compatible upstream releases; no fork or provider quarantine.",
+  "records": [
+    {
+      "file": "prototypes/mls/Cargo.lock",
+      "exit_code": 1,
+      "database": {
+        "advisory-count": 1296,
+        "last-commit": null,
+        "last-updated": null
+      },
+      "vulnerabilities": [
+        {
+          "id": "RUSTSEC-2026-0329",
+          "title": "Auto-Reseeding HMAC-DRBG could panic for some output lengths",
+          "url": "https://github.com/celabshq/libcrux/pull/1558",
+          "package": "libcrux-hmac-drbg",
+          "version": "0.0.1",
+          "patched": [
+            ">=0.0.2"
+          ]
+        },
+        {
+          "id": "RUSTSEC-2026-0330",
+          "title": "Hybrid Encapsulation from Seed Panics on Short Seed",
+          "url": "https://github.com/celabshq/libcrux/pull/1595",
+          "package": "libcrux-kem",
+          "version": "0.0.9",
+          "patched": [
+            ">=0.0.10"
+          ]
+        },
+        {
+          "id": "RUSTSEC-2026-0331",
+          "title": "Panic on Decoding Short Hybrid Keys",
+          "url": "https://github.com/celabshq/libcrux/pull/1560",
+          "package": "libcrux-kem",
+          "version": "0.0.9",
+          "patched": [
+            ">=0.0.10"
+          ]
+        }
+      ],
+      "warnings": {
+        "unmaintained": [
+          {
+            "id": "RUSTSEC-2026-0173",
+            "package": "proc-macro-error2",
+            "version": "2.0.1"
+          }
+        ]
+      }
+    },
+    {
+      "file": "prototypes/mls_flutter/rust/Cargo.lock",
+      "exit_code": 1,
+      "database": {
+        "advisory-count": 1296,
+        "last-commit": null,
+        "last-updated": null
+      },
+      "vulnerabilities": [
+        {
+          "id": "RUSTSEC-2026-0330",
+          "title": "Hybrid Encapsulation from Seed Panics on Short Seed",
+          "url": "https://github.com/celabshq/libcrux/pull/1595",
+          "package": "libcrux-kem",
+          "version": "0.0.9",
+          "patched": [
+            ">=0.0.10"
+          ]
+        },
+        {
+          "id": "RUSTSEC-2026-0331",
+          "title": "Panic on Decoding Short Hybrid Keys",
+          "url": "https://github.com/celabshq/libcrux/pull/1560",
+          "package": "libcrux-kem",
+          "version": "0.0.9",
+          "patched": [
+            ">=0.0.10"
+          ]
+        }
+      ],
+      "warnings": {
+        "unmaintained": [
+          {
+            "id": "RUSTSEC-2026-0173",
+            "package": "proc-macro-error2",
+            "version": "2.0.1"
+          }
+        ]
+      }
+    }
+  ]
+}

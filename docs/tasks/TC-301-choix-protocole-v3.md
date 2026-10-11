@@ -1,7 +1,7 @@
 # TC-301 — Choisir et prototyper le protocole E2EE V3
 
-Statut : En cours — pont du lot B validé sur les quatre OS en CI ; mesures du lot C à poursuivre
-Dernière mise à jour : 2026-10-05
+Statut : En cours — preuves C1 conservées ; nouveaux paquets suspendus en attente de correctifs amont compatibles
+Dernière mise à jour : 2026-10-11
 Priorité : P0 sécurité
 Décision : propriétaire
 Dépendances : TC-006, TC-112
@@ -119,13 +119,16 @@ notamment avec les pointes Windows et les frames lentes en émulation. Voir le
 
 ### Lot C — mesures physiques et décision finale
 
-Sous-lot C1 implémenté, validation CI en cours : chronométrages transactionnels
+Sous-lot C1 implémenté, deux matrices CI du 5 octobre vertes (6/6 chacune) : chronométrages transactionnels
 sans réduire la durabilité, séries indépendantes, rapports conservant les
 pointes, packaging Windows release / Pixel x86_64 debug avec notices et
 vérification SHA-256. Voir le [rapport C1](../quality/TC-301-MEASUREMENTS.md).
 20 tests moteur/fournisseur et 18 tests Flutter passent localement. Cela ne
-clôture ni les budgets ni le choix fournisseur. C2 : baseline V2 équivalente
-et essais locaux du propriétaire, sans SSH.
+clôture ni les budgets ni le choix fournisseur. Le nouvel audit du 11 octobre
+échoue sur RUSTSEC-2026-0329/0330/0331. Le propriétaire choisit de suspendre
+les nouveaux paquets en attendant une version amont compatible, sans fork ni
+changement de fournisseur. Voir [la suspension](../quality/TC-301-SECURITY_HOLD.md).
+C2 (baseline V2 équivalente et essais locaux sans SSH) reprend après levée du blocage.
 
 - Préparation : [procédure Windows 11 / Pixel virtuel](../quality/TC-301-LOCAL_VALIDATION.md),
   conforme à la préférence du propriétaire ; aucun essai utilisateur effectué
@@ -170,6 +173,9 @@ Plan initial conservé comme checklist :
 - contrats API et modèle de données de `TC-310`.
 
 ## Décisions humaines restantes
+
+Décision du 2026-10-11 obtenue : attendre les releases amont compatibles.
+Ne pas appliquer l'autre option proposée de mise en quarantaine de libcrux.
 
 Aucune nouvelle décision de protocole n'est nécessaire pour le lot suivant.
 Le propriétaire confirme le 2026-10-03 disposer uniquement d'Android et

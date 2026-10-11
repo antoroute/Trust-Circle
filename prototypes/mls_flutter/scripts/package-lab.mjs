@@ -33,6 +33,8 @@ function run(command, args) {
 
 export function packageLab(platform) {
   if (!['windows', 'android'].includes(platform)) throw Error('Unsupported bundle target');
+  const policy = JSON.parse(fs.readFileSync(new URL('distribution-policy.json', import.meta.url), 'utf8'));
+  if (policy.suspended !== false) throw Error('Lab bundle distribution suspended: compatible upstream fixes and explicit approval required');
   if (!fs.existsSync('rust/Cargo.lock')) throw Error('Run from prototypes/mls_flutter');
   const commit = run('git', ['rev-parse', 'HEAD']);
   if (!/^[a-f0-9]{40}$/.test(commit)) throw Error('Invalid commit');

@@ -1,25 +1,54 @@
-# Reprise — TC-301, pont validé et mesures du lot C
+# Reprise — TC-301, lot C et suspension des nouveaux paquets
 
 ```text
 Travaille dans /root/Projets/Trust-Circle, branche tc301-mls-prototype.
 Objectif : poursuivre TC-301 lot C ; ne pas activer MLS dans l'app de production.
 
+PRIORITÉ : décision propriétaire du 2026-10-11, suspendre les nouveaux paquets
+en attendant une release amont compatible. Lire TC-301-SECURITY_HOLD.md.
+Ne pas mettre libcrux en quarantaine, ne pas changer de fournisseur, ne pas
+introduire de fork/Git amont mouvant ni d'ignore audit. Les avis publiés le
+7 octobre RUSTSEC-2026-0329/0330/0331 font échouer les audits actualisés.
+Une branche amont corrigée ne vaut pas release publiée. Conserver les verrous
+scripts/distribution-policy.json et TC301_BUNDLES_SUSPENDED du workflow.
+Pas de nouvel essai du propriétaire avec les anciens paquets. Après correctifs
+publiés : revue ciblée, audits, notices/SBOM, régression quatre OS, puis accord
+de reprise avant nouveaux paquets. Aucune surveillance automatique n'est configurée.
+
 Lis entièrement AGENTS.md, docs/PROJECT_CONTEXT.md, la fiche TC-301,
 SECURITY_INVARIANTS.md, ADR-0003, docs/quality/TC-301-MLS_PROTOTYPE.md,
 docs/quality/TC-301-FLUTTER_BRIDGE.md, prototypes/mls/README.md,
-SUPPLY_CHAIN.md et prototypes/mls_flutter/README.md, puis le code et les tests.
+SUPPLY_CHAIN.md et prototypes/mls_flutter/README.md, puis
+docs/quality/TC-301-MEASUREMENTS.md et TC-301-LOCAL_VALIDATION.md,
+le code et les tests.
 Vérifie Git : des changements documentaires préexistants du propriétaire
 peuvent être présents. Ne les réécris pas et ne les inclus pas dans tes commits.
 
+Lot C1 ajouté sur 27ab9c6 : chronométrages transactionnels sans changement de
+durabilité, bouton trois séries (6333 réceptions), CI réduite à 656, copie JSON,
+paquets Windows x64 release et Pixel x86_64 debug avec manifestes/notices/sources
+MPL. CI 37323916095 et native 37323916119 vertes, 6/6 chacune le 5 octobre,
+sur 27ab9c6 ; preuves historiques, pas validation de sécurité du 11 octobre.
+Rapports et échantillons bruts archivés dans evidence/TC-301-c1-ci.json.
+Le moteur instrumenté a 20 tests/fournisseur ;
+18 tests Flutter passent localement. Le plan complet à trois sessions passe
+aussi localement (rapport evidence/TC-301-c1-linux.json).
+Ne pas confondre premier échange après création et cache OS froid. Le temps
+work_and_sql ne sépare pas le CPU cryptographique des appels SQL, et le commit
+n'est pas une mesure directe de fsync. Ne pas additionner les p95. Conserver
+les échantillons et pointes ; budgets_accepted reste false.
+Après levée de la suspension : C2, baseline V2 équivalente et mesures sur Windows 11 /
+Pixel du propriétaire, puis optimisations étayées. Aucun SSH à rouvrir.
+
 Acquis : OpenMLS 0.9.0, MLS1 suite0x0001, RustCrypto de référence, libcrux
-comparatif, stockage/outbox/inbox atomiques, 19 tests par fournisseur dont
+comparatif, stockage/outbox/inbox atomiques, 20 tests par fournisseur dont
 20 cas de crash, interop mls-rs dans les deux directions de Welcome et subset
 de vecteurs avec RefHash. Vérifie les preuves CI
 réelles dans le rapport et l'exécution GitHub, pas seulement le YAML.
 
 Le pont existe dans prototypes/mls_flutter : Flutter 3.47.4, FRB 2.13.0,
 acteur Rust durable, file bornée, max100 messages par lot atomique. 3 tests
-acteur et 15 tests Dart passent localement (dont 13 de configuration NDK) :
+acteur et 18 tests Dart passent localement (dont 13 de configuration NDK) :
 1025 réceptions et 62 contrôles dans le scénario FFI.
 La matrice native 37194481919 est verte, comme la matrice Flutter complète
 37211775266 sur b66f188 (6/6 jobs). Les quatre OS exécutent le scénario
@@ -31,7 +60,7 @@ et flutter drive conservent le chargeur standard : ce sont deux preuves distinct
 Ne confonds pas les ticks Dart, les frames rendues et les mesures sur matériel.
 Prépare le lot C et la comparaison V2/V3 physique, sans activer MLS
 dans l'app ni ajouter de réseau ou de données réelles dans le laboratoire.
-Priorité : artefacts locaux simples, protocole à froid/chaud et isolation des
+À la reprise : artefacts locaux simples, protocole à froid/chaud et isolation des
 pointes de latence Windows (253,60 ms p95 sur cet hôte CI contre cible chaude
 100 ms) et des frames lentes Android debug émulé. Aucun budget n'est accepté.
 Ne réduis pas synchronous=FULL ni les contrôles d'authenticité pour accélérer.

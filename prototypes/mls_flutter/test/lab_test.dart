@@ -55,23 +55,32 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
-  test('measurement stages and cleanup across fresh sessions', () async {
-    final result = await runMeasurements(plan: MeasurementPlan.ci);
-    expect(result['budgets_accepted'], false);
-    final sessions = result['sessions'] as List;
-    expect(sessions, hasLength(1));
-    final run = sessions.single as Map;
-    expect(run['delivered'], MeasurementPlan.ci.receiptsPerSession);
-    final warm = run['after_warmup'] as Map;
-    final samples = warm['samples_ms'] as Map;
-    expect((samples['receive_ms'] as List), hasLength(50));
-    final stats = warm['statistics'] as Map;
-    expect((stats['receive_commit_ms'] as Map)['samples'], 50);
-    final dir = Platform.environment['TC_MLS_REPORT_DIR'];
-    if (dir != null && dir.isNotEmpty) {
-      await Directory(dir).create(recursive: true);
-      await File('$dir/measurements-host.json')
-          .writeAsString(const JsonEncoder.withIndent('  ').convert(result));
-    }
-  }, timeout: const Timeout(Duration(minutes: 4)));
+  test(
+    'measurement stages and cleanup across fresh sessions',
+    () async {
+      const full = bool.fromEnvironment('TC_MLS_FULL_MEASURE');
+      final plan = full ? MeasurementPlan.standard : MeasurementPlan.ci;
+      final result = await runMeasurements(plan: plan);
+      expect(result['budgets_accepted'], false);
+      final sessions = result['sessions'] as List;
+      expect(sessions, hasLength(plan.sessions));
+      for (final run in sessions) {
+        expect(run['delivered'], plan.receiptsPerSession);
+        final warm = run['after_warmup'] as Map;
+        final samples = warm['samples_ms'] as Map;
+        expect((samples['receive_ms'] as List), hasLength(plan.singles));
+        final stats = warm['statistics'] as Map;
+        expect((stats['receive_commit_ms'] as Map)['samples'], plan.singles);
+      }
+      final dir = Platform.environment['TC_MLS_REPORT_DIR'];
+      if (dir != null && dir.isNotEmpty) {
+        await Directory(dir).create(recursive: true);
+        await File('$dir/measurements-host.json')
+            .writeAsString(const JsonEncoder.withIndent('  ').convert(result));
+      }
+    },
+    timeout: const Timeout(
+      Duration(minutes: bool.fromEnvironment('TC_MLS_FULL_MEASURE') ? 15 : 4),
+    ),
+  );
 }

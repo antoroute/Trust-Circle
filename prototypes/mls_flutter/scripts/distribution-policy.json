@@ -1,0 +1,11 @@
+{
+  "suspended": true,
+  "owner_decision_date": "2026-10-11",
+  "reason": "Await compatible upstream OpenMLS/libcrux releases; no fork and no provider quarantine authorized.",
+  "resume_requires": [
+    "Reviewed compatible published upstream versions",
+    "Fresh passing audits of both lockfiles without suppressing vulnerabilities",
+    "Native and Flutter regression validation",
+    "Explicit owner approval to resume bundles and update the workflow gate"
+  ]
+}

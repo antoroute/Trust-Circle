@@ -1,7 +1,7 @@
 # Contexte du projet
 
 Statut : référence de travail
-Dernière mise à jour : 2026-10-04
+Dernière mise à jour : 2026-10-11
 Instantané fonctionnel documenté : branche `main`, Phases 1 et 2 terminées sur staging
 
 ## Mission
@@ -59,11 +59,18 @@ avec RustCrypto et libcrux. Le lot B ajoute un pont Flutter isolé dans
 `prototypes/mls_flutter`, la réception atomique en lot et des tests locaux
 réussis. La CI Flutter `37211775266` valide le scénario graphique sur les quatre
 OS (Windows/macOS profile, Android/iOS émulés/simulés debug), six jobs sur six.
-Le moteur compte maintenant 19 tests/fournisseur et 20 cas de crash, validés
-par la CI native `37194481919`. Prochaine sous-tâche : lot C, artefacts d'essai
-et mesures comparables ; budgets de performance et preuves physiques restent
-ouverts. Les pointes Windows et les frames lentes en émulation sont documentées.
-Voir `quality/TC-301-FLUTTER_BRIDGE.md` pour l'état CI exact. Aucune activation
+Le lot C1 ajoute les chronométrages transactionnels, trois séries de mesures
+et des paquets autonomes Windows/Pixel. Les CI `37323916095` et `37323916119`
+sont vertes sur `27ab9c6` (preuves du 5 octobre) : 20 tests moteur/fournisseur,
+20 cas de crash, 18 tests Flutter et scénarios graphiques des quatre OS.
+Le nouvel audit du 11 octobre échoue sur RUSTSEC-2026-0329/0330/0331.
+Le propriétaire décide de **suspendre les nouveaux paquets en attendant une
+version amont compatible**, sans fork ni changement de fournisseur. La CI
+et le script de packaging bloquent la distribution. Les budgets, la baseline
+V2 et les preuves physiques restent ouverts ; pas de nouveaux essais utilisateur
+avec les anciens paquets. Voir `quality/TC-301-MEASUREMENTS.md` pour les mesures
+et `quality/TC-301-SECURITY_HOLD.md` pour la reprise, avant C2.
+Aucune activation
 V3 ni modification du staging : voir `quality/TC-301-MLS_PROTOTYPE.md` et le
 prompt `prompts/CONTINUE_TC-301.md`. Aucun compte/historique n'est à migrer.
 

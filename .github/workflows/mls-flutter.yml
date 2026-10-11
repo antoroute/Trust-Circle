@@ -27,12 +27,16 @@ defaults:
     shell: bash
 
 env:
+  # Owner decision 2026-10-11: wait for compatible upstream fixes, no fork.
+  # Resume only after dependency review, fresh audit and explicit approval.
+  TC301_BUNDLES_SUSPENDED: 'true'
   CARGO_BUILD_JOBS: '3'
   MACOSX_DEPLOYMENT_TARGET: '14.0'
   IPHONEOS_DEPLOYMENT_TARGET: '15.0'
 
 jobs:
   host:
+    needs: supply-chain
     if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'host'
     strategy:
       fail-fast: false
@@ -67,12 +71,12 @@ jobs:
           if [ "$RUNNER_OS" = Windows ]; then device=windows; fi
           flutter drive --profile -d "$device" --dart-define=LAB_COMMIT="$GITHUB_SHA" --driver test_driver/measurements.dart --target integration_test/measurements_test.dart
       - name: Build standalone Windows laboratory (not the test entrypoint)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.TC301_BUNDLES_SUSPENDED != 'true'
         run: |
           flutter build windows --release --target lib/main.dart --dart-define=LAB_COMMIT="$GITHUB_SHA"
           node scripts/package-lab.mjs windows
       - name: Verify and execute the packaged Windows release
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.TC301_BUNDLES_SUSPENDED != 'true'
         shell: pwsh
         run: |
           & ./distribution/windows/Verify-Lab.ps1
@@ -80,7 +84,7 @@ jobs:
           if (-not $tcProcess.WaitForExit(240000)) { $tcProcess.Kill(); throw 'Packaged lab timed out' }
           if ($tcProcess.ExitCode -ne 0) { throw 'Packaged lab self-test failed' }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.TC301_BUNDLES_SUSPENDED != 'true'
         with:
           name: tc301-lab-windows-x64-${{ github.sha }}
           path: prototypes/mls_flutter/distribution/windows/
@@ -96,6 +100,7 @@ jobs:
           retention-days: 30
 
   android:
+    needs: supply-chain
     if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'android'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -132,6 +137,7 @@ jobs:
       - name: Measure transactions on Android emulator
         run: flutter drive --debug -d emulator-5554 --dart-define=LAB_COMMIT="$GITHUB_SHA" --driver test_driver/measurements.dart --target integration_test/measurements_test.dart
       - name: Build standalone Pixel laboratory (not the test entrypoint)
+        if: env.TC301_BUNDLES_SUSPENDED != 'true'
         run: |
           flutter build apk --debug --target-platform android-x64 --target lib/main.dart --dart-define=LAB_COMMIT="$GITHUB_SHA"
           node scripts/package-lab.mjs android
@@ -139,6 +145,7 @@ jobs:
           "$ANDROID_HOME/platform-tools/adb" shell am start -W -n fr.kavalek.circlehaven.lab.mls_flutter/.MainActivity
           "$ANDROID_HOME/platform-tools/adb" shell pidof fr.kavalek.circlehaven.lab.mls_flutter
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: env.TC301_BUNDLES_SUSPENDED != 'true'
         with:
           name: tc301-lab-android-x64-debug-${{ github.sha }}
           path: prototypes/mls_flutter/distribution/android/
@@ -153,6 +160,7 @@ jobs:
           retention-days: 30
 
   ios-simulator:
+    needs: supply-chain
     if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'ios-simulator'
     runs-on: macos-15
     timeout-minutes: 45
@@ -180,7 +188,8 @@ jobs:
           retention-days: 30
 
   supply-chain:
-    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'supply-chain'
+    # Mandatory before any runtime job or downloadable executable, including
+    # targeted dispatches. A historical green audit is not a current clearance.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

@@ -1,8 +1,13 @@
 # TC-301 — essais locaux Windows / Pixel virtuel
 
-Date : 2026-10-04. Préparation du lot C, **aucun essai utilisateur réalisé**.
+Date : 2026-10-11. Préparation du lot C, **aucun essai utilisateur réalisé**.
 Le propriétaire possède Windows 11 et un Samsung S23 mais préfère commencer
 par un émulateur Pixel d'Android Studio. Aucun accès SSH à son PC n'est requis.
+
+**Procédure suspendue** : le propriétaire a choisi d'attendre une version amont
+compatible après les nouvelles alertes RustSec. Ne pas installer les anciens
+paquets ni lancer ces essais pour une nouvelle validation. Les commandes sont
+conservées pour la reprise après [levée du blocage](TC-301-SECURITY_HOLD.md).
 
 ## Ce que cet essai peut valider
 
@@ -18,6 +23,10 @@ Ces essais virtuels ne valident ni autonomie, ni veille, ni stockage sécurisé
 matériel. Ils permettent d'avancer sans demander un accès distant au PC.
 
 ## Prérequis pour exécuter depuis les sources
+
+Pour éviter cette installation complète, privilégier les paquets décrits
+ci-dessous une fois leur CI validée. Flutter/Rust/Visual Studio ne sont alors
+pas nécessaires ; Android Studio reste nécessaire pour l'émulateur.
 
 - Copie locale du dépôt, branche `tc301-mls-prototype`, au commit de CI retenu
   dans le rapport. Utiliser son propre accès GitHub, jamais le jeton du serveur.
@@ -92,6 +101,67 @@ flutter run --debug -d emulator-5554
 Ne pas installer l'APK de laboratoire comme une mise à jour de la messagerie.
 Son identifiant Android est `fr.kavalek.circlehaven.lab.mls_flutter`. La signature
 de développement n'est pas une signature de publication sur un store.
+
+## Paquets sans compilation locale — lot C1
+
+Ouvrir la CI dont le commit et le résultat sont indiqués dans le
+[rapport C1](TC-301-MEASUREMENTS.md), avec son propre compte GitHub. Dans
+« Artifacts », télécharger le paquet Windows ou Android portant **ce même
+SHA**. Les artefacts expirent après 30 jours ; une disparition impose un
+nouveau build vérifié, pas un téléchargement depuis un miroir inconnu.
+
+Extraire **tout** le ZIP dans un dossier distinct. Ne pas mélanger deux builds.
+Ouvrir PowerShell dans ce dossier et lire `README.txt` / `manifest.json`.
+Pour vérifier les hashes :
+
+```powershell
+powershell.exe -NoProfile -File .\Verify-Lab.ps1
+```
+
+Si la politique locale interdit le script, ne pas désactiver la protection
+globalement. Après vérification de la provenance GitHub et du script, une
+exception limitée à ce seul processus peut être utilisée :
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Verify-Lab.ps1
+```
+
+Attendre « Verified … files ». Les hashes ne sont pas une signature d'éditeur.
+En cas d'échec, ne pas lancer le paquet et ne pas corriger le manifeste à la main.
+
+### Windows 11 x64
+
+```powershell
+.\app\mls_flutter.exe
+```
+
+Garder le dossier `app` complet, DLL et données comprises. Le laboratoire
+n'est pas signé pour un store. Si Windows ou l'antivirus le bloque, partager
+le message assaini ; ne pas désactiver l'antivirus. Si le runtime Visual C++
+est absent, signaler le message plutôt que récupérer des DLL isolées.
+
+1. Cliquer « Exécuter les vérifications » : attendu 1 025 réceptions/62 contrôles.
+2. Cliquer « Mesurer (3 séries) » : attendu 3 × 2 111 réceptions. Plusieurs
+   minutes possibles : ce sont des milliers d'écritures, pas une connexion.
+3. Cliquer « Copier le rapport JSON » et partager volontairement le texte.
+   Conserver les trois séries et les pointes, sans tri ou suppression.
+
+### Pixel API 35 x86_64
+
+Démarrer l'AVD voulu dans Android Studio. Ces commandes supposent l'emplacement
+SDK habituel et **emulator-5554** ; vérifier puis adapter uniquement ces deux
+valeurs si nécessaire. Ne pas choisir un téléphone connecté par inadvertance.
+
+```powershell
+$tcAdb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+& $tcAdb devices
+& $tcAdb -s emulator-5554 install -r .\circlehaven-mls-lab-x86_64-debug.apk
+& $tcAdb -s emulator-5554 shell am start -n fr.kavalek.circlehaven.lab.mls_flutter/.MainActivity
+```
+
+Effectuer les mêmes deux boutons et copier le rapport. L'APK x86_64 n'est pas
+compatible avec le S23 ARM. Le mode debug émulé ne valide pas les budgets
+physiques. Aucun port réseau, SSH, service ou backend à ouvrir.
 
 ## Compte rendu à partager
 
