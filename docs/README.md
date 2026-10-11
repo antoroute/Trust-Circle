@@ -18,6 +18,8 @@ Cette documentation est la source de contexte pour le produit, l'architecture, l
 - [TC-301 lot C1 : mesures et paquets historiques](quality/TC-301-MEASUREMENTS.md)
 - [TC-301 : suspension de distribution et conditions de reprise](quality/TC-301-SECURITY_HOLD.md)
 - [Reprendre TC-301 : prompt structuré](prompts/CONTINUE_TC-301.md)
+- [TC-302 : socle de spécification V3 — brouillon, non activé](security/CRYPTOGRAPHY_V3.md)
+- [Reprendre TC-302 : revue documentaire indépendante du gel des paquets](prompts/CONTINUE_TC-302.md)
 - [Règles pour assistants](../AGENTS.md)
 
 ## Références par domaine

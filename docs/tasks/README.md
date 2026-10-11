@@ -46,6 +46,7 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 ## Index Phase 3
 
 - [TC-301 — Choix et prototype du protocole V3](TC-301-choix-protocole-v3.md)
+- [TC-302 — Spécification V3 : préparation documentaire pendant la suspension](TC-302-specification-v3.md)
 
 ## Format obligatoire des nouvelles fiches
 

@@ -1,7 +1,7 @@
 # Roadmap de développement vers la V1
 
-Statut : plan directeur initial
-Dernière mise à jour : 2026-09-15
+Statut : plan directeur suivi ; avancement détaillé dans les fiches
+Dernière mise à jour : 2026-10-12
 
 ## Mode d'emploi
 
@@ -85,33 +85,41 @@ restent des portes avant bêta.
 
 ## Phase 3 — Protocole E2EE V3 et multi-appareil
 
-Au 2026-10-04, le lot A natif et le pont Flutter du lot B sont implémentés dans
-des laboratoires isolés, sans activation MLS dans l'application. Le scénario
-graphique est validé en CI sur les quatre OS, six jobs sur six (`37211775266`).
-TC-301 reste en cours : lot C, mesures comparables, budgets et preuves
-appareils/énergie attendus avant clôture. Les pointes de latence ne sont pas
-masquées par la réussite fonctionnelle. Voir les rapports
-[natif](../quality/TC-301-MLS_PROTOTYPE.md),
-[Flutter](../quality/TC-301-FLUTTER_BRIDGE.md) et le
-[prompt de reprise](../prompts/CONTINUE_TC-301.md). L'ADR-0003 acceptée
-reste la décision de référence, sans nouvelle migration de données V2.
+Au 2026-10-11, les lots A/B et C1 de TC-301 disposent de preuves historiques
+dans les laboratoires isolés, sans activation MLS dans l'application. Les
+matrices C1 du 5 octobre sont vertes ; les audits actualisés échouent depuis
+la publication de nouveaux avis RustSec. Le propriétaire a choisi de
+[suspendre les nouveaux paquets](../quality/TC-301-SECURITY_HOLD.md) jusqu'à une
+release amont compatible et sa revalidation, sans fork ni changement de fournisseur.
+TC-301 reste ouverte : C2, baseline, budgets, appareils/énergie et choix final
+du fournisseur ne sont pas validés. Voir les [mesures C1](../quality/TC-301-MEASUREMENTS.md)
+et le [prompt TC-301](../prompts/CONTINUE_TC-301.md).
+
+La préparation documentaire de [TC-302](../tasks/TC-302-specification-v3.md)
+commence en parallèle : [socle V3 v0.1](../security/CRYPTOGRAPHY_V3.md),
+non approuvé pour implémentation. Cela ne satisfait pas sa dépendance de
+clôture à TC-301. La suspension n'est pas levée. L'ADR-0003 acceptée reste
+la décision de référence ; aucun compte/historique V2 n'est à migrer.
 
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code | TC-301 |
+| TC-302 | Écrire la spécification V3 indépendante du code — lot A documentaire préparé, non validé | TC-301 pour clôture ; préparation indépendante possible |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |
 | TC-306 | Corriger stockage sécurisé et espaces de noms par compte/appareil | TC-303 |
-| TC-307 | Concevoir coexistence et migration V2 → V3 | TC-302 à TC-306 |
+| TC-307 | Préparer le démarrage V3 à vide et le retrait de V2, sans downgrade | TC-302 à TC-306 |
 | TC-308 | Produire vecteurs de test interopérables | TC-305 |
 | TC-309 | Ajouter tests négatifs, rejoués et fuzzing parseurs | TC-308 |
 | TC-310 | Adapter le relayage/persistance backend V3 sans accès au clair | TC-307 |
 | TC-311 | Implémenter V3 et le cycle multi-appareil côté Flutter | TC-306 à TC-310 |
 | TC-312 | Faire auditer le protocole et corriger les constats | TC-311 |
 
-Porte de sortie : protocole spécifié, migrable, testé sur toutes les plateformes et revu indépendamment ; affichage uniquement après vérification.
+Porte de sortie : protocole spécifié, démarrage V3 neuf et rollback sans downgrade
+testés, preuves sur les plateformes cibles et revue indépendante ; affichage
+uniquement après vérification. L'absence de données historiques supprime la
+migration V2, pas les migrations de schéma ni les tests de reprise.
 
 ## Phase 4 — Comptes et récupération
 

@@ -130,6 +130,10 @@ les nouveaux paquets en attendant une version amont compatible, sans fork ni
 changement de fournisseur. Voir [la suspension](../quality/TC-301-SECURITY_HOLD.md).
 C2 (baseline V2 équivalente et essais locaux sans SSH) reprend après levée du blocage.
 
+Pendant la suspension, seule la préparation documentaire de
+[TC-302](TC-302-specification-v3.md) est engagée : socle V3 et revue des scénarios.
+Elle ne remplace aucune preuve de TC-301 et ne débloque pas les paquets.
+
 - Préparation : [procédure Windows 11 / Pixel virtuel](../quality/TC-301-LOCAL_VALIDATION.md),
   conforme à la préférence du propriétaire ; aucun essai utilisateur effectué
   et aucune réouverture SSH. La simulation ne valide pas la batterie du S23.
