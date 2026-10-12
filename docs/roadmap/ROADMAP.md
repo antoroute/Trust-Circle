@@ -96,15 +96,17 @@ du fournisseur ne sont pas validés. Voir les [mesures C1](../quality/TC-301-MEA
 et le [prompt TC-301](../prompts/CONTINUE_TC-301.md).
 
 La préparation documentaire de [TC-302](../tasks/TC-302-specification-v3.md)
-commence en parallèle : [socle V3 v0.1](../security/CRYPTOGRAPHY_V3.md),
-non approuvé pour implémentation. Cela ne satisfait pas sa dépendance de
+avance en parallèle : [socle V3 v0.2](../security/CRYPTOGRAPHY_V3.md),
+non approuvé pour implémentation ; [revue interne du lot B](../quality/TC-302-SPEC_REVIEW.md)
+consignée et huit constats ouverts. Les fiches TC-303/304/305 sont préparées,
+pas démarrées. Cela ne satisfait pas la dépendance de
 clôture à TC-301. La suspension n'est pas levée. L'ADR-0003 acceptée reste
 la décision de référence ; aucun compte/historique V2 n'est à migrer.
 
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code — lot A documentaire préparé, non validé | TC-301 pour clôture ; préparation indépendante possible |
+| TC-302 | Écrire la spécification V3 indépendante du code — lots A/B documentaires, constats ouverts | TC-301 pour clôture ; préparation indépendante possible |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |

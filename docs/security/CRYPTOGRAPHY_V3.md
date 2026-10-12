@@ -1,6 +1,6 @@
 # Cryptographie V3 — socle de spécification CircleHaven
 
-Version : 0.1 — brouillon de TC-302 lot A, non approuvé pour implémentation
+Version : 0.2 — brouillon après revue interne TC-302 lot B, non approuvé pour implémentation
 Date : 2026-10-12
 Décisions acquises : [ADR-0003](../adr/ADR-0003-protocole-crypto-v3.md),
 [ADR-0005](../adr/ADR-0005-confiance-appareil-compte.md),
@@ -26,6 +26,11 @@ Les contrats binaires de TC-303/305 et la politique d'époques de TC-304 restent
 à produire. Aucun format inventé pour combler un champ « à définir » ne doit
 être intégré au produit. Le laboratoire TC-301 est une preuve partielle, pas
 une spécification normative de ces champs.
+
+La [revue contradictoire interne](../quality/TC-302-SPEC_REVIEW.md) examine
+huit séquences de panne ou d'abus. Ses constats R01–R08 sont attribués, pas
+clos. Les trois questions structurelles R02/R07/R08 exigent une conclusion
+de faisabilité et de menace avant acceptation du socle.
 
 ### Écarts documentaires identifiés
 
@@ -174,6 +179,8 @@ autorisée par CircleHaven. Pas d'activation implicite de fonctions hors profil.
 
 Un retry reprend exactement les mêmes octets persistés. Réutiliser le même
 identifiant avec un autre contenu est un conflit, pas une nouvelle émission.
+La présence en outbox ne suffit pas à autoriser une réémission : un Commit
+perdant ou une époque devenue interdite doit être traité selon TC-304/502.
 Le serveur accepte idempotemment les octets et attribue un curseur ; son ACK
 signifie « persisté par le service », pas « lu ou vérifié par tous les pairs ».
 La copie locale envoyée est nécessaire pour l'historique : ne pas compter sur
@@ -214,7 +221,10 @@ Commit par groupe et époque source, conformément à l'ADR-0003 :
 
 Le service ne peut pas garantir la validité cryptographique d'un Commit privé
 qu'il ne déchiffre pas. Son acceptation de transport n'est pas une validation
-MLS. Un candidat invalide, un serveur qui présente deux branches ou une liaison
+MLS. La position d'un candidat ordonné, la transition validée localement et
+la disponibilité du groupe sont trois états distincts. Un compteur serveur
+incrémenté ne constitue pas une preuve d'époque pour les clients. Un candidat
+invalide, un serveur qui présente deux branches ou une liaison
 Welcome/Commit falsifiée exigent un arrêt sûr et une reprise définie ; leur
 traitement détaillé est un **blocage de spécification TC-304/310**. Ne pas
 modifier aveuglément l'époque ni demander au serveur les clés pour résoudre ce cas.
@@ -260,6 +270,10 @@ Un ciphertext applicatif invalide ne doit ni produire de clair ni bloquer par
 retries infinis tous les messages suivants. TC-309/504 doivent définir une
 quarantaine bornée et un état d'échec durable ; un Commit invalide ne peut pas
 simplement être sauté pour prétendre avoir atteint l'époque suivante.
+Un duplicata exact déjà traité, un identifiant en conflit et un objet non
+authentifiable sont distingués. Une étiquette « doublon » du serveur n'autorise
+pas à supprimer un message sans contrôle. Un traitement par sous-lots repart
+de l'état durable après rollback, jamais d'un ratchet partiellement avancé.
 
 **V3-016 — Historique et secrets distincts.** La rétention serveur de 90 jours
 porte sur les enveloppes applicatives, pas une conservation automatique de
@@ -301,6 +315,9 @@ résistance à une coupure électrique ni détection de restauration d'ancien di
 L'ancrage anti-rollback reste à concevoir ; ne pas prétendre qu'un compteur
 dans la même base suffit. La suppression logique n'est pas une preuve
 d'effacement physique de tous les secrets sur SSD.
+La fraîcheur de l'état d'envoi doit être établie avant de chiffrer à nouveau
+après restauration, pas seulement avant l'upload. TC-306 doit définir les
+hypothèses de restauration/compromission locale et les preuves propres à chaque OS.
 
 **V3-018 — Chemin courant asynchrone.** Moteur natif durable, traitement
 sérialisé par groupe, files bornées et backpressure. Aucun calcul lourd sur le
@@ -394,7 +411,8 @@ invalide et preuve d'autorisation des changements de rôles (TC-304/310).
 Le fait qu'un membre MLS puisse signer ne prouve pas qu'il est administrateur
 CircleHaven ; la validation des changements doit couvrir les deux niveaux.
 
-Prochaine action : revue contradictoire **TC-302 lot B**, puis décisions ciblées
-et fiches de spécialisation. La rédaction ne remplace ni TC-301 C2 ni une revue
+La revue **TC-302 lot B** est consignée, avec huit constats encore ouverts et
+les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1**, étude de
+faisabilité ciblée R02/R07/R08 et décisions reçues. La rédaction ne remplace ni TC-301 C2 ni une revue
 cryptographique indépendante. Ce document ne doit pas être déclaré final tant
 que les dépendances et la revue de la fiche TC-302 restent ouvertes.

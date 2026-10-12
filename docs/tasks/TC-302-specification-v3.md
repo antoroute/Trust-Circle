@@ -1,6 +1,6 @@
 # TC-302 — Spécification indépendante du protocole V3
 
-Statut : En cours — lot A documentaire ; validation finale bloquée par TC-301
+Statut : En cours — lots A/B documentaires réalisés ; constats ouverts, clôture bloquée par TC-301
 Priorité : critique avant intégration
 Date : 2026-10-12
 Responsable de décision : propriétaire du produit pour les compromis UX ; revue sécurité pour le contrat
@@ -42,16 +42,17 @@ TC-303 à TC-305, puis intégrés sans changer silencieusement ce socle.
 
 ## Lots et ordre de travail
 
-1. **A — socle documentaire (ce lot)** : vocabulaire, frontières, profil MLS,
+1. **A — socle documentaire (réalisé)** : vocabulaire, frontières, profil MLS,
    transactions, synchronisation, menace et matrice d'acceptation ; corriger
    TC-307 dans la roadmap pour refléter un démarrage à vide.
-2. **B — revue contradictoire du contrat** : parcourir les scénarios de perte
+2. **B — revue contradictoire du contrat (réalisée, constats ouverts)** : parcourir les scénarios de perte
    réseau, appareil révoqué hors ligne, Commit concurrent/invalide et Welcome
    prématuré ; préparer les choix produit nécessaires et les fiches TC-303/304/305.
    Travail documentaire possible pendant la suspension, pas validation runtime.
-3. **C — stabilisation du socle** : incorporer les conclusions TC-301 après
-   levée de la suspension et preuves manquantes, revoir les divergences documentaires,
-   accepter le contrat de base avant d'engager l'implémentation.
+3. **C — stabilisation du socle** : C1, étude de faisabilité R02/R07/R08 et
+   arbitrages reçus, possible sous forme documentaire pendant la suspension ;
+   C2, incorporer les conclusions TC-301 après levée de la suspension et preuves
+   manquantes, aligner les références et accepter le contrat de base avant implémentation.
 
 TC-303/304/305 approfondissent ensuite le socle accepté. Leurs détails ne sont
 pas présentés comme déjà résolus par TC-302 ; la spécification finale reste
@@ -59,14 +60,15 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 
 ## Critères d'acceptation
 
-- [x] Socle v0.1 rédigé, explicitement non approuvé et non implémenté.
+- [x] Socle rédigé (v0.1 puis v0.2), explicitement non approuvé et non implémenté.
 - [x] Standard MLS séparé des règles CircleHaven et du comportement du laboratoire.
 - [x] Relations compte/appareil/cercle/conversation/groupe et frontière serveur définies.
 - [x] Création, ajout, retrait, message, reprise et échecs décrits au niveau contractuel.
 - [x] Exigences de persistance, authenticité et performance reliées à des scénarios.
 - [x] Absence de migration V2 et interdiction de downgrade consignées.
 - [x] Décisions ouvertes et écarts avec les anciens documents attribués.
-- [ ] Revue contradictoire du lot B achevée et constats traités/attribués.
+- [x] Revue contradictoire interne du lot B consignée : huit constats attribués, non clos.
+- [ ] Faisabilité et hypothèses des bloqueurs structurels R02/R07/R08 établies avant acceptation du socle.
 - [ ] TC-301 close avec fournisseur, dépendances et budgets étayés.
 - [ ] Socle accepté et références documentaires alignées, sans écraser les modifications du propriétaire.
 
@@ -89,6 +91,24 @@ réussi. Les deux verrous de distribution restent activés et inchangés.
 Aucun test runtime, build, appel à la VM ou essai sur appareil n'est effectué
 dans ce lot documentaire. Ces contrôles ne constituent pas une revue crypto.
 
+### Lot B — revue interne
+
+Le [rapport](../quality/TC-302-SPEC_REVIEW.md) suit huit séquences d'événements,
+distingue panne réseau, membre hostile et serveur compromis, et attribue chaque
+constat à des exigences/scénarios et une tâche. Le socle v0.2 précise l'autorité
+limitée de l'ACK, la réémission conditionnelle de l'outbox, le traitement d'un
+lot hostile et la fraîcheur de l'état avant chiffrement après restauration.
+
+Les fiches TC-303/304/305 sont préparées avec critères et preuves, statut « À
+faire ». Aucune décision Q1–Q5 n'est présumée acceptée ; Q1 a été demandée au
+propriétaire. Le lot B n'est pas un audit indépendant ni un test runtime.
+
+Contrôles documentaires : 139 liens relatifs valides, 20 exigences et 20
+scénarios cohérents, huit constats reliés à ces identifiants et trois fiches
+maintenues au statut « À faire ». `git diff --check` réussi ; deux verrous de
+distribution toujours actifs. Aucun test applicatif ou multiplateforme relancé,
+car seuls des documents changent ; aucune propriété crypto nouvelle n'est prouvée.
+
 ## Risques, reset et retour arrière
 
 La principale menace documentaire serait de transformer des hypothèses en
@@ -110,9 +130,10 @@ une décision explicite en vigueur, pas une option à retirer automatiquement.
 
 ## Livrables et reprise
 
-- [Socle V3 v0.1](../security/CRYPTOGRAPHY_V3.md).
+- [Socle V3 v0.2](../security/CRYPTOGRAPHY_V3.md).
+- [Revue interne du lot B](../quality/TC-302-SPEC_REVIEW.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).
 
-Prochaine sous-tâche : **TC-302 lot B**, sans nouveaux paquets. TC-301 C2 reste
+Prochaine sous-tâche : **TC-302 C1**, faisabilité et arbitrages, sans nouveaux paquets. TC-301 C2 reste
 à reprendre selon les conditions de sa suspension, sans être sauté.

@@ -47,6 +47,9 @@ Les fiches transforment la roadmap en unités confiables pour un développement 
 
 - [TC-301 — Choix et prototype du protocole V3](TC-301-choix-protocole-v3.md)
 - [TC-302 — Spécification V3 : préparation documentaire pendant la suspension](TC-302-specification-v3.md)
+- [TC-303 — Identité et confiance MLS : fiche préparée, à faire](TC-303-identite-confiance-v3.md)
+- [TC-304 — Époques, révocation et reprise : fiche préparée, à faire](TC-304-epoques-revocation-v3.md)
+- [TC-305 — Encodages, domaines et limites : fiche préparée, à faire](TC-305-formats-limites-v3.md)
 
 ## Format obligatoire des nouvelles fiches
 

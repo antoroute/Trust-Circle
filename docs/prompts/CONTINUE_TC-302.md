@@ -3,15 +3,16 @@
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
 préparation documentaire est sur tc301-mls-prototype, datée du 2026-10-12.
-Objectif : TC-302 lot B, revue contradictoire du socle V3 v0.1.
+Objectif : TC-302 C1, faisabilité des points structurels du socle V3 v0.2.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
 Lis entièrement AGENTS.md, docs/PROJECT_CONTEXT.md,
 docs/tasks/TC-302-specification-v3.md, docs/security/SECURITY_INVARIANTS.md,
 docs/adr/ADR-0003-protocole-crypto-v3.md,
 docs/adr/ADR-0005-confiance-appareil-compte.md,
-docs/product/V1_DECISIONS.md, docs/security/CRYPTOGRAPHY_V3.md et
-docs/quality/TC-301-SECURITY_HOLD.md ; puis les documents et le code réellement
+docs/product/V1_DECISIONS.md, docs/security/CRYPTOGRAPHY_V3.md,
+docs/quality/TC-302-SPEC_REVIEW.md et docs/quality/TC-301-SECURITY_HOLD.md ;
+puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
 
 Décision propriétaire toujours en vigueur : suspendre les nouveaux paquets
@@ -27,28 +28,39 @@ Aucune donnée V2 à migrer. TC-307 signifie démarrage V3 à vide et retrait de
 V2 sans downgrade ; ce n'est pas l'autorisation d'effacer une VM maintenant.
 Ne modifier ni staging/production, ni OPNsense, ni accès SSH au PC.
 
-Lot A disponible : CRYPTOGRAPHY_V3.md, exigences V3-001 à V3-020 et scénarios
+Lots A/B disponibles : CRYPTOGRAPHY_V3.md, exigences V3-001 à V3-020 et scénarios
 S01 à S20. Tous sont des critères cibles ; les tests « partiel labo » ne
 valident pas le contrat CircleHaven complet. Les formats binaires, l'identité,
 les politiques d'époque et la gestion du hors ligne restent à préciser.
 
-Pour le lot B :
-1. Rejouer sur papier les séquences avec deux appareils du même compte,
-   un troisième membre, coupure réseau et changement d'appartenance.
-2. Chercher une contradiction entre ACK serveur, Commit accepté au transport,
-   Commit vérifié, Welcome délivré et fusion locale. Un Commit privé est
-   opaque au serveur : il ne peut pas en certifier la validité cryptographique.
-3. Examiner le Commit perdant/invalide, l'écho exact de l'auteur et le serveur
-   qui présente des vues différentes. OwnPrivateMessage n'est pas une preuve.
-4. Définir les options pour appareil révoqué hors ligne, état ancien restauré,
-   journal expiré, message retardé et lot contenant un élément hostile.
-   Ne pas inventer une promesse de révocation instantanée universelle.
-5. Présenter les décisions produit Q1–Q5 au moment où elles deviennent utiles,
-   avec une recommandation motivée et ses coûts UX/sécurité. Ne pas transformer
-   les propositions du brouillon en décisions déjà acceptées.
-6. Préparer les fiches TC-303/304/305 à partir des constats, sans déclarer leur
-   dépendance TC-302 satisfaite ni implémenter de formats non approuvés.
-7. Vérifier liens, couverture des exigences, diff et absence de code modifié.
+La revue interne du lot B a produit R01–R08. Ils sont attribués, NON résolus.
+Les fiches TC-303/304/305 existent et restent « À faire ». Ne pas répéter leur
+création ni présenter la revue sur papier comme des tests exécutés.
+
+Pour TC-302 C1 :
+1. R02 : étudier le traitement d'un candidat Commit privé invalide ordonné par
+   le serveur. Distinguer position de transport et époque validée par un client.
+   Préciser disponibilité et reprise sans fusion de branches ni rollback de
+   secrets. Aucun quorum utilisateur n'est autorisé par le périmètre V1.
+2. R07 : étudier l'ancrage de fraîcheur d'un état restauré sur les OS cibles,
+   avant tout nouveau chiffrement. Un compteur dans la base restaurée ne suffit
+   pas. Séparer protection contre crash, restauration et appareil compromis ;
+   comparer des solutions maintenues, leurs limites et le coût de reprise.
+3. R08 : identifier les options d'ancrage de première confiance et de détection
+   des vues divergentes du service d'identité ; vérifier les sources primaires,
+   licences et hypothèses, sans créer un protocole de transparence maison.
+4. Documenter options, recommandation, limites, preuves requises et effets UX.
+   Une attribution à TC-303/304/306 ne ferme pas ces bloqueurs structurels.
+5. Lire toute réponse du propriétaire à Q1 avant d'en déduire une décision.
+   Question posée : approbation rapide puis activation en arrière-plan, messages
+   futurs à partir de l'admission MLS effective, sans ceux de l'intervalle ?
+   L'absence de réponse ne vaut pas accord. Présenter les autres Q2–Q5 seulement
+   avec leurs options utiles et coûts UX/sécurité ; ne pas les décider en silence.
+6. Mettre à jour la spécification et les fiches sans démarrer leur implémentation.
+   Une architecture de base viable et TC-301 close sont requises pour accepter
+   TC-302 ; aucune de ces conditions n'est actuellement annoncée acquise.
+7. Vérifier liens, couverture exigences/scénarios/constats, diff et absence de
+   code, dépendances, paquets ou infrastructure modifiés.
 
 Préserve les neuf documents déjà modifiés par le propriétaire : contexte,
 index, ADR-0003, PLATFORM_COMPATIBILITY, TRACEABILITY, CRYPTOGRAPHY_V2,

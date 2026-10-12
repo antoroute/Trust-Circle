@@ -74,11 +74,14 @@ Aucune activation
 V3 ni modification du staging : voir `quality/TC-301-MLS_PROTOTYPE.md` et le
 prompt `prompts/CONTINUE_TC-301.md`. Aucun compte/historique n'est à migrer.
 
-La préparation documentaire de `TC-302` est datée du 12 octobre : socle V3 v0.1
+La préparation documentaire de `TC-302` est datée du 12 octobre : socle V3 v0.2
 dans `security/CRYPTOGRAPHY_V3.md`, exigences et scénarios d'acceptation, sans
 code intégré ni décision de fournisseur. TC-301 n'est pas clôturée et la
-suspension reste en vigueur. La suite indépendante est la revue TC-302 lot B
-(`prompts/CONTINUE_TC-302.md`) ; la validation finale de TC-302 attend TC-301.
+suspension reste en vigueur. La revue interne TC-302 lot B est consignée dans
+`quality/TC-302-SPEC_REVIEW.md` : huit constats ouverts, fiches TC-303/304/305
+préparées mais non démarrées. La suite documentaire est TC-302 C1, faisabilité
+des bloqueurs structurels et arbitrages (`prompts/CONTINUE_TC-302.md`) ;
+la validation finale de TC-302 attend TC-301.
 TC-307 est réalignée sur un démarrage V3 à vide, sans coexistence de données V2
 ni downgrade. Les divergences des anciens documents sont tracées dans le socle,
 sans écraser les modifications locales du propriétaire.
