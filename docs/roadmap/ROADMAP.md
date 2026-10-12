@@ -96,12 +96,17 @@ du fournisseur ne sont pas validés. Voir les [mesures C1](../quality/TC-301-MEA
 et le [prompt TC-301](../prompts/CONTINUE_TC-301.md).
 
 La préparation documentaire de [TC-302](../tasks/TC-302-specification-v3.md)
-avance en parallèle : [socle V3 v0.2](../security/CRYPTOGRAPHY_V3.md),
+avance en parallèle : [socle V3 v0.3](../security/CRYPTOGRAPHY_V3.md),
 non approuvé pour implémentation ; [revue interne du lot B](../quality/TC-302-SPEC_REVIEW.md)
 consignée et huit constats ouverts. Les fiches TC-303/304/305 sont préparées,
 pas démarrées. Cela ne satisfait pas la dépendance de
 clôture à TC-301. La suspension n'est pas levée. L'ADR-0003 acceptée reste
 la décision de référence ; aucun compte/historique V2 n'est à migrer.
+
+Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
+V3 vers appareil/personne. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
+décrit l'étude et ses impacts ; politique, coûts et inclusion V1 à confirmer.
+Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 
 | ID | Tâche | Dépend de |
 |---|---|---|

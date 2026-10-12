@@ -103,6 +103,14 @@ Les fiches TC-303/304/305 sont préparées avec critères et preuves, statut « 
 faire ». Aucune décision Q1–Q5 n'est présumée acceptée ; Q1 a été demandée au
 propriétaire. Le lot B n'est pas un audit indépendant ni un test runtime.
 
+Réponse à Q1 reçue le 12 octobre : partage d'historique facultatif souhaité
+vers un nouvel appareil et une nouvelle personne, si les ressources et la
+complexité restent raisonnables. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
+enregistre ce besoin, les limites et un découpage conditionnel ; le socle passe
+en v0.3. Ce n'est pas un accord à la restriction aux seuls messages futurs.
+La politique d'autorisation a été demandée ; faisabilité et inclusion V1 restent
+à confirmer. Les anciennes preuves du lot B n'incluent pas ce nouveau périmètre.
+
 Contrôles documentaires : 139 liens relatifs valides, 20 exigences et 20
 scénarios cohérents, huit constats reliés à ces identifiants et trois fiches
 maintenues au statut « À faire ». `git diff --check` réussi ; deux verrous de
@@ -130,7 +138,7 @@ une décision explicite en vigueur, pas une option à retirer automatiquement.
 
 ## Livrables et reprise
 
-- [Socle V3 v0.2](../security/CRYPTOGRAPHY_V3.md).
+- [Socle V3 v0.3](../security/CRYPTOGRAPHY_V3.md).
 - [Revue interne du lot B](../quality/TC-302-SPEC_REVIEW.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).

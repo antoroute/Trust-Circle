@@ -74,7 +74,7 @@ Aucune activation
 V3 ni modification du staging : voir `quality/TC-301-MLS_PROTOTYPE.md` et le
 prompt `prompts/CONTINUE_TC-301.md`. Aucun compte/historique n'est à migrer.
 
-La préparation documentaire de `TC-302` est datée du 12 octobre : socle V3 v0.2
+La préparation documentaire de `TC-302` est datée du 12 octobre : socle V3 v0.3
 dans `security/CRYPTOGRAPHY_V3.md`, exigences et scénarios d'acceptation, sans
 code intégré ni décision de fournisseur. TC-301 n'est pas clôturée et la
 suspension reste en vigueur. La revue interne TC-302 lot B est consignée dans
@@ -85,6 +85,14 @@ la validation finale de TC-302 attend TC-301.
 TC-307 est réalignée sur un démarrage V3 à vide, sans coexistence de données V2
 ni downgrade. Les divergences des anciens documents sont tracées dans le socle,
 sans écraser les modifications locales du propriétaire.
+
+Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
+d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve
+d'un coût raisonnable en ressources et complexité. Voir
+`adr/ADR-0008-partage-historique-optionnel.md` (proposée). Ne pas considérer Q1
+comme acceptation du seul accès aux messages futurs. Admission MLS et copie
+sélective d'historique sont à distinguer ; aucune ancienne clé MLS à transférer.
+La politique d'autorisation et l'inclusion V1 restent à valider, pas implémentées.
 
 
 Les principaux bloqueurs restants sont : stockage SQLite insuffisamment protégé, protocole V3 choisi mais non implémenté ni audité, fiabilité hors ligne fragile, compatibilité desktop incomplète et configuration de release non préparée. La confusion entre access et refresh tokens a été fermée par `TC-102`, l'identité d'envoi est dérivée du JWT par `TC-103`, les autorisations cercle/conversation/rôle sont centralisées par `TC-104`, et `TC-105` rend atomiques les contrôles et écritures Messaging critiques avec événements post-commit. Les lots A à D de `TC-106`, désormais validés sur staging, isolent l'identité locale, prouvent sa possession, permettent l'approbation signée, lient chaque access token à la clé privée de l'appareil et propagent rotation ou révocation globale sans détruire les clés historiques. `TC-107` borne les corps, structures, identifiants, collections et données cryptographiques HTTP/Socket.IO. `TC-108` applique une allowlist CORS exacte, une confiance proxy par CIDR, des quotas HTTP/Socket.IO sans aller-retour supplémentaire et des ACK d'abonnement immédiats ; son fonctionnement est décrit dans `security/NETWORK_BOUNDARY.md`. `TC-109` retire du client, des backends et du staging le faux secret partagé extractible, sans le remplacer ni ajouter d'appel réseau. `TC-111` rend les scénarios négatifs d'identité, ACL, rôles, appareils, clés et Socket.IO reproductibles sur les suites locales et PostgreSQL staging. `TC-110` met les deux backends à zéro avis `npm audit`, met notamment Fastify et Socket.IO à niveau et conserve les 117 tests backend ainsi que le smoke adversarial. `TC-114` impose désormais l'authentification du message avant tout usage du texte et respecte les budgets Android/Windows. Avec l'exposition TLS restreinte de `TC-113`, la Phase 1 est terminée. `TC-201` adopte Sqitch 1.6.1 et valide une baseline réversible sur PostgreSQL 16 jetable ; `TC-202` recrée le staging à vide depuis cette baseline et enregistre ses six changements. L'inventaire Docker détaillé est dans `docs/operations/PRODUCTION_INVENTORY.md`.
@@ -110,7 +118,9 @@ Pour reprendre rapidement le projet, lire ensuite `docs/architecture/FUNCTIONAL_
 - Calendrier, fichiers, localisation, appels, client Web complet et paiement sont hors V1 acceptée.
 - Toutes les conversations V1 appartiennent à un cercle ; aucun message individuel hors cercle commun.
 - Les rôles sont propriétaire, administrateur et membre, sans quorum d'approbation en V1.
-- Un nouvel appareil ne reçoit que les nouveaux messages ; une récupération totale ne restaure pas l'ancien historique E2EE.
+- La baseline excluait l'ancien historique sur un nouvel appareil ; le partage
+  facultatif appareil/personne est maintenant demandé et étudié dans l'ADR-0008.
+  La récupération du compte ne recrée toujours pas les clés ou contenus perdus.
 - Les enveloppes chiffrées sont conservées 90 jours sur le serveur par défaut.
 - Ne pas affirmer « confidentialité parfaite », « forward secrecy », « post-compromise security » ou « équivalent Signal » tant que ces propriétés n'ont pas été conçues, testées et auditées.
 - L'E2EE protège le contenu, pas automatiquement les métadonnées telles que comptes, appartenances, appareils, horodatages, adresses réseau et journaux techniques.

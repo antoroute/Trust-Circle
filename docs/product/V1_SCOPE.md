@@ -50,3 +50,8 @@ Une personne non technique peut installer l'application, créer un compte vérif
 Les rôles, approbations, conséquences de récupération, historique, rétention, personas, parcours et seuils de bêta sont définis dans `docs/product/V1_DECISIONS.md`.
 
 Tout changement de cette liste passe par une décision explicite de scope et une mise à jour d'ADR-0002.
+
+Demande du 2026-10-12 : le propriétaire souhaite un partage d'historique
+facultatif vers nouvel appareil et nouvelle personne, si son coût reste
+raisonnable. Cette extension est étudiée dans l'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md) ;
+elle ne constitue pas encore une fonctionnalité V1 validée ou implémentée.

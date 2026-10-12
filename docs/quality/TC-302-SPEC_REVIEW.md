@@ -43,6 +43,11 @@ scénario S06 avec les trois instants, deux conversations et Welcome retardé.
 Responsables : [TC-303](../tasks/TC-303-identite-confiance-v3.md),
 [TC-304](../tasks/TC-304-epoques-revocation-v3.md). Statut : ouvert, produit.
 
+Suivi du 12 octobre après la revue : le propriétaire souhaite pouvoir choisir
+de partager l'historique vers appareil ou nouvelle personne, sous réserve de
+ressources/complexité raisonnables. Voir l'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md).
+R01 n'est pas fermé : la copie d'historique est à spécifier séparément de l'admission.
+
 ## R02 — Commit privé invalide retenu par le serveur
 
 Séquence : un membre autorisé envoie un ciphertext déclaré Commit pour l'époque e.

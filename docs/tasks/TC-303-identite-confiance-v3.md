@@ -69,5 +69,7 @@ acceptés. Aucun ancien compte/secret à migrer. Revenir sur le document ne rév
 aucun appareil réel ; toute modification future du registre exige migrations,
 tests et plan de retour arrière dédiés.
 
-Demander Q1 et Q4 avant leur gel. La [suspension TC-301](../quality/TC-301-SECURITY_HOLD.md)
+Q1 a reçu une demande de partage facultatif appareil/personne, pas un accord au
+seul historique futur. Finaliser sa politique selon l'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
+et demander Q4 avant gel. La [suspension TC-301](../quality/TC-301-SECURITY_HOLD.md)
 reste active ; cette fiche n'autorise aucun paquet ni changement de fournisseur.

@@ -1,6 +1,6 @@
 # Cryptographie V3 — socle de spécification CircleHaven
 
-Version : 0.2 — brouillon après revue interne TC-302 lot B, non approuvé pour implémentation
+Version : 0.3 — brouillon intégrant la demande d'historique facultatif, non approuvé pour implémentation
 Date : 2026-10-12
 Décisions acquises : [ADR-0003](../adr/ADR-0003-protocole-crypto-v3.md),
 [ADR-0005](../adr/ADR-0005-confiance-appareil-compte.md),
@@ -45,7 +45,11 @@ de faisabilité et de menace avant acceptation du socle.
   Les instants et la garantie exacte doivent être alignés dans TC-304 ; ce
   brouillon ne diminue pas silencieusement l'invariant.
 - « Après approbation » dans les décisions V1 ne définit pas le sort des messages
-  entre approbation de compte et ajout au groupe. La question Q1 doit être résolue.
+  entre approbation de compte et ajout au groupe. En réponse à Q1 le 12 octobre,
+  le propriétaire demande un partage facultatif d'historique vers appareil
+  et personne, si le coût reste raisonnable. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
+  étudie cette extension ; les exclusions historiques de V1 ne valent plus
+  refus définitif, mais aucun contrat de partage n'est encore approuvé.
 
 Les modifications locales préexistantes du propriétaire dans ces références
 sont préservées. Leur alignement ciblé fait partie de la revue avant acceptation,
@@ -126,12 +130,15 @@ le Welcome légitime. Consommation, groupe et suppression des secrets devenus
 inutiles doivent former une transition durable. Ne jamais remettre en circulation
 un KeyPackage déjà exposé à une admission concurrente sans règle validée.
 
-**V3-006 — Pas de transfert d'ancien historique.** Approbation du registre,
+**V3-006 — Admission et historique explicite.** Approbation du registre,
 admission dans un groupe et disponibilité des nouveaux messages sont trois
-états différents. Le nouvel appareil n'obtient ni clés d'anciennes époques ni
-historique depuis un autre appareil. L'application doit afficher l'attente
-d'ajout au groupe au lieu d'annoncer une synchronisation complète.
-La borne temporelle exacte et le texte utilisateur restent la question Q1.
+états différents. Le nouvel appareil n'obtient pas les clés d'anciennes époques.
+Le partage d'une copie sélectionnée de l'historique, demandé pour un nouvel
+appareil ou une nouvelle personne, exige un contrat séparé (ADR-0008 proposée),
+une source autorisée et un nouveau chiffrement, jamais la copie d'un état MLS.
+L'application doit distinguer l'attente d'admission du transfert de contenu,
+sans annoncer un historique complet quand il est partiel. La politique de
+partage et sa faisabilité restent ouvertes ; aucun import implicite autorisé.
 
 La récupération totale révoque les anciennes sessions/appareils et crée une
 nouvelle identité selon le parcours renforcé de TC-404. Elle ne réactive pas
@@ -379,7 +386,7 @@ runtime n'accompagne cette préparation documentaire.
 | S03 — faux auteur | V3-003, V3-004 | 1, 10, 16 | JWT, routage et credential contradictoires : aucun auteur usurpé | TC-303/310 |
 | S04 — appareil fantôme | V3-004 | 10, 11 | KeyPackage valide cryptographiquement mais identité non approuvée : refus | TC-303/309 |
 | S05 — Welcome concurrent | V3-005, V3-012 | 7, 10 | Réservation concurrente, Welcome perdant/rejoué/expiré : aucune double admission ; partiel labo | TC-304/310 |
-| S06 — nouvel appareil | V3-006 | 13, 25 | Pas d'historique antérieur ; frontière approbation/admission rendue visible | TC-303/311 |
+| S06 — nouvel appareil/personne | V3-006 | 10, 13, 16, 25 | Pas de clés anciennes ni d'import implicite ; partage demandé à spécifier selon ADR-0008, provenance distincte et admission visible | TC-303/311 |
 | S07 — entrée hostile | V3-008 | 14, 15 | Limites, extensions, longueurs, octets résiduels : pas de panic ni allocation non bornée ; partiel labo | TC-305/309 |
 | S08 — retry d'envoi | V3-009 | 21 | Même opération et restart : octets identiques ; autre contenu : conflit ; partiel labo | TC-501/502 |
 | S09 — clair non authentifié | V3-010 | 16, 17, 18 | Altération ou erreur SQL : aucun affichage/index/push et aucun ratchet partiel ; partiel labo | TC-309/311 |
@@ -399,7 +406,7 @@ runtime n'accompagne cette préparation documentaire.
 
 | Question | Proposition à évaluer, non décision acquise | Responsable / blocage |
 |---|---|---|
-| Q1 — début d'accès du nouvel appareil | Nouveaux messages à partir de l'admission MLS effective dans chaque conversation ; afficher l'attente après approbation | Produit + TC-303/304 ; confirmer la formulation V1 |
+| Q1 — accès et partage facultatif | Réponse reçue : choix de partager ou non vers appareil/personne si coût raisonnable ; copie sélective proposée, pas transfert d'anciennes clés | ADR-0008 proposée ; autorité, faisabilité et inclusion V1 à valider |
 | Q2 — durée hors ligne et anciennes époques | Favoriser le rattrapage ordonné, avec rétention de secrets strictement bornée ; pas de chiffre choisi sans mesure/menace | Produit + TC-304 ; bloque politique FS/reprise |
 | Q3 — retrait et changement de membres | Mise à jour automatique avec état visible ; aucun nouvel envoi sur état connu obsolète ; préciser le cas dernier appareil disponible | Produit + TC-304/310 ; bloque garantie de révocation |
 | Q4 — confiance contre serveur compromis | Définir ancrage initial, preuves d'appareils et solution de détection d'équivoque ; QR manuel seul ne vaut pas transparence automatique | Sécurité + propriétaire, TC-303 ; bloque revendication forte |

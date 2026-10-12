@@ -3,13 +3,14 @@
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
 préparation documentaire est sur tc301-mls-prototype, datée du 2026-10-12.
-Objectif : TC-302 C1, faisabilité des points structurels du socle V3 v0.2.
+Objectif : TC-302 C1, faisabilité des points structurels du socle V3 v0.3.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
 Lis entièrement AGENTS.md, docs/PROJECT_CONTEXT.md,
 docs/tasks/TC-302-specification-v3.md, docs/security/SECURITY_INVARIANTS.md,
 docs/adr/ADR-0003-protocole-crypto-v3.md,
 docs/adr/ADR-0005-confiance-appareil-compte.md,
+docs/adr/ADR-0008-partage-historique-optionnel.md (proposée),
 docs/product/V1_DECISIONS.md, docs/security/CRYPTOGRAPHY_V3.md,
 docs/quality/TC-302-SPEC_REVIEW.md et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
@@ -51,11 +52,15 @@ Pour TC-302 C1 :
    licences et hypothèses, sans créer un protocole de transparence maison.
 4. Documenter options, recommandation, limites, preuves requises et effets UX.
    Une attribution à TC-303/304/306 ne ferme pas ces bloqueurs structurels.
-5. Lire toute réponse du propriétaire à Q1 avant d'en déduire une décision.
-   Question posée : approbation rapide puis activation en arrière-plan, messages
-   futurs à partir de l'admission MLS effective, sans ceux de l'intervalle ?
-   L'absence de réponse ne vaut pas accord. Présenter les autres Q2–Q5 seulement
-   avec leurs options utiles et coûts UX/sécurité ; ne pas les décider en silence.
+5. Réponse Q1 reçue le 12 octobre : le propriétaire veut choisir de partager
+   l'historique ou non, vers appareil ET nouvelle personne, si ressources et
+   complexité restent raisonnables. Ne pas lui attribuer un accord au seul
+   accès futur. Lire ADR-0008 et toute réponse à la question sur l'autorité
+   de partage (propriétaire/admin participant, ou chacun ses propres messages).
+   Étudier copie sélective rechiffrée, source disponible, provenance distincte,
+   destinataires limités et priorité au direct, sans exporter clés/états MLS.
+   Ni autorisations finales ni inclusion V1 décidées ; aucune implémentation
+   automatique. Présenter Q2–Q5 seulement avec options et coûts UX/sécurité.
 6. Mettre à jour la spécification et les fiches sans démarrer leur implémentation.
    Une architecture de base viable et TC-301 close sont requises pour accepter
    TC-302 ; aucune de ces conditions n'est actuellement annoncée acquise.
