@@ -105,7 +105,10 @@ la décision de référence ; aucun compte/historique V2 n'est à migrer.
 
 Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
 V3 vers appareil/personne. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
-décrit l'étude et ses impacts ; politique, coûts et inclusion V1 à confirmer.
+décrit l'étude et ses impacts. L'autorité de partage vers une nouvelle personne
+est décidée : propriétaire/admin participant, période choisie et événement
+visible par les membres ; vers son propre appareil, confirmation depuis un
+appareil déjà approuvé. Contrat détaillé, coûts et inclusion V1 restent à confirmer.
 Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 
 | ID | Tâche | Dépend de |

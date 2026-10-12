@@ -137,8 +137,12 @@ Le partage d'une copie sélectionnée de l'historique, demandé pour un nouvel
 appareil ou une nouvelle personne, exige un contrat séparé (ADR-0008 proposée),
 une source autorisée et un nouveau chiffrement, jamais la copie d'un état MLS.
 L'application doit distinguer l'attente d'admission du transfert de contenu,
-sans annoncer un historique complet quand il est partiel. La politique de
-partage et sa faisabilité restent ouvertes ; aucun import implicite autorisé.
+sans annoncer un historique complet quand il est partiel. Autorité décidée le
+12 octobre : propriétaire ou administrateur participant à la conversation pour
+une nouvelle personne, avec choix de période et événement visible par les
+membres ; appareil déjà approuvé pour confirmer un transfert vers son propre
+appareil. Le contrat détaillé et sa faisabilité restent ouverts ; aucun import
+implicite autorisé.
 
 La récupération totale révoque les anciennes sessions/appareils et crée une
 nouvelle identité selon le parcours renforcé de TC-404. Elle ne réactive pas
@@ -404,9 +408,9 @@ runtime n'accompagne cette préparation documentaire.
 
 ## 10. Points ouverts et prochaine revue
 
-| Question | Proposition à évaluer, non décision acquise | Responsable / blocage |
+| Question | Décision reçue ou proposition à évaluer | Responsable / blocage |
 |---|---|---|
-| Q1 — accès et partage facultatif | Réponse reçue : choix de partager ou non vers appareil/personne si coût raisonnable ; copie sélective proposée, pas transfert d'anciennes clés | ADR-0008 proposée ; autorité, faisabilité et inclusion V1 à valider |
+| Q1 — accès et partage facultatif | Partage facultatif demandé si coût raisonnable ; autorité décidée : propriétaire/admin participant, période choisie et événement visible ; appareil déjà approuvé pour son propre appareil. Copie sélective proposée, pas d'anciennes clés | ADR-0008 proposée ; contrat détaillé, faisabilité et inclusion V1 à valider |
 | Q2 — durée hors ligne et anciennes époques | Favoriser le rattrapage ordonné, avec rétention de secrets strictement bornée ; pas de chiffre choisi sans mesure/menace | Produit + TC-304 ; bloque politique FS/reprise |
 | Q3 — retrait et changement de membres | Mise à jour automatique avec état visible ; aucun nouvel envoi sur état connu obsolète ; préciser le cas dernier appareil disponible | Produit + TC-304/310 ; bloque garantie de révocation |
 | Q4 — confiance contre serveur compromis | Définir ancrage initial, preuves d'appareils et solution de détection d'équivoque ; QR manuel seul ne vaut pas transparence automatique | Sécurité + propriétaire, TC-303 ; bloque revendication forte |

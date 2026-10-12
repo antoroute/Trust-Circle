@@ -100,16 +100,22 @@ limitée de l'ACK, la réémission conditionnelle de l'outbox, le traitement d'u
 lot hostile et la fraîcheur de l'état avant chiffrement après restauration.
 
 Les fiches TC-303/304/305 sont préparées avec critères et preuves, statut « À
-faire ». Aucune décision Q1–Q5 n'est présumée acceptée ; Q1 a été demandée au
-propriétaire. Le lot B n'est pas un audit indépendant ni un test runtime.
+faire ». À l'issue de cette revue, aucune décision Q1–Q5 n'était présumée
+acceptée ; les réponses ultérieures sont consignées ci-dessous. Le lot B
+n'est pas un audit indépendant ni un test runtime.
 
 Réponse à Q1 reçue le 12 octobre : partage d'historique facultatif souhaité
 vers un nouvel appareil et une nouvelle personne, si les ressources et la
 complexité restent raisonnables. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
 enregistre ce besoin, les limites et un découpage conditionnel ; le socle passe
 en v0.3. Ce n'est pas un accord à la restriction aux seuls messages futurs.
-La politique d'autorisation a été demandée ; faisabilité et inclusion V1 restent
-à confirmer. Les anciennes preuves du lot B n'incluent pas ce nouveau périmètre.
+Arbitrage complémentaire reçu le 12 octobre : le partage vers une nouvelle
+personne sera autorisé par le propriétaire ou un administrateur participant à
+la conversation, avec choix de la période et événement visible par les membres.
+Le transfert vers son propre appareil sera confirmé depuis un appareil déjà
+approuvé. Ne pas redemander cet arbitrage. Contrat détaillé, faisabilité et
+inclusion V1 restent à confirmer ; l'ADR demeure proposée pour ces aspects.
+Les anciennes preuves du lot B n'incluent pas ce nouveau périmètre.
 
 Contrôles documentaires : 139 liens relatifs valides, 20 exigences et 20
 scénarios cohérents, huit constats reliés à ces identifiants et trois fiches

@@ -55,12 +55,15 @@ Pour TC-302 C1 :
 5. Réponse Q1 reçue le 12 octobre : le propriétaire veut choisir de partager
    l'historique ou non, vers appareil ET nouvelle personne, si ressources et
    complexité restent raisonnables. Ne pas lui attribuer un accord au seul
-   accès futur. Lire ADR-0008 et toute réponse à la question sur l'autorité
-   de partage (propriétaire/admin participant, ou chacun ses propres messages).
+   accès futur. Autorité décidée le 12 octobre : propriétaire ou administrateur
+   participant à la conversation, choix de période et événement visible pour
+   les membres ; vers son propre appareil, confirmation depuis un appareil
+   déjà approuvé. Ne pas redemander ce choix. Lire ADR-0008 pour les limites.
    Étudier copie sélective rechiffrée, source disponible, provenance distincte,
    destinataires limités et priorité au direct, sans exporter clés/états MLS.
-   Ni autorisations finales ni inclusion V1 décidées ; aucune implémentation
-   automatique. Présenter Q2–Q5 seulement avec options et coûts UX/sécurité.
+   Contrat détaillé, faisabilité et inclusion V1 restent à valider ; cette
+   décision d'autorité n'accepte pas l'ADR entière et ne lance aucune
+   implémentation. Présenter Q2–Q5 seulement avec options et coûts UX/sécurité.
 6. Mettre à jour la spécification et les fiches sans démarrer leur implémentation.
    Une architecture de base viable et TC-301 close sont requises pour accepter
    TC-302 ; aucune de ces conditions n'est actuellement annoncée acquise.

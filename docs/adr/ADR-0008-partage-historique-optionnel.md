@@ -3,7 +3,7 @@
 Statut : Proposée
 Date : 2026-10-12
 Origine : réponse du propriétaire à Q1 de TC-302
-Portée : demande produit prise en compte ; politique, faisabilité et inclusion V1 à valider
+Portée : autorité de partage décidée ; contrat détaillé, faisabilité et inclusion V1 à valider
 Décisions concernées : ADR-0002, volet historique d'ADR-0003 ; aucune remplacée à ce stade
 
 ## Contexte et demande
@@ -37,23 +37,30 @@ fonction d'import prête à l'emploi fournie par OpenMLS.
 - Identifier la source, la période, les destinataires et les éventuels trous.
   « Tout » ne signifie pas que le service peut retrouver un historique effacé.
 
-### Deux autorisations différentes
+### Autorité de partage — décision produit du 12 octobre 2026
 
-| Cas | Proposition, à valider |
+Le propriétaire a choisi « Propriétaire ou administrateur de la conversation »
+en réponse à la question sur l'autorisation d'un partage vers une nouvelle
+personne. La règle retenue comprend la participation à la conversation, le
+choix de la période et un événement visible par les membres. La question
+précisait aussi la confirmation depuis un appareil déjà approuvé pour un
+transfert vers son propre appareil. Ne pas redemander cet arbitrage.
+
+| Cas | Règle produit retenue |
 |---|---|
 | Nouvel appareil du même compte | Confirmation depuis un appareil déjà approuvé du compte, qui possède l'historique ; vérification de l'appareil destinataire et des conversations autorisées |
 | Nouvelle personne | Propriétaire/administrateur autorisé dans la conversation et participant à celle-ci, avec historique disponible ; période explicite, confirmation et événement visible par les membres |
 
 Être administrateur du cercle ne donne pas accès à une conversation privée dont
 on n'est pas membre. Posséder une copie ne doit pas à lui seul donner un droit
-applicatif de la republier à un nouvel utilisateur. L'autre politique possible
-est de ne laisser chacun partager que ses propres messages ; elle est plus
-restrictive et offre moins facilement un historique cohérent.
+applicatif de la republier à un nouvel utilisateur. L'alternative limitant
+chacun au partage de ses propres messages n'est pas la politique retenue.
 
-Le choix pour les nouvelles personnes a été demandé au propriétaire. Aucune
-réponse n'est présumée. Il faut aussi décider de la portée de cette permission
-pour les messages d'anciens membres et des informations montrées avant confirmation.
-Un événement visible ne vaut pas consentement individuel de tous les auteurs.
+Cette décision produit n'accepte pas l'ensemble de l'ADR ni un protocole de
+transfert. Il reste à préciser la portée de cette permission pour les messages
+d'anciens membres et les informations montrées avant confirmation. Un événement
+visible ne vaut pas consentement individuel de tous les auteurs. Le contrat,
+la faisabilité, les performances et l'inclusion V1 restent à valider.
 
 ### Transfert de contenu, pas de secrets anciens
 
@@ -142,7 +149,7 @@ Pas d'estimation de délai fiable avant prototype représentatif.
 
 | Lot proposé | Livrable / porte |
 |---|---|
-| H1 — politique et contrat | Autorité, période, source, destinataires, provenance et conséquences approuvées ; TC-302/303/304/305 |
+| H1 — politique et contrat | Autorité décidée ; contrat détaillé de période, source, destinataires, provenance et conséquences à valider ; TC-302/303/304/305 |
 | H2 — transfert vers son appareil | Prototype synthétique borné, stockage chiffré, reprise, import sans écraser l'état MLS ; TC-306/310/311 après les dépendances |
 | H3 — transfert vers une nouvelle personne | Même moteur, droits supplémentaires, changement de membre et visibilité ; pas de second protocole crypto |
 | H4 — validation | Charge simultanée messages/import, mémoire/disque/batterie, négatifs, plateformes et audit TC-312 incluant ce périmètre |
