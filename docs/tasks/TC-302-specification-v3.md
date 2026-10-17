@@ -1,6 +1,6 @@
 # TC-302 — Spécification indépendante du protocole V3
 
-Statut : En cours — lots A/B et première étude C1 documentés ; C1b et preuves ouverts, clôture bloquée par TC-301
+Statut : En cours — lots A/B, C1 et approfondissement C1b documentés ; contrat et preuves ouverts, clôture bloquée par TC-301
 Priorité : critique avant intégration
 Date : 2026-10-17
 Responsable de décision : propriétaire du produit pour les compromis UX ; revue sécurité pour le contrat
@@ -69,6 +69,7 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - [x] Décisions ouvertes et écarts avec les anciens documents attribués.
 - [x] Revue contradictoire interne du lot B consignée : huit constats attribués, non clos.
 - [x] Première comparaison de faisabilité R02/R07/R08 sourcée, avec limites et cas de preuve ; aucune résolution définitive déduite.
+- [x] C1b consigné : référent et périmètre de restauration décidés, admission approfondie, huit cas supplémentaires à prouver.
 - [ ] Faisabilité et hypothèses des bloqueurs structurels R02/R07/R08 établies avant acceptation du socle.
 - [ ] TC-301 close avec fournisseur, dépendances et budgets étayés.
 - [ ] Socle accepté et références documentaires alignées, sans écraser les modifications du propriétaire.
@@ -158,6 +159,39 @@ douze documents concernés,
 scénarios connus, trois fiches suivantes toujours « À faire ». `git diff --check`
 réussi ; deux verrous actifs et inchangés ; changements documentaires uniquement.
 
+### C1b — admission, référent et restauration
+
+Le [rapport C1b](../security/V3_ADMISSION_RECOVERY_STUDY.md) approfondit les
+contrats sans code produit. Deux réponses explicites sont consignées le 17 octobre :
+
+- [ADR-0010](../adr/ADR-0010-referent-identite-groupes.md) : délégation au
+  propriétaire/admin référent vérifié, attestations d'identités personnellement
+  vérifiées, distinction UI et risque du référent compromis/trompé.
+- [ADR-0011](../adr/ADR-0011-perimetre-restauration-v1.md) : crash courant repris,
+  état actif exclu des backups ordinaires, restauration détectée suivie de
+  réactivation avec historique lisible préservé, images complètes sans garantie
+  de détection. Périmètre accepté, pas une preuve de protection réalisée.
+
+La libération du Welcome après fusion locale durable est proposée ; elle ne
+ferme pas R02/R03 face à un auteur hostile ou au DS divergent. La consommation
+précoce de KeyPackage par OpenMLS impose une transaction couvrant traitement
+et contrôles applicatifs. Huit cas G01–G08 précisent les preuves à écrire.
+Le socle devient v0.5 ; aucun constat n'est fermé et les fiches suivantes
+restent « À faire ».
+
+Lecture de sources, pas tests runtime : l'archive OpenMLS 0.9.0 déjà en cache
+a le SHA-256 attendu par Cargo.lock ; cinq sources inspectées sont identiques
+à leur contenu dans cette archive, sans extraction sur disque. Cela ne vaut
+ni audit, ni validation d'un appel API exécuté. Les garde-fous de distribution
+restent inchangés ; aucune dépendance ou infrastructure modifiée.
+
+Contrôles C1b : 89 liens relatifs valides dans 15 documents, 20 exigences
+uniques couvertes par 20 scénarios, dix cas F et huit cas G reliés aux scénarios
+connus. Trois fiches suivantes toujours « À faire », deux verrous de distribution
+actifs et inchangés, `git diff --check` réussi. Aucun test applicatif, benchmark,
+audit de dépendances, CI ou essai matériel relancé : ce lot ne modifie que des
+documents et ne lève pas la suspension. Ces contrôles ne prouvent pas la sécurité.
+
 ## Risques, reset et retour arrière
 
 La principale menace documentaire serait de transformer des hypothèses en
@@ -176,18 +210,22 @@ Aucune pour rédiger le lot A. Avant gel des politiques : arbitrer l'UX des
 changements de groupe, la durée de fonctionnement hors ligne et les limites de
 récupération ; voir les questions Q1–Q5 de la spécification. La suspension reste
 une décision explicite en vigueur, pas une option à retirer automatiquement.
-L'autorité de partage Q1 et la vérification initiale obligatoire Q4 sont déjà
-décidées ; leurs contrats détaillés ne le sont pas tous. Les arbitrages produit
-restants concernent notamment Q2/Q3/Q5, pas une répétition des choix reçus.
+L'autorité de partage Q1, la vérification initiale Q4, la délégation au référent
+et le périmètre de restauration sont décidés ; leurs contrats détaillés ne le
+sont pas tous. Restent notamment Q2/Q3 et la reprise après journal expiré de Q5,
+pas une répétition des choix reçus. Le modèle de menace DS/membre hostile de R02
+ne peut être diminué implicitement par l'accord sur les restaurations.
 
 ## Livrables et reprise
 
-- [Socle V3 v0.4](../security/CRYPTOGRAPHY_V3.md).
+- [Socle V3 v0.5](../security/CRYPTOGRAPHY_V3.md).
 - [Revue interne du lot B](../quality/TC-302-SPEC_REVIEW.md).
 - [Première étude C1 : options, limites et preuves](../security/V3_FEASIBILITY_STUDY.md).
+- [Approfondissement C1b : admission et récupération](../security/V3_ADMISSION_RECOVERY_STUDY.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).
 
-Prochaine sous-tâche : **TC-302 C1b**, déclinaison de l'ADR-0009, fraîcheur R07 et preuve
-Welcome/arbitrage R02, sans nouveaux paquets. TC-301 C2 reste
+Prochaine sous-tâche : **TC-302 C1, stabilisation R02/Q3 puis Q2** : contrat
+d'admission, barrière de révocation et hors ligne, sans nouveaux paquets.
+Ne pas recommencer les études ou redemander les décisions acquises. TC-301 C2 reste
 à reprendre selon les conditions de sa suspension, sans être sauté.

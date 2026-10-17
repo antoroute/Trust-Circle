@@ -96,7 +96,7 @@ du fournisseur ne sont pas validés. Voir les [mesures C1](../quality/TC-301-MEA
 et le [prompt TC-301](../prompts/CONTINUE_TC-301.md).
 
 La préparation documentaire de [TC-302](../tasks/TC-302-specification-v3.md)
-avance en parallèle : [socle V3 v0.4](../security/CRYPTOGRAPHY_V3.md),
+avance en parallèle : [socle V3 v0.5](../security/CRYPTOGRAPHY_V3.md),
 non approuvé pour implémentation ; [revue interne du lot B](../quality/TC-302-SPEC_REVIEW.md)
 consignée et huit constats ouverts. Les fiches TC-303/304/305 sont préparées,
 pas démarrées. Cela ne satisfait pas la dépendance de
@@ -104,10 +104,14 @@ clôture à TC-301. La suspension n'est pas levée. L'ADR-0003 acceptée reste
 la décision de référence ; aucun compte/historique V2 n'est à migrer.
 
 La [première étude C1](../security/V3_FEASIBILITY_STUDY.md) compare les options
-R02/R07/R08 et précise leurs limites ; elle ne ferme aucun constat. La suite
-est C1b : déclinaison de l'[ADR-0009](../adr/ADR-0009-verification-identite-initiale.md)
-(vérification initiale obligatoire décidée, consignée le 17 octobre), ancrage de
-fraîcheur et preuve Welcome/arbitrage, sans intégration.
+R02/R07/R08 et précise leurs limites ; elle ne ferme aucun constat. Le
+[complément C1b](../security/V3_ADMISSION_RECOVERY_STUDY.md) consigne admission
+transactionnelle et libération du Welcome proposées, ainsi que deux décisions
+du 17 octobre : [référent de confiance](../adr/ADR-0010-referent-identite-groupes.md)
+et [périmètre de restauration V1](../adr/ADR-0011-perimetre-restauration-v1.md).
+L'[ADR-0009](../adr/ADR-0009-verification-identite-initiale.md) conserve l'obligation
+de vérification initiale. Suite : stabilisation R02/Q3 puis Q2, sans intégration ;
+aucun risque technique fermé par le seul accord produit.
 
 Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
 V3 vers appareil/personne. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
@@ -120,7 +124,7 @@ Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code — A/B et première étude C1 documentés, constats ouverts | TC-301 pour clôture ; préparation indépendante possible |
+| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1 et C1b documentés, constats ouverts | TC-301 pour clôture ; préparation indépendante possible |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |

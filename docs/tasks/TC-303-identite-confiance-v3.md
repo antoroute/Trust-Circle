@@ -26,6 +26,9 @@ hors bande et transparence (AKD, Signal KT, dépôt Google archivé). Q4 est dé
 vérification initiale obligatoire, renouvelée après remplacement complet
 d'identité, sans répétition par connexion/message ; voir
 l'[ADR-0009](../adr/ADR-0009-verification-identite-initiale.md). Aucun composant choisi.
+La délégation explicite au référent est depuis acceptée dans
+l'[ADR-0010](../adr/ADR-0010-referent-identite-groupes.md) ; distinguer identité
+directement vérifiée et attestée, sans délégation arbitrairement transitive.
 Ne pas confondre ancre d'identité, continuité d'approbation et rôle applicatif,
 ni une vérification directe avec une délégation à l'administrateur du cercle.
 
@@ -41,7 +44,7 @@ ni une vérification directe avec une délégation à l'administrateur du cercle
    abandon et tombstones, avec TC-304/310 ; jamais de réutilisation silencieuse.
 5. Comparer les options de détection d'équivoque/transparence maintenues et
    leur impact UX/licences/exploitation ; respecter Q4/ADR-0009 et préciser
-   le parcours de groupe sans délégation implicite ni nouveau quorum.
+   le parcours ADR-0010 sans délégation implicite supplémentaire ni nouveau quorum.
 6. Décrire l'approbation multi-conversations et le début d'accès Q1, puis
    transférer les formats exacts et vecteurs à TC-305.
 
@@ -62,6 +65,8 @@ non approuvée, fausse racine, appareil révoqué, credential ancien, substituti
 de clé MLS, KeyPackage concurrent, vues d'annuaire divergentes et changement
 de compte local. Prévoir horloge incorrecte, cache périmé et service indisponible.
 Les tests de confiance V1 ne valent pas validation du contrat MLS.
+G01–G03 et G06 du [complément C1b](../security/V3_ADMISSION_RECOVERY_STUDY.md)
+ajoutent attestations du référent et consommation transactionnelle du KeyPackage.
 
 ## Composants et hors périmètre
 

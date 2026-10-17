@@ -1,10 +1,12 @@
 # Cryptographie V3 — socle de spécification CircleHaven
 
-Version : 0.4 — brouillon avec première étude de faisabilité, non approuvé pour implémentation
+Version : 0.5 — brouillon avec décisions C1b, non approuvé pour implémentation
 Date : 2026-10-17
 Décisions acquises : [ADR-0003](../adr/ADR-0003-protocole-crypto-v3.md),
 [ADR-0005](../adr/ADR-0005-confiance-appareil-compte.md),
 [ADR-0009 — vérification initiale](../adr/ADR-0009-verification-identite-initiale.md),
+[ADR-0010 — référent de groupe](../adr/ADR-0010-referent-identite-groupes.md),
+[ADR-0011 — restauration V1](../adr/ADR-0011-perimetre-restauration-v1.md),
 [périmètre V1](../product/V1_DECISIONS.md), démarrage sans données historiques
 État de livraison : [TC-301 reste ouverte et les nouveaux paquets suspendus](../quality/TC-301-SECURITY_HOLD.md)
 
@@ -38,8 +40,10 @@ sources primaires, options, coûts UX et dix cas de preuve supplémentaires.
 Elle propose une livraison ordonnée sans verrouillage prématuré des candidats,
 précise la protection MLS `reuse_guard` et les limites des snapshots, puis
 compare première confiance hors bande et transparence. Aucun constat n'est
-clos ; Q4 est décidée pour l'UX initiale (ADR-0009), mais sa déclinaison en
-groupe et les mécanismes de reprise/fraîcheur restent à stabiliser en C1b.
+clos. Le [complément C1b](V3_ADMISSION_RECOVERY_STUDY.md) enregistre la délégation
+explicite au référent et le périmètre de restauration décidés, puis précise
+admission transactionnelle et libération du Welcome après fusion. Les deux
+derniers mécanismes sont proposés, pas acceptés ni prouvés ; R02/R07/R08 restent ouverts.
 
 ### Écarts documentaires identifiés
 
@@ -133,8 +137,13 @@ L'ADR-0009 impose une vérification initiale par QR/empreinte sur un canal fiabl
 et une nouvelle vérification après remplacement complet d'identité. Pas de
 répétition par connexion/message si la continuité vérifiée est conservée.
 Une relation non vérifiée ne reçoit pas son contenu protégé, historique inclus.
-Le format et la politique de groupe « qui vérifie qui » restent à spécifier ;
-aucune délégation implicite à un administrateur ni matrice de scans imposée ici.
+L'ADR-0010 autorise explicitement la délégation : chaque membre vérifie un
+propriétaire/admin référent et accepte les identités personnellement vérifiées
+et attestées par celui-ci. Distinguer dans l'UI vérification directe et
+attestation ; aucun rôle JSON, recommandation transitive ou attestation
+contradictoire avec un ancrage direct ne suffit. Le risque d'un référent trompé
+ou compromis est accepté, pas celui d'un annuaire substituant seul les clés.
+Contrat technique, portée, rotation et continuité du référent restent à préciser.
 
 **V3-005 — KeyPackage non réutilisable.** Un KeyPackage doit être vérifié, borné,
 compatible et non expiré, puis attribué à une seule admission. Proposition V1 :
@@ -145,6 +154,9 @@ Un échec de stockage avant succès ne doit pas perdre la possibilité de repren
 le Welcome légitime. Consommation, groupe et suppression des secrets devenus
 inutiles doivent former une transition durable. Ne jamais remettre en circulation
 un KeyPackage déjà exposé à une admission concurrente sans règle validée.
+La préparation `StagedWelcome` OpenMLS peut déjà consommer ce KeyPackage :
+inclure traitement et contrôles applicatifs dans la transaction d'admission,
+sans attente réseau sous verrou ; voir l'observation C1b.
 
 **V3-006 — Admission et historique explicite.** Approbation du registre,
 admission dans un groupe et disponibilité des nouveaux messages sont trois
@@ -267,6 +279,14 @@ n'est choisi pour la remplacer.
 L'arbitrage et le couplage Welcome sont discutés dans la
 [RFC 9750, §5.2](https://www.rfc-editor.org/rfc/rfc9750.html#section-5.2).
 
+Proposition C1b : garder le Welcome chez son auteur jusqu'à fusion locale
+durable, puis publier ses octets exacts via une outbox de libération ; ne pas
+le précharger sur le service en comptant sur un verrou de livraison. Cela
+traite une course avec auteur honnête, pas un auteur hostile ou un DS qui lui
+présente une autre branche. Un GroupInfo valide, une confirmation du même
+auteur ou un badge « en attente » ne prouve pas le choix global du Commit.
+Le contrat vérifiable côté nouvel arrivant reste un blocage R02/R03.
+
 **V3-013 — Pending, pertes et conflits.** Un timeout de transport laisse le
 résultat indéterminé ; interroger/reprendre l'opération, sans déclarer l'échec
 définitif ni créer une seconde admission. Si un autre Commit valide gagne,
@@ -351,16 +371,21 @@ résistance à une coupure électrique ni détection de restauration d'ancien di
 L'ancrage anti-rollback reste à concevoir ; ne pas prétendre qu'un compteur
 dans la même base suffit. La suppression logique n'est pas une preuve
 d'effacement physique de tous les secrets sur SSD.
-La fraîcheur de l'état d'envoi doit être établie avant de chiffrer à nouveau
-après restauration, pas seulement avant l'upload. TC-306 doit définir les
-hypothèses de restauration/compromission locale et les preuves propres à chaque OS.
+L'ADR-0011 borne explicitement cette exigence : crash courant repris normalement,
+état actif exclu des backups ordinaires, restauration détectée suivie d'une
+réactivation avant tout nouveau chiffrement, pas seulement avant l'upload.
+L'historique encore lisible est préservé. La détection d'une image complète ou
+d'un snapshot avec état et témoins restaurés n'est pas garantie en V1 ; ce
+n'est pas une protection technique fournie par cette décision. TC-306 doit
+prouver les mécanismes et cas couverts propres à chaque OS.
 MLS comporte déjà un garde aléatoire contre la réutilisation accidentelle du
 nonce ; cela ne prouve pas la fraîcheur du ratchet ou des révocations. C1 ne
 démontre pas d'anti-rollback universel par Keystore/Keychain/DPAPI. Distinguer
 base seule, restauration détectée, image disque complète et snapshot mémoire.
 Ni un marqueur restauré avec la base ni une validation après chiffrement ne
-satisfont l'exigence. R07 reste bloquant, sans réduction acceptée du modèle
-de menace ; voir les [options et contre-exemples](V3_FEASIBILITY_STUDY.md).
+satisfont une garantie universelle. Le périmètre est désormais décidé, mais
+R07 reste ouvert pour ses mécanismes et preuves ; voir les
+[options C1](V3_FEASIBILITY_STUDY.md) et la [reprise C1b](V3_ADMISSION_RECOVERY_STUDY.md).
 
 **V3-018 — Chemin courant asynchrone.** Moteur natif durable, traitement
 sérialisé par groupe, files bornées et backpressure. Aucun calcul lourd sur le
@@ -445,8 +470,8 @@ runtime n'accompagne cette préparation documentaire.
 | Q1 — accès et partage facultatif | Partage facultatif demandé si coût raisonnable ; autorité décidée : propriétaire/admin participant, période choisie et événement visible ; appareil déjà approuvé pour son propre appareil. Copie sélective proposée, pas d'anciennes clés | ADR-0008 proposée ; contrat détaillé, faisabilité et inclusion V1 à valider |
 | Q2 — durée hors ligne et anciennes époques | Favoriser le rattrapage ordonné, avec rétention de secrets strictement bornée ; pas de chiffre choisi sans mesure/menace | Produit + TC-304 ; bloque politique FS/reprise |
 | Q3 — retrait et changement de membres | Mise à jour automatique avec état visible ; aucun nouvel envoi sur état connu obsolète ; préciser le cas dernier appareil disponible | Produit + TC-304/310 ; bloque garantie de révocation |
-| Q4 — confiance contre serveur compromis | UX décidée : vérification initiale obligatoire hors bande, renouvelée après remplacement complet d'identité, pas par connexion/message (ADR-0009). AKD étudié, pas sélectionné ; QR seul ne vaut pas transparence | TC-302 C1b/303 : politique de groupe, contrat et preuves restent ouverts ; ne pas redemander l'arbitrage |
-| Q5 — perte d'état ou journal expiré | Réadmission explicite sans promesse de messages perdus, conservation sûre de l'historique local déjà vérifié | Produit + TC-304/306/404 ; bloque récupération silencieuse |
+| Q4 — confiance contre serveur compromis | Vérification initiale obligatoire ADR-0009 ; délégation explicite au référent vérifié ADR-0010. AKD étudié, pas sélectionné ; QR/attestation ne valent pas transparence | Contrat, rotation, fraîcheur et preuves restent ouverts ; ne pas redemander ces arbitrages |
+| Q5 — perte d'état ou journal expiré | Périmètre restauration décidé ADR-0011 : réactivation si détectée, historique lisible préservé, image complète sans garantie de détection | TC-304/306/404 ; mécanismes, preuves et reprise après expiration du journal restent ouverts |
 
 Restent également les paramètres techniques : codecs/domaines/limites
 (TC-305), cache et stockage/anti-rollback (TC-306), gestion du Commit privé
@@ -454,9 +479,9 @@ invalide et preuve d'autorisation des changements de rôles (TC-304/310).
 Le fait qu'un membre MLS puisse signer ne prouve pas qu'il est administrateur
 CircleHaven ; la validation des changements doit couvrir les deux niveaux.
 
-La revue **TC-302 lot B** et la première étude C1 sont consignées, avec huit
-constats encore ouverts et les fiches TC-303/304/305 préparées. Prochaine
-action : **TC-302 C1b**, déclinaison de l'ADR-0009, fraîcheur R07 et preuve Welcome/arbitrage
-R02. La rédaction ne remplace ni TC-301 C2 ni une revue
+La revue **TC-302 lot B**, C1 et C1b sont consignés, avec huit constats encore
+ouverts et les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1,
+stabilisation R02/Q3 puis Q2**, contrat d'admission et barrière de révocation,
+sous les périmètres produit désormais décidés. La rédaction ne remplace ni TC-301 C2 ni une revue
 cryptographique indépendante. Ce document ne doit pas être déclaré final tant
 que les dépendances et la revue de la fiche TC-302 restent ouvertes.

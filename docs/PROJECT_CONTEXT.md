@@ -75,7 +75,7 @@ V3 ni modification du staging : voir `quality/TC-301-MLS_PROTOTYPE.md` et le
 prompt `prompts/CONTINUE_TC-301.md`. Aucun compte/historique n'est à migrer.
 
 La préparation documentaire de `TC-302`, ouverte le 12 et actualisée le 17 octobre,
-contient le socle V3 v0.4
+contient le socle V3 v0.5
 dans `security/CRYPTOGRAPHY_V3.md`, exigences et scénarios d'acceptation, sans
 code intégré ni décision de fournisseur. TC-301 n'est pas clôturée et la
 suspension reste en vigueur. La revue interne TC-302 lot B est consignée dans
@@ -87,9 +87,14 @@ de transparence comparés. Aucun constat fermé ni solution technique acceptée.
 Q4 est consignée le 17 octobre dans `adr/ADR-0009-verification-identite-initiale.md` :
 vérification initiale obligatoire par QR/empreinte sur canal fiable, renouvelée
 après remplacement complet d'identité, pas par connexion/message. Le contrat
-de groupe et la détection d'équivoque restent ouverts ; ne pas redemander ce choix.
-La suite est TC-302 C1b : déclinaison de l'ADR-0009, fraîcheur R07 et
-preuve Welcome/arbitrage R02 (`prompts/CONTINUE_TC-302.md`) ;
+de groupe et la détection d'équivoque restent à compléter ; ne pas redemander ce choix.
+Le complément `security/V3_ADMISSION_RECOVERY_STUDY.md` consigne C1b : délégation
+explicite au référent vérifié acceptée dans ADR-0010 ; périmètre de restauration
+V1 accepté dans ADR-0011, sans garantie de détection d'images complètes.
+Les preuves et mécanismes restent ouverts. Libération du Welcome après fusion
+locale et transaction d'admission sont proposées, pas des garanties implémentées.
+La suite est TC-302 C1 : stabilisation de l'admission R02 et de la barrière de
+révocation Q3, puis hors ligne Q2 (`prompts/CONTINUE_TC-302.md`) ;
 la validation finale de TC-302 attend TC-301.
 TC-307 est réalignée sur un démarrage V3 à vide, sans coexistence de données V2
 ni downgrade. Les divergences des anciens documents sont tracées dans le socle,

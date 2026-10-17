@@ -2,7 +2,7 @@
 
 Étude des sources : 2026-10-12
 Mise à jour de décision : 2026-10-17
-Statut : première étude documentaire réalisée ; Q4 produit décidée, autres recommandations et preuves ouvertes
+Statut : première étude documentaire réalisée ; suivi C1b lié ci-dessous, preuves ouvertes
 Base inspectée : `cb8962a`, OpenMLS verrouillé à `0.9.0`
 Nature : revue de sources et de code, pas audit indépendant ni tests cryptographiques
 
@@ -23,6 +23,14 @@ La sécurité des contenus, la disponibilité du service et la détection d'une
 vue divergente sont trois objectifs différents. Un service qui refuse toute
 livraison peut toujours empêcher de converser ; aucune solution proposée ne
 prétend rendre l'application disponible contre cet adversaire.
+
+**Suivi du 17 octobre, après cette première passe :** le
+[complément C1b](V3_ADMISSION_RECOVERY_STUDY.md) documente la libération du
+Welcome, sa transaction d'admission et la reprise. Les décisions produit
+[ADR-0010](../adr/ADR-0010-referent-identite-groupes.md) (référent) et
+[ADR-0011](../adr/ADR-0011-perimetre-restauration-v1.md) (périmètre de restauration)
+sont acceptées ; les formulations « à décider » ci-dessous décrivent l'état
+de la première étude, pas une demande de répéter ces arbitrages.
 
 ## 1. R02 — Ordre des candidats, pas certification serveur
 
@@ -182,7 +190,8 @@ résout pas à elle seule une image complète restaurée indétectablement.
 R07 reste donc bloquant : C1b doit comparer un ancrage externe/OS démontrable
 et une reprise sans ancien état, ou demander une acceptation explicite d'un
 modèle de menace plus limité. Ne pas présenter cette dernière option comme
-une garantie technique. Le propriétaire n'a pas accepté cette restriction.
+une garantie technique. À l'issue de la première passe, le propriétaire n'avait
+pas accepté cette restriction ; l'ADR-0011 consigne depuis le périmètre décidé.
 
 UX cible : lecture locale disponible si sa clé l'est, saisie en brouillon
 chiffré, reprise de sécurité asynchrone et limitée aux groupes concernés.
@@ -295,7 +304,8 @@ Ces cas sont des **tests à écrire**, pas des tests passés dans ce lot.
 | F09 | Simple membre promu par le seul JSON serveur, changements de rôles concurrents | R08, S12, TC-303/304 |
 | F10 | Message chaud, démarrage, reconnexion, import d'historique et surveillance simultanés | R02/R07/R08, S17, TC-301/311 |
 
-Prochaine sous-tâche : **TC-302 C1b**. Décliner l'ADR-0009 dans le parcours de
+Sous-tâche initialement prévue : **TC-302 C1b**, désormais documentée dans le
+[complément](V3_ADMISSION_RECOVERY_STUDY.md). Objectif de cette passe : décliner l'ADR-0009 dans le parcours de
 groupe sans délégation implicite ; approfondir R07 et le lien Welcome/arbitrage
 de R02, puis présenter les choix
 Q2/Q3/Q5 avec les coûts et limites établis. Préparer les corrections d'ADR et

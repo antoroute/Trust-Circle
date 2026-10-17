@@ -27,6 +27,13 @@ encore un contrat accepté : distinguer rejet définitif, preuve/Proposal
 manquante et erreur de stockage ; traiter fragmentation sélective et preuve
 Welcome/arbitrage avant intégration. Aucun quorum ou external join de secours
 automatique n'est retenu. Les cas F01–F07 complètent les preuves ci-dessous.
+Le [complément C1b](../security/V3_ADMISSION_RECOVERY_STUDY.md) propose une
+libération du Welcome après fusion durable par l'auteur, sans prépublication
+sur le DS. Cela ne prouve pas l'arbitrage global face à un auteur hostile ou
+un service divergent. Le périmètre de restauration est accepté par
+l'[ADR-0011](../adr/ADR-0011-perimetre-restauration-v1.md), pas ses mécanismes.
+Les exigences ci-dessous restent à spécialiser selon ces hypothèses ; aucune
+garantie universelle de convergence ou d'anti-rollback n'est déclarée acquise.
 
 ## Travail à réaliser
 
@@ -81,6 +88,7 @@ Convergence, disponibilité et confidentialité peuvent se contredire si les
 Une reprise ne doit ni rejouer une ancienne branche ni réactiver V2. Le reset
 V3 de TC-307 est séparé de la récupération d'un groupe en cours d'utilisation.
 
-Arbitrer Q2/Q3/Q5 avec le propriétaire, sans ajouter un quorum utilisateur
+Arbitrer Q2/Q3 et la partie journal expiré de Q5 avec le propriétaire ; ne pas
+redemander le périmètre de restauration ADR-0011. Ne pas ajouter un quorum utilisateur
 exclu du produit. La [suspension TC-301](../quality/TC-301-SECURITY_HOLD.md)
 reste active ; aucune distribution ni implémentation n'est autorisée par cette fiche.

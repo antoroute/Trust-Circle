@@ -44,8 +44,10 @@ vérifier » ne doit transformer silencieusement ce parcours en confiance au ser
   compte, appareil et clé MLS restent TC-303/305. Pas de protocole ou code court
   improvisé pour implémenter cette ADR.
 - Une comparaison directe vérifie l'identité comparée. La politique de groupe
-  « qui vérifie qui » reste à spécifier : ni délégation implicite à un admin,
-  ni exigence de scans entre toutes les paires de membres ajoutée ici.
+  a depuis été précisée par l'[ADR-0010](ADR-0010-referent-identite-groupes.md) :
+  délégation explicite au référent vérifié acceptée, sans scans entre toutes
+  les paires imposés. Le contrat technique reste à spécifier ; le simple rôle
+  admin n'est toujours pas une preuve d'identité.
 - Ce choix n'est pas un quorum d'approbation. Les rôles propriétaire/admin/membre
   et la décision de partage d'historique de l'ADR-0008 restent distincts.
 - Le stockage durable du résultat, sa synchronisation vers un appareil approuvé,

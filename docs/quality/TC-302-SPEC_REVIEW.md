@@ -254,3 +254,26 @@ sans réécrire ses preuves historiques :
 Les cas F01–F10 de cette étude prolongent S01–S20 ; ils ne sont pas exécutés.
 Aucun des huit constats n'est fermé. Prochaine passe : **TC-302 C1b**, ADR-0009,
 fraîcheur R07 et preuve Welcome/arbitrage R02, avant acceptation du socle.
+
+## Suivi C1b — admission et décisions du 17 octobre
+
+Le [complément C1b](../security/V3_ADMISSION_RECOVERY_STUDY.md) précise :
+
+- **R08** : délégation explicite au référent vérifié acceptée, avec risque de
+  référent compromis/trompé et distinction UI directe/attestée ; ADR-0010.
+- **R07** : périmètre V1 accepté, sans garantie de détection d'images complètes ;
+  restauration détectée suivie de réactivation et historique lisible préservé ;
+  ADR-0011. Les mécanismes et preuves dans ce périmètre restent ouverts.
+- **R02/R03** : libération du Welcome après fusion locale durable proposée,
+  sans prépublication sur le DS ; disponibilité de l'auteur requise. Un auteur
+  hostile ou une branche divergente ne sont pas résolus par cette proposition.
+- **R03** : préparation OpenMLS susceptible de consommer le KeyPackage avant
+  activation ; traitement et contrôles applicatifs doivent être transactionnels.
+  Le laboratoire utilise déjà `atomic`, sans les contrôles produit à venir.
+
+G01–G08 sont huit nouveaux cas à prouver, pas des tests passés. Les exigences
+absolues historiques « aucun Welcome perdant » et anti-rollback doivent être
+relues avec les modèles d'adversaire explicites, pas déclarées réalisées.
+Le socle v0.5 reflète ces décisions ; aucun R01–R08 fermé.
+Suite : stabilisation R02/Q3, puis Q2 et récupération après journal expiré ;
+ne pas refaire les études C1/C1b ou redemander les décisions ADR-0009/0010/0011.
