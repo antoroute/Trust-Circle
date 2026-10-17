@@ -113,6 +113,11 @@ L'[ADR-0009](../adr/ADR-0009-verification-identite-initiale.md) conserve l'oblig
 de vérification initiale. Suite : stabilisation R02/Q3 puis Q2, sans intégration ;
 aucun risque technique fermé par le seul accord produit.
 
+À la demande de mise en place du 17 octobre, [C1c](../quality/TC-302-RECOVERY_GUARD.md)
+ajoute un garde après signal de restauration au laboratoire et des preuves
+locales d'admission/rollback. Ce n'est pas une intégration, un détecteur ou une
+réactivation complète ; aucun constat fermé, aucun paquet, gel inchangé.
+
 Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
 V3 vers appareil/personne. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
 décrit l'étude et ses impacts. L'autorité de partage vers une nouvelle personne
@@ -124,7 +129,7 @@ Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1 et C1b documentés, constats ouverts | TC-301 pour clôture ; préparation indépendante possible |
+| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, C1c testé au laboratoire, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |

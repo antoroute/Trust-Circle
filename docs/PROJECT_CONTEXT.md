@@ -100,6 +100,15 @@ TC-307 est réalignée sur un démarrage V3 à vide, sans coexistence de donnée
 ni downgrade. Les divergences des anciens documents sont tracées dans le socle,
 sans écraser les modifications locales du propriétaire.
 
+À la demande de mise en place du 17 octobre, **TC-302 C1c** ajoute un garde
+local de restauration dans le laboratoire Rust, sans intégration produit :
+signal externe persistant, opérations MLS/outbox bloquées, inbox lisible,
+pas de détecteur ni de déblocage automatique. Trente tests Rust réussis sur
+Linux/RustCrypto, dont dix nouveaux ; preuve de rollback du KeyPackage après
+rejet applicatif et contre-exemple au faux anti-rollback d'un marqueur local.
+Voir `quality/TC-302-RECOVERY_GUARD.md`. Dépendances et suspension inchangées ;
+aucun constat fermé, aucun budget multiplateforme nouvellement validé.
+
 Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
 d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve
 d'un coût raisonnable en ressources et complexité. Voir

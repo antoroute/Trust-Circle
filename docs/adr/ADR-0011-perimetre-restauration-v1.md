@@ -68,7 +68,10 @@ R07 reste ouvert pour la mise en œuvre et les preuves de ce périmètre :
 S08/S10/S16/S17, F05–F07 et G07–G08. Tester crash, clé absente, backup/transfert,
 base seule, base avec marqueur, restauration détectée et approbateur indisponible.
 Les images complètes servent aussi de tests de limites : ne pas les déclarer
-protégées si elles ne sont pas détectées. Aucun de ces tests nouveaux n'est exécuté.
+protégées si elles ne sont pas détectées. Aucun test n'accompagnait l'acceptation
+du périmètre. Le [lot C1c ultérieur](../quality/TC-302-RECOVERY_GUARD.md) teste
+le garde après signal injecté et le contre-exemple du marqueur restaurable,
+sans détecteur OS, réactivation ni protection au repos. R07 reste ouvert.
 
 Cette ADR précise V3-017 et remplace l'exigence non bornée d'anti-rollback du
 brouillon TC-302. Elle ne réduit pas la protection contre un annuaire/DS

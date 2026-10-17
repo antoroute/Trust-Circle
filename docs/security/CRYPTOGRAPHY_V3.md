@@ -387,6 +387,12 @@ satisfont une garantie universelle. Le périmètre est désormais décidé, mais
 R07 reste ouvert pour ses mécanismes et preuves ; voir les
 [options C1](V3_FEASIBILITY_STUDY.md) et la [reprise C1b](V3_ADMISSION_RECOVERY_STUDY.md).
 
+Preuve partielle [C1c](../quality/TC-302-RECOVERY_GUARD.md) : un signal injecté
+persiste un arrêt des mutations MLS et de l'outbox dans le laboratoire, avec
+inbox lisible et refus après restart. Ce n'est ni un détecteur OS ni un parcours
+de réactivation ; le marqueur peut lui-même être restauré. La base reste non
+chiffrée et R07 ouvert. Aucun budget UX ou mécanisme produit validé par ce lot.
+
 **V3-018 — Chemin courant asynchrone.** Moteur natif durable, traitement
 sérialisé par groupe, files bornées et backpressure. Aucun calcul lourd sur le
 thread UI ni consultation d'annuaire supplémentaire par message avec état
@@ -457,7 +463,7 @@ runtime n'accompagne cette préparation documentaire.
 | S13 — retrait hors ligne | V3-014 | 10, 12 | Coupure serveur + retrait MLS ; absence d'accès au futur démontrée avec timing explicite ; partiel labo | TC-304/310 |
 | S14 — reconnexion multi-époques | V3-015, V3-016 | 21, 22, 25 | Ajout/retrait pendant l'absence, message retardé et journal expiré : reprise ou erreur explicite | TC-304/504 |
 | S15 — lot empoisonné | V3-010, V3-015 | 16, 21, 22 | Pas de clair partiel, boucle infinie ou saut de Commit ; atomicité partielle labo | TC-309/504 |
-| S16 — base copiée/ancien disque | V3-011, V3-017 | 11, 13, 23 | Changement de compte, clé OS perdue, ancien snapshot : pas de fuite croisée ni faux anti-rollback | TC-306 |
+| S16 — base copiée/ancien disque | V3-011, V3-017 | 11, 13, 23 | Changement de compte, clé OS perdue, ancien snapshot : pas de fuite croisée ni faux anti-rollback ; C1c teste seulement le garde après signal et le marqueur restaurable | TC-306 |
 | S17 — fluidité | V3-018 | 8, 21 | Réseau additionnel nul à chaud, p95 et reprise sous budgets sur cibles ; mesures C1 non acceptées | TC-301/311 |
 | S18 — métadonnées | V3-019 | 18, 19, 30 | Inspection logs, push, crash et stockage : aucune donnée sensible indue | TC-311/509/803 |
 | S19 — reset/rollback | V3-020 | 24, 27, 28 | Reset cible vérifiée, ancien client rejeté, aucun retour V2 silencieux | TC-307 |

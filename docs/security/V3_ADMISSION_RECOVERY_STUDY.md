@@ -220,6 +220,11 @@ Les G01–G08 complètent F01–F10 et S01–S20 ; **aucun n'est exécuté ici**
 Mesurer ensuite admission, reprise et messages chauds séparément, avec référent
 ou approbateur absent, sans annoncer qu'un budget de message couvre l'onboarding.
 
+Suite distincte du 17 octobre : [C1c](../quality/TC-302-RECOVERY_GUARD.md) exécute
+une preuve G06 sur le contexte synthétique et des cas partiels G07/G08 après
+demande de mise en place. Ce résultat ne change pas le caractère documentaire
+de la présente étude et ne valide ni la réactivation complète ni les détecteurs OS.
+
 ## 5. Sortie de cette passe
 
 Décisions acquises : ADR-0010 et périmètre de récupération ADR-0011.

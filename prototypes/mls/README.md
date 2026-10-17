@@ -58,6 +58,27 @@ et ne peut pas simplement redéchiffrer ce message privé. Seule la comparaison
 exacte avec son Commit pending persisté autorise ici la fusion locale.
 L'écho ne prouve pas que tous les pairs l'ont reçu ni que le serveur est honnête.
 
+## Arrêt après un signal de restauration — TC-302 C1c
+
+`require_reactivation()` persiste un arrêt de toutes les mutations MLS et de
+la lecture de l'outbox. Le contrôle se fait dans la transaction existante,
+avant tout travail MLS, y compris lors d'un retry. L'inbox déjà validée reste
+lisible. Le signal survit au redémarrage et est relu par les autres connexions.
+Si sa persistance échoue, l'acteur courant reste bloqué en mémoire ; les autres
+acteurs ne sont pas garantis bloqués tant que le signal n'est pas durable.
+
+C'est un **point d'entrée pour un futur détecteur**, pas un détecteur lui-même.
+Un ancien snapshot peut restaurer le marqueur ; `reactivation_required()==false`
+ne prouve pas la fraîcheur. Il n'y a pas d'API de déblocage ni de réadmission
+implémentée. Des octets déjà remis à un transport ne peuvent pas être rappelés
+par cette API. Aucun contrôle réseau supplémentaire n'est ajouté par message,
+mais le surcoût sur les appareils cibles reste à mesurer.
+
+Le schéma synthétique passe une fois de `user_version=0` à 2, sans effacer
+l'historique. Marqueur absent/invalide et version inconnue échouent sans reset.
+Ne pas revenir à un ancien binaire sur une base devant rester bloquée : il
+ignorerait le garde. Voir [preuves, limites et reprise](../../docs/quality/TC-302-RECOVERY_GUARD.md).
+
 ## Tests couverts
 
 Le cycle de groupe inclut création, ajout, Welcome, mise à jour, retrait,

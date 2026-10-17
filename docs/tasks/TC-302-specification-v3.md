@@ -1,6 +1,6 @@
 # TC-302 — Spécification indépendante du protocole V3
 
-Statut : En cours — lots A/B, C1 et approfondissement C1b documentés ; contrat et preuves ouverts, clôture bloquée par TC-301
+Statut : En cours — A/B et C1/C1b documentés, C1c testé dans le laboratoire ; contrat et preuves ouverts, clôture bloquée par TC-301
 Priorité : critique avant intégration
 Date : 2026-10-17
 Responsable de décision : propriétaire du produit pour les compromis UX ; revue sécurité pour le contrat
@@ -13,6 +13,12 @@ de suspendre les nouveaux paquets. La préparation de la spécification peut
 avancer indépendamment de la disponibilité du fournisseur crypto. Cela ne
 clôture pas TC-301, n'autorise pas de nouveaux paquets et ne lance pas TC-310/311.
 Lire [la suspension](../quality/TC-301-SECURITY_HOLD.md).
+
+Le 17 octobre, la demande « continue en mettant en place », suivie de
+« continue », étend ce périmètre à une première preuve exécutable locale :
+**C1c, garde de restauration dans le laboratoire natif existant**, sans
+intégration produit, nouvelle dépendance ou distribution. Elle remplace la
+restriction documentaire pour ce lot borné, pas les autres portes de validation.
 
 Le laboratoire ne constitue pas la spécification produit : identités
 synthétiques, SQLite non chiffré, transport simulé et absence de politique
@@ -70,6 +76,7 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - [x] Revue contradictoire interne du lot B consignée : huit constats attribués, non clos.
 - [x] Première comparaison de faisabilité R02/R07/R08 sourcée, avec limites et cas de preuve ; aucune résolution définitive déduite.
 - [x] C1b consigné : référent et périmètre de restauration décidés, admission approfondie, huit cas supplémentaires à prouver.
+- [x] C1c : garde local après signal de restauration et rollback d'admission éprouvés ; G06/G07/G08 partiels, sans fermeture de R07.
 - [ ] Faisabilité et hypothèses des bloqueurs structurels R02/R07/R08 établies avant acceptation du socle.
 - [ ] TC-301 close avec fournisseur, dépendances et budgets étayés.
 - [ ] Socle accepté et références documentaires alignées, sans écraser les modifications du propriétaire.
@@ -80,9 +87,11 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
   cohérence roadmap/fiche/prompt, absence de promesse de sécurité non prouvée.
 - Relecture des ADR, décisions V1, invariants et des fonctions/tests du
   laboratoire concernés ; les preuves existantes ne sont citées que dans leur périmètre.
-- `git diff --check` ; vérifier que tous les changements du lot sont documentaires.
+- `git diff --check` ; changements documentaires pour A/B/C1/C1b ; code et tests
+  synthétiques limités au laboratoire natif pour C1c.
 - Ne pas relancer les matrices CI, compiler de paquets ou déclencher un déploiement
-  pour ce lot. Les tests nouveaux de la matrice sont des tests **à écrire**.
+  pour ces lots. Les preuves partielles exécutées en C1c sont distinguées des
+  autres tests de la matrice, toujours **à écrire**.
 
 ### Contrôles du lot A
 
@@ -192,6 +201,23 @@ actifs et inchangés, `git diff --check` réussi. Aucun test applicatif, benchma
 audit de dépendances, CI ou essai matériel relancé : ce lot ne modifie que des
 documents et ne lève pas la suspension. Ces contrôles ne prouvent pas la sécurité.
 
+### C1c — première mise en place locale
+
+Le [rapport C1c](../quality/TC-302-RECOVERY_GUARD.md) décrit le garde durable,
+son schéma versionné et ses limites. Après signal externe, le moteur bloque
+les mutations MLS et la relecture de l'outbox, sans effacer l'inbox validée.
+Il ne détecte pas les restaurations et ne sait pas encore réactiver un appareil.
+Le contrôle ajoute une lecture SQL locale dans la transaction existante, pas
+un aller-retour réseau. Aucun budget de performance nouveau n'est déclaré validé.
+
+Trente fonctions de test Rust réussies sur Linux/RustCrypto, dont dix nouvelles
+et un test pilotant vingt cas de crash ; interopérabilité mls-rs conservée.
+Les trois tests Rust du pont Flutter réussissent aussi. Clippy et formatage
+réussis. G06 prouvé dans le contexte synthétique ; G07/G08 partiels, avec
+contre-exemple explicite au marqueur restauré avec la base.
+Les détecteurs OS, le chiffrement au repos, la réadmission et l'annulation
+réseau restent à implémenter. Aucun constat de la revue n'est clos.
+
 ## Risques, reset et retour arrière
 
 La principale menace documentaire serait de transformer des hypothèses en
@@ -199,10 +225,13 @@ garanties, notamment révocation « immédiate », historique des nouveaux
 appareils, ordre serveur et conservation d'anciennes époques. Le socle les
 rend explicites et n'autorise aucun contournement des invariants.
 
-Un retour arrière de ce lot retire seulement ses ajouts documentaires, par
+Un retour arrière des lots documentaires retire seulement leurs ajouts, par
 modification ciblée. Aucun effacement de données ni changement d'environnement
 n'est effectué. TC-307 préparera séparément un reset vérifié et borné ; la
 décision de repartir à vide n'autorise pas une suppression opportuniste ici.
+Pour C1c, ne pas retirer le marqueur ni utiliser un ancien binaire sur une base
+devant rester bloquée ; rollback de code uniquement avec de nouvelles fixtures
+jetables. Voir le rapport pour la stratégie de schéma, sans migration descendante.
 
 ## Décisions humaines nécessaires
 
@@ -222,6 +251,7 @@ ne peut être diminué implicitement par l'accord sur les restaurations.
 - [Revue interne du lot B](../quality/TC-302-SPEC_REVIEW.md).
 - [Première étude C1 : options, limites et preuves](../security/V3_FEASIBILITY_STUDY.md).
 - [Approfondissement C1b : admission et récupération](../security/V3_ADMISSION_RECOVERY_STUDY.md).
+- [C1c : implémentation locale, preuves et limites](../quality/TC-302-RECOVERY_GUARD.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).
 

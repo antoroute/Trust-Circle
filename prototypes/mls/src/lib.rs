@@ -45,6 +45,8 @@ pub enum Error {
     Missing,
     #[error("operation identifier already used for different input")]
     Conflict,
+    #[error("restoration detected; secure reactivation required")]
+    RecoveryRequired,
     #[error("injected failure before durable commit")]
     BeforeCommit,
     #[error("injected failure after durable commit; recover outbox")]
@@ -143,6 +145,38 @@ pub struct Device {
     connection: Connection,
     crypto: Engine,
     last_transaction: Option<TransactionTiming>,
+    // Sticky in this actor even if persisting the stop fails. Not a detector.
+    recovery_latched: bool,
+}
+
+fn recovery_required(connection: &Connection) -> Result<bool> {
+    let required: i64 = db(connection.query_row(
+        "SELECT required FROM probe_recovery WHERE singleton=1",
+        [],
+        |r| r.get(0),
+    ))?;
+    match required {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(Error::Storage),
+    }
+}
+
+fn migrate_probe(connection: &mut Connection) -> Result<()> {
+    let tx = db(connection.transaction_with_behavior(TransactionBehavior::Immediate))?;
+    let version: i64 = db(tx.pragma_query_value(None, "user_version", |r| r.get(0)))?;
+    match version {
+        // Existing probe databases used version 0 and the idempotent 001 DDL.
+        0 => {
+            db(tx.execute_batch(include_str!("../schema/001-probe.sql")))?;
+            db(tx.execute_batch(include_str!("../schema/002-recovery.sql")))?;
+        }
+        2 => {}
+        _ => return Err(Error::Storage),
+    }
+    // Never recreate a missing marker on an already migrated database.
+    recovery_required(&tx)?;
+    db(tx.commit())
 }
 
 fn decode(wire: &[u8]) -> Result<MlsMessageIn> {
@@ -202,9 +236,8 @@ impl Device {
         let mut connection = db(Connection::open(path))?;
         db(connection.busy_timeout(Duration::from_secs(2)))?;
         db(connection.execute_batch("PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;"))?;
+        migrate_probe(&mut connection)?;
         db(SqliteStorageProvider::<JsonCodec, _>::new(&mut connection).run_migrations())?;
-        // Versioned laboratory schema, independent of the application DB.
-        db(connection.execute_batch(include_str!("../schema/001-probe.sql")))?;
         #[cfg(not(feature = "libcrux"))]
         let crypto = Engine::default();
         #[cfg(feature = "libcrux")]
@@ -213,7 +246,34 @@ impl Device {
             connection,
             crypto,
             last_transaction: None,
+            recovery_latched: false,
         })
+    }
+
+    /// Laboratory hook for an external detector, NOT detection of old snapshots.
+    /// There is deliberately no unlock API: trusted readmission is not implemented.
+    /// On storage failure this actor stays blocked, but durability is NOT promised
+    /// until a retry succeeds. Other actors need the persisted marker or signal.
+    pub fn require_reactivation(&mut self) -> Result<()> {
+        self.recovery_latched = true;
+        self.last_transaction = None;
+        let tx = db(self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate))?;
+        recovery_required(&tx)?;
+        let updated = db(tx.execute("UPDATE probe_recovery SET required=1 WHERE singleton=1", []))?;
+        if updated != 1 {
+            return Err(Error::Storage);
+        }
+        db(tx.commit())
+    }
+
+    /// A false result only means no signal is recorded; it does not prove freshness.
+    pub fn reactivation_required(&self) -> Result<bool> {
+        if self.recovery_latched {
+            return Ok(true);
+        }
+        recovery_required(&self.connection)
     }
 
     fn atomic<T>(
@@ -235,11 +295,19 @@ impl Device {
         op: impl FnOnce(&Connection, &Provider<'_>, &mut TransactionTiming) -> Result<T>,
     ) -> Result<T> {
         self.last_transaction = None;
+        if self.recovery_latched {
+            return Err(Error::RecoveryRequired);
+        }
         let mut timing = TransactionTiming::default();
         let started = Instant::now();
         let tx = db(self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate))?;
+        // Check under the same write lock as the MLS/outbox mutations, including
+        // idempotent retries. Never trust an authorization cached at open time.
+        if recovery_required(&tx)? {
+            return Err(Error::RecoveryRequired);
+        }
         timing.begin_ms = elapsed_ms(started);
         let started = Instant::now();
         let value = {
@@ -654,18 +722,97 @@ impl Device {
         db(rows.collect())
     }
     pub fn outbox(&self, operation: &str) -> Result<Outbound> {
-        let wire: Vec<u8> = db(self.connection.query_row(
+        if self.recovery_latched {
+            return Err(Error::RecoveryRequired);
+        }
+        // One read snapshot for the gate and bytes. Previously returned bytes
+        // cannot be revoked; a future transport must serialize its own dispatch.
+        let tx = db(self.connection.unchecked_transaction())?;
+        if recovery_required(&tx)? {
+            return Err(Error::RecoveryRequired);
+        }
+        let wire: Vec<u8> = db(tx.query_row(
             "SELECT wire FROM probe_outbox WHERE operation=?1",
             [operation],
             |r| r.get(0),
         ))?;
-        db(serde_json::from_slice(&wire))
+        let outbound = db(serde_json::from_slice(&wire))?;
+        db(tx.commit())?;
+        Ok(outbound)
     }
 }
 
 #[cfg(test)]
 mod storage_tests {
     use super::*;
+
+    #[test]
+    fn contending_writer_cannot_bypass_the_recovery_gate() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a");
+        let mut a = Device::open_synthetic(&path).unwrap();
+        // Make contention deterministic without sleeping or racing threads.
+        a.connection.busy_timeout(Duration::ZERO).unwrap();
+        let mut other = Connection::open(&path).unwrap();
+        let tx = other
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .unwrap();
+        tx.execute("UPDATE probe_recovery SET required=1", [])
+            .unwrap();
+        let result: Result<()> = a.atomic(Fault::None, |_, _| panic!("guard bypass"));
+        assert_eq!(result, Err(Error::Storage));
+        tx.commit().unwrap();
+        // Once the competing stop commits, the same open actor must re-read it.
+        let result: Result<()> = a.atomic(Fault::None, |_, _| panic!("guard bypass"));
+        assert_eq!(result, Err(Error::RecoveryRequired));
+        assert!(matches!(a.outbox("missing"), Err(Error::RecoveryRequired)));
+    }
+
+    #[test]
+    fn failed_stop_persistence_latches_actor_and_can_be_retried() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a");
+        let mut a = Device::open_synthetic(&path).unwrap();
+        a.initialize(b"synthetic").unwrap();
+        a.connection
+            .execute_batch(
+                "CREATE TEMP TRIGGER fail_stop BEFORE UPDATE ON probe_recovery
+             BEGIN SELECT RAISE(ABORT, 'synthetic fault'); END;",
+            )
+            .unwrap();
+        assert_eq!(a.require_reactivation(), Err(Error::Storage));
+        assert_eq!(a.reactivation_required(), Ok(true));
+        assert_eq!(recovery_required(&a.connection), Ok(false));
+        // The injected failure must not let the current actor continue using keys.
+        let result: Result<()> = a.atomic(Fault::None, |_, _| panic!("guard bypass"));
+        assert_eq!(result, Err(Error::RecoveryRequired));
+        assert!(matches!(a.outbox("missing"), Err(Error::RecoveryRequired)));
+        a.connection
+            .execute_batch("DROP TRIGGER fail_stop")
+            .unwrap();
+        a.require_reactivation().unwrap();
+        drop(a);
+        let mut a = Device::open_synthetic(&path).unwrap();
+        // This time it is the durable row, not the in-memory latch, stopping work.
+        let result: Result<()> = a.atomic(Fault::None, |_, _| panic!("guard bypass"));
+        assert_eq!(result, Err(Error::RecoveryRequired));
+    }
+
+    #[test]
+    fn missing_or_invalid_live_marker_never_authorizes_crypto_work() {
+        for damage in [
+            "DELETE FROM probe_recovery",
+            "PRAGMA ignore_check_constraints=ON; UPDATE probe_recovery SET required=7",
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            let mut a = Device::open_synthetic(&dir.path().join("a")).unwrap();
+            a.connection.execute_batch(damage).unwrap();
+            assert_eq!(a.reactivation_required(), Err(Error::Storage));
+            let result: Result<()> = a.atomic(Fault::None, |_, _| panic!("guard bypass"));
+            assert_eq!(result, Err(Error::Storage));
+            assert!(matches!(a.outbox("missing"), Err(Error::Storage)));
+        }
+    }
 
     #[test]
     fn sqlite_full_does_not_consume_sender_state_without_outbox() {

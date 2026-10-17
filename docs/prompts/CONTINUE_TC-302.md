@@ -2,7 +2,7 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation documentaire est sur tc301-mls-prototype, actualisée le 2026-10-17.
+préparation et preuve locale C1c sont sur tc301-mls-prototype, actualisées le 2026-10-17.
 Objectif : TC-302 C1, stabilisation R02/Q3 puis Q2 à partir du socle V3 v0.5.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
@@ -17,6 +17,7 @@ docs/adr/ADR-0011-perimetre-restauration-v1.md (périmètre accepté, preuves ou
 docs/product/V1_DECISIONS.md, docs/security/CRYPTOGRAPHY_V3.md,
 docs/quality/TC-302-SPEC_REVIEW.md, docs/security/V3_FEASIBILITY_STUDY.md,
 docs/security/V3_ADMISSION_RECOVERY_STUDY.md,
+docs/quality/TC-302-RECOVERY_GUARD.md,
 et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
@@ -28,7 +29,12 @@ essai utilisateur avec les anciens paquets. Ne pas relancer les matrices CI
 pour de simples changements documentaires. Une release amont ne lève pas
 automatiquement le gel : suivre la procédure et demander l'accord de reprise.
 
-La prochaine tâche peut avancer sous forme documentaire uniquement. TC-301 C2,
+La demande explicite « continue en mettant en place » du 17 octobre a autorisé
+C1c : un garde et des tests dans le laboratoire natif, pas l'intégration produit.
+Ne pas revenir par défaut à une reprise exclusivement documentaire ; distinguer
+les preuves locales réalisables des contrats encore ouverts. Ne pas étendre cette
+autorisation à de nouveaux paquets, à une réadmission non spécifiée ou au backend.
+TC-301 C2,
 les budgets, les preuves physiques et le fournisseur final restent ouverts.
 Aucune donnée V2 à migrer. TC-307 signifie démarrage V3 à vide et retrait de
 V2 sans downgrade ; ce n'est pas l'autorisation d'effacer une VM maintenant.
@@ -44,7 +50,11 @@ Les fiches TC-303/304/305 existent et restent « À faire ». Ne pas répéter l
 création ni présenter la revue sur papier comme des tests exécutés.
 
 Les études C1/C1b sont rédigées, pas à recommencer. Elles n'ont exécuté aucun
-test crypto : F01–F10 et G01–G08 sont des cas à prouver. Aucun constat R01–R08 fermé.
+test crypto. C1c, réalisé ensuite sur demande, fournit une preuve G06 synthétique
+et des preuves partielles G07/G08 : 30 tests moteur RustCrypto dont 10 nouveaux,
+dont un test pilote 20 cas de crash ; 3 tests Rust du pont, fmt et Clippy réussis.
+F01–F10 et les autres aspects des G01–G08 restent à prouver. Aucun constat fermé.
+Lire le code et les tests C1c avant de les prolonger : ne pas réécrire ce garde.
 
 Pour la stabilisation restante TC-302 C1 :
 1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
@@ -69,6 +79,13 @@ Pour la stabilisation restante TC-302 C1 :
    lisible préservé ; images complètes/snapshots sans garantie de détection.
    Ne pas redemander ce périmètre ni prétendre que ses mécanismes sont prouvés.
    Ne pas affirmer que l'exclusion des backups détecte toutes les restaurations.
+   C1c reçoit seulement un signal externe : require_reactivation persiste un
+   arrêt, chaque transaction le relit avant MLS, outbox bloquée, inbox lisible.
+   Aucun détecteur OS ni déblocage ; le marqueur est restaurable avec la base.
+   Échec d'écriture : acteur courant bloqué, pas de garantie durable ou globale
+   avant retry réussi. Des octets déjà retournés ne peuvent pas être rappelés.
+   Ne pas ajouter une méthode de reset/unlock ou réutiliser les anciens secrets
+   pour simuler une réadmission. Le futur transport doit sérialiser son départ.
    Cette décision ne réduit pas le modèle de menace DS/identité. Priorité au chemin
    courant sans aller-retour réseau supplémentaire par message.
 3. R08 : Q4 est décidée et consignée le 17 octobre dans ADR-0009 : vérification
@@ -101,11 +118,18 @@ Pour la stabilisation restante TC-302 C1 :
    implémentation. Présenter les arbitrages Q2/Q3 et journal expiré de Q5 quand
    les options et coûts UX/sécurité sont établis ; le choix d'autorité Q1 ne
    doit pas être redemandé.
-6. Mettre à jour la spécification et les fiches sans démarrer leur implémentation.
+6. Mettre à jour la spécification et les fiches sans démarrer l'intégration produit.
+   Garder les preuves locales dans prototypes/mls sur données synthétiques,
+   sans nouvelles dépendances ni changement de fournisseur. Pas d'activation
+   du parcours de récupération dans Flutter avant contrat et détecteurs éprouvés.
    Une architecture de base viable et TC-301 close sont requises pour accepter
    TC-302 ; aucune de ces conditions n'est actuellement annoncée acquise.
 7. Vérifier liens, couverture exigences/scénarios/constats, diff et absence de
-   code, dépendances, paquets ou infrastructure modifiés.
+   dépendances, paquets ou infrastructure modifiés. Pour le code laboratoire :
+   cargo fmt --check, cargo test --locked --offline --features interop,
+   cargo clippy --locked --offline --all-targets --features interop -- -D warnings,
+   puis les tests Rust du pont si l'API native change. Commandes exactes dans C1c.
+   Aucun résultat local ne valide les budgets ou la matrice des OS cibles.
 
 Préserve les neuf documents déjà modifiés par le propriétaire : contexte,
 index, ADR-0003, PLATFORM_COMPATIBILITY, TRACEABILITY, CRYPTOGRAPHY_V2,
