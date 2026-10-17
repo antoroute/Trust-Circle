@@ -38,7 +38,7 @@ début d'accès à l'admission MLS effective ; messages de cette époque rattrap
 après traitement du Welcome. Ne pas utiliser l'heure murale t0 comme condition
 cryptographique. Aucun groupe privé supplémentaire n'est ajouté automatiquement.
 
-Décision Q1 demandée au propriétaire ; **aucune réponse présumée**. Preuve attendue :
+Lors de la revue initiale, Q1 était demandée au propriétaire. Preuve attendue :
 scénario S06 avec les trois instants, deux conversations et Welcome retardé.
 Responsables : [TC-303](../tasks/TC-303-identite-confiance-v3.md),
 [TC-304](../tasks/TC-304-epoques-revocation-v3.md). Statut : ouvert, produit.
@@ -47,6 +47,9 @@ Suivi du 12 octobre après la revue : le propriétaire souhaite pouvoir choisir
 de partager l'historique vers appareil ou nouvelle personne, sous réserve de
 ressources/complexité raisonnables. Voir l'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md).
 R01 n'est pas fermé : la copie d'historique est à spécifier séparément de l'admission.
+L'autorité a depuis été décidée : propriétaire/admin participant pour une
+nouvelle personne, période choisie et événement visible ; appareil déjà approuvé
+pour son propre appareil. Le contrat technique reste ouvert.
 
 ## R02 — Commit privé invalide retenu par le serveur
 
@@ -231,3 +234,23 @@ Prochaine sous-tâche documentaire : TC-302 C1, étude ciblée de ces trois
 bloqueurs et traitement des décisions produit reçues. La clôture de TC-302
 reste conditionnée à celle de TC-301 ; aucune reprise de distribution,
 garantie de performance ni sécurité de production n'est validée par cette revue.
+
+## Suivi C1 — première étude, 12 octobre
+
+L'[étude de faisabilité](../security/V3_FEASIBILITY_STUDY.md) complète la revue
+sans réécrire ses preuves historiques :
+
+- **R02** : piste de journal ordonné sans filtrage prématuré, fondée sur RFC
+  9750 §5.3 ; limites de fragmentation et couplage Welcome encore ouverts.
+- **R07** : correction de nuance : le `reuse_guard` MLS aléatoire existe dans
+  le code verrouillé ; restauration ne signifie pas nécessairement même nonce.
+  Cela n'apporte pas de preuve de fraîcheur, ni d'anti-rollback multiplateforme.
+- **R08** : comparaison de vérification hors bande et de composants de
+  transparence, licences/statuts examinés. Réponse Q4 consignée le 17 octobre :
+  vérification initiale obligatoire, puis après remplacement complet d'identité,
+  pas par connexion/message ; voir l'[ADR-0009](../adr/ADR-0009-verification-identite-initiale.md).
+  Le contrat de groupe et la détection d'équivoque restent ouverts.
+
+Les cas F01–F10 de cette étude prolongent S01–S20 ; ils ne sont pas exécutés.
+Aucun des huit constats n'est fermé. Prochaine passe : **TC-302 C1b**, ADR-0009,
+fraîcheur R07 et preuve Welcome/arbitrage R02, avant acceptation du socle.

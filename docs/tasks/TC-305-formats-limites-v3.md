@@ -21,6 +21,12 @@ Références : [socle V3](../security/CRYPTOGRAPHY_V3.md),
 [revue R03/R06/R08](../quality/TC-302-SPEC_REVIEW.md), ADR-0003,
 invariants 14 à 19 et 21/22.
 
+L'[étude C1](../security/V3_FEASIBILITY_STUDY.md) ajoute les contraintes de
+liaison Welcome/arbitrage, preuves de rôle sur l'état antérieur et première
+confiance. Ne pas choisir d'encodage ou activer une extension MLS en brouillon
+pour combler ces contrats encore ouverts. Aucun format de témoin anti-rollback
+ni de transparence maison n'est autorisé par cette fiche.
+
 ## Travail à réaliser
 
 1. Dresser la liste des champs : type, taille, cardinalité, visibilité,

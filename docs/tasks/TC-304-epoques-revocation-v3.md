@@ -21,6 +21,13 @@ Références : [socle V3](../security/CRYPTOGRAPHY_V3.md),
 [décisions V1](../product/V1_DECISIONS.md). La résolution de faisabilité de
 R02/R07/R08 doit déjà être exposée dans TC-302 avant acceptation du socle.
 
+La [première étude C1](../security/V3_FEASIBILITY_STUDY.md) recommande un
+journal de candidats sans verrouillage prématuré de l'époque. Ce n'est pas
+encore un contrat accepté : distinguer rejet définitif, preuve/Proposal
+manquante et erreur de stockage ; traiter fragmentation sélective et preuve
+Welcome/arbitrage avant intégration. Aucun quorum ou external join de secours
+automatique n'est retenu. Les cas F01–F07 complètent les preuves ci-dessous.
+
 ## Travail à réaliser
 
 1. Définir qui peut ajouter/retirer/mettre à jour un appareil et comment les

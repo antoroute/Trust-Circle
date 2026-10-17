@@ -21,6 +21,14 @@ Références : [socle V3](../security/CRYPTOGRAPHY_V3.md),
 [revue R01/R03/R08](../quality/TC-302-SPEC_REVIEW.md),
 [confiance existante V1](../security/DEVICE_TRUST_PROTOCOL_V1.md).
 
+La [première étude C1](../security/V3_FEASIBILITY_STUDY.md) compare vérification
+hors bande et transparence (AKD, Signal KT, dépôt Google archivé). Q4 est décidée :
+vérification initiale obligatoire, renouvelée après remplacement complet
+d'identité, sans répétition par connexion/message ; voir
+l'[ADR-0009](../adr/ADR-0009-verification-identite-initiale.md). Aucun composant choisi.
+Ne pas confondre ancre d'identité, continuité d'approbation et rôle applicatif,
+ni une vérification directe avec une délégation à l'administrateur du cercle.
+
 ## Travail à réaliser
 
 1. Inventorier ce qui peut être conservé du registre TC-106 sans réutiliser
@@ -32,7 +40,8 @@ Références : [socle V3](../security/CRYPTOGRAPHY_V3.md),
 4. Définir le cycle de KeyPackage, réservation concurrente, consommation,
    abandon et tombstones, avec TC-304/310 ; jamais de réutilisation silencieuse.
 5. Comparer les options de détection d'équivoque/transparence maintenues et
-   leur impact UX/licences/exploitation ; demander la décision Q4.
+   leur impact UX/licences/exploitation ; respecter Q4/ADR-0009 et préciser
+   le parcours de groupe sans délégation implicite ni nouveau quorum.
 6. Décrire l'approbation multi-conversations et le début d'accès Q1, puis
    transférer les formats exacts et vecteurs à TC-305.
 
@@ -43,7 +52,7 @@ Références : [socle V3](../security/CRYPTOGRAPHY_V3.md),
 - [ ] Les liens credential/clé/appareil/compte et l'autorisation de conversation sont vérifiables côté client.
 - [ ] Rotation/révocation et réponses périmées ne permettent aucun downgrade silencieux.
 - [ ] KeyPackage expiré, rejoué ou associé à une branche perdante ne crée pas une double admission.
-- [ ] Q1/Q4 décidées ; aucun mécanisme absent présenté comme déjà déployé.
+- [ ] Contrat Q1 finalisé et décision Q4 déclinée selon ADR-0009 ; aucun mécanisme absent présenté comme déjà déployé.
 - [ ] Contrat indépendant et matrice de tests négatifs revus, intégrés au socle.
 
 ## Tests et preuves attendues
@@ -71,5 +80,5 @@ tests et plan de retour arrière dédiés.
 
 Q1 a reçu une demande de partage facultatif appareil/personne, pas un accord au
 seul historique futur. Finaliser sa politique selon l'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
-et demander Q4 avant gel. La [suspension TC-301](../quality/TC-301-SECURITY_HOLD.md)
+et décliner l'ADR-0009 sans redemander l'arbitrage initial. La [suspension TC-301](../quality/TC-301-SECURITY_HOLD.md)
 reste active ; cette fiche n'autorise aucun paquet ni changement de fournisseur.

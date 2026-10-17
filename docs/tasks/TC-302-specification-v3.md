@@ -1,8 +1,8 @@
 # TC-302 — Spécification indépendante du protocole V3
 
-Statut : En cours — lots A/B documentaires réalisés ; constats ouverts, clôture bloquée par TC-301
+Statut : En cours — lots A/B et première étude C1 documentés ; C1b et preuves ouverts, clôture bloquée par TC-301
 Priorité : critique avant intégration
-Date : 2026-10-12
+Date : 2026-10-17
 Responsable de décision : propriétaire du produit pour les compromis UX ; revue sécurité pour le contrat
 Dépendances : ADR-0003 acceptée, ADR-0005, TC-301 pour la clôture
 
@@ -68,6 +68,7 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - [x] Absence de migration V2 et interdiction de downgrade consignées.
 - [x] Décisions ouvertes et écarts avec les anciens documents attribués.
 - [x] Revue contradictoire interne du lot B consignée : huit constats attribués, non clos.
+- [x] Première comparaison de faisabilité R02/R07/R08 sourcée, avec limites et cas de preuve ; aucune résolution définitive déduite.
 - [ ] Faisabilité et hypothèses des bloqueurs structurels R02/R07/R08 établies avant acceptation du socle.
 - [ ] TC-301 close avec fournisseur, dépendances et budgets étayés.
 - [ ] Socle accepté et références documentaires alignées, sans écraser les modifications du propriétaire.
@@ -123,6 +124,40 @@ maintenues au statut « À faire ». `git diff --check` réussi ; deux verrous d
 distribution toujours actifs. Aucun test applicatif ou multiplateforme relancé,
 car seuls des documents changent ; aucune propriété crypto nouvelle n'est prouvée.
 
+### C1 — première étude de faisabilité
+
+Le [rapport C1](../security/V3_FEASIBILITY_STUDY.md) confronte RFC 9420/9750,
+OpenMLS local verrouillé, documentation OS et composants de transparence.
+Le socle v0.4 intègre ces précisions, toujours sans autorisation d'implémentation.
+
+- R02 : journal ordonné de candidats recommandé pour éviter le verrou SQL
+  prématuré ; hypothèses et limites de fragmentation explicites. Couplage
+  Welcome/arbitrage et barrière de retrait encore à démontrer.
+- R07 : `reuse_guard` standard confirmé par lecture du code ; comparaison
+  crash/base seule/image complète, limites OS et contre-exemples aux témoins
+  insuffisants. Aucun mécanisme universel ni restriction de menace accepté.
+- R08 : vérification initiale obligatoire acceptée, consignée le 17 octobre
+  dans l'[ADR-0009](../adr/ADR-0009-verification-identite-initiale.md). Contrat de
+  groupe et équivoque encore ouverts ; AKD, Signal KT et dépôt Google comparés
+  sans installation ni sélection définitive.
+- F01–F10 : cas de validation supplémentaires reliés aux scénarios existants.
+
+Aucun des constats R01–R08 n'est clos. Ne pas redemander les arbitrages reçus
+sur l'autorité de partage Q1 ou l'UX initiale Q4. Les licences de composants
+examinées ne valent pas validation juridique
+de l'application sur les stores.
+
+Les preuves de nonce, rollback, charge, batterie, OS et intégration restent
+à produire : cette passe n'exécute que des contrôles documentaires. Pas de
+nouvel audit de dépendances ou CI, ni modification de lockfile, code, paquet,
+VM ou accès PC. La suspension de distribution reste inchangée.
+
+Contrôles C1 actualisés le 17 octobre : 70 liens relatifs existants dans les
+douze documents concernés,
+20 exigences uniques couvertes par 20 scénarios, dix cas F01–F10 reliés aux
+scénarios connus, trois fiches suivantes toujours « À faire ». `git diff --check`
+réussi ; deux verrous actifs et inchangés ; changements documentaires uniquement.
+
 ## Risques, reset et retour arrière
 
 La principale menace documentaire serait de transformer des hypothèses en
@@ -141,13 +176,18 @@ Aucune pour rédiger le lot A. Avant gel des politiques : arbitrer l'UX des
 changements de groupe, la durée de fonctionnement hors ligne et les limites de
 récupération ; voir les questions Q1–Q5 de la spécification. La suspension reste
 une décision explicite en vigueur, pas une option à retirer automatiquement.
+L'autorité de partage Q1 et la vérification initiale obligatoire Q4 sont déjà
+décidées ; leurs contrats détaillés ne le sont pas tous. Les arbitrages produit
+restants concernent notamment Q2/Q3/Q5, pas une répétition des choix reçus.
 
 ## Livrables et reprise
 
-- [Socle V3 v0.3](../security/CRYPTOGRAPHY_V3.md).
+- [Socle V3 v0.4](../security/CRYPTOGRAPHY_V3.md).
 - [Revue interne du lot B](../quality/TC-302-SPEC_REVIEW.md).
+- [Première étude C1 : options, limites et preuves](../security/V3_FEASIBILITY_STUDY.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).
 
-Prochaine sous-tâche : **TC-302 C1**, faisabilité et arbitrages, sans nouveaux paquets. TC-301 C2 reste
+Prochaine sous-tâche : **TC-302 C1b**, déclinaison de l'ADR-0009, fraîcheur R07 et preuve
+Welcome/arbitrage R02, sans nouveaux paquets. TC-301 C2 reste
 à reprendre selon les conditions de sa suspension, sans être sauté.

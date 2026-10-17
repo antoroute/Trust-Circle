@@ -2,8 +2,8 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation documentaire est sur tc301-mls-prototype, datée du 2026-10-12.
-Objectif : TC-302 C1, faisabilité des points structurels du socle V3 v0.3.
+préparation documentaire est sur tc301-mls-prototype, actualisée le 2026-10-17.
+Objectif : TC-302 C1b, approfondissement des points structurels du socle V3 v0.4.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
 Lis entièrement AGENTS.md, docs/PROJECT_CONTEXT.md,
@@ -11,8 +11,10 @@ docs/tasks/TC-302-specification-v3.md, docs/security/SECURITY_INVARIANTS.md,
 docs/adr/ADR-0003-protocole-crypto-v3.md,
 docs/adr/ADR-0005-confiance-appareil-compte.md,
 docs/adr/ADR-0008-partage-historique-optionnel.md (proposée),
+docs/adr/ADR-0009-verification-identite-initiale.md (décision produit acceptée),
 docs/product/V1_DECISIONS.md, docs/security/CRYPTOGRAPHY_V3.md,
-docs/quality/TC-302-SPEC_REVIEW.md et docs/quality/TC-301-SECURITY_HOLD.md ;
+docs/quality/TC-302-SPEC_REVIEW.md, docs/security/V3_FEASIBILITY_STUDY.md
+et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
 
@@ -38,19 +40,33 @@ La revue interne du lot B a produit R01–R08. Ils sont attribués, NON résolus
 Les fiches TC-303/304/305 existent et restent « À faire ». Ne pas répéter leur
 création ni présenter la revue sur papier comme des tests exécutés.
 
-Pour TC-302 C1 :
-1. R02 : étudier le traitement d'un candidat Commit privé invalide ordonné par
-   le serveur. Distinguer position de transport et époque validée par un client.
-   Préciser disponibilité et reprise sans fusion de branches ni rollback de
-   secrets. Aucun quorum utilisateur n'est autorisé par le périmètre V1.
-2. R07 : étudier l'ancrage de fraîcheur d'un état restauré sur les OS cibles,
-   avant tout nouveau chiffrement. Un compteur dans la base restaurée ne suffit
-   pas. Séparer protection contre crash, restauration et appareil compromis ;
-   comparer des solutions maintenues, leurs limites et le coût de reprise.
-3. R08 : identifier les options d'ancrage de première confiance et de détection
-   des vues divergentes du service d'identité ; vérifier les sources primaires,
-   licences et hypothèses, sans créer un protocole de transparence maison.
+La première étude C1 est rédigée, pas à recommencer. Elle n'a exécuté aucun
+test crypto : F01–F10 sont des cas à prouver. Aucun constat R01–R08 fermé.
+
+Pour TC-302 C1b :
+1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
+   couplage Welcome/arbitrage vérifiable par un nouvel arrivant, la barrière
+   de retrait et la reprise face à une divergence. Ne pas traiter une Proposal
+   absente comme invalide ni affirmer que tous acceptent forcément le même
+   Commit hostile. Pas de quorum/consensus maison, fusion ou external join
+   automatique ; préparer l'addendum ADR-0003 nécessaire, sans l'accepter seul.
+2. R07 : tenir compte du reuse_guard standard confirmé dans OpenMLS 0.9.0.
+   Il n'apporte pas de fraîcheur. Comparer ancrage indépendant et reprise sans
+   ancien état ; traiter image complète, marqueur OS restauré et snapshot RAM.
+   Un témoin seulement au démarrage ou un contrôle à l'upload ne suffit pas.
+   Ne pas affirmer que l'exclusion des backups détecte toutes les restaurations,
+   ni limiter le modèle de menace sans décision explicite. Priorité au chemin
+   courant sans aller-retour réseau supplémentaire par message.
+3. R08 : Q4 est décidée et consignée le 17 octobre dans ADR-0009 : vérification
+   initiale obligatoire hors bande, renouvelée après remplacement complet
+   d'identité, pas par connexion/message. Ne pas redemander cet arbitrage.
+   Décliner le parcours de groupe. QR direct n'est ni délégation de confiance au cercle
+   ni transparence automatique. AKD est un candidat étudié, pas sélectionné ;
+   ses licences et celles de Signal KT ne sont pas une validation stores.
+   Stabiliser ancre/continuité/rôles et préciser les limites d'équivoque.
 4. Documenter options, recommandation, limites, preuves requises et effets UX.
+   Les sources amont datées/épinglées et les contre-exemples sont dans l'étude.
+   Ne pas activer une feature MLS en brouillon pour combler un contrat ouvert.
    Une attribution à TC-303/304/306 ne ferme pas ces bloqueurs structurels.
 5. Réponse Q1 reçue le 12 octobre : le propriétaire veut choisir de partager
    l'historique ou non, vers appareil ET nouvelle personne, si ressources et
@@ -63,7 +79,8 @@ Pour TC-302 C1 :
    destinataires limités et priorité au direct, sans exporter clés/états MLS.
    Contrat détaillé, faisabilité et inclusion V1 restent à valider ; cette
    décision d'autorité n'accepte pas l'ADR entière et ne lance aucune
-   implémentation. Présenter Q2–Q5 seulement avec options et coûts UX/sécurité.
+   implémentation. Présenter les arbitrages Q2/Q3/Q5 quand les options et coûts
+   UX/sécurité sont établis ; le choix d'autorité Q1 ne doit pas être redemandé.
 6. Mettre à jour la spécification et les fiches sans démarrer leur implémentation.
    Une architecture de base viable et TC-301 close sont requises pour accepter
    TC-302 ; aucune de ces conditions n'est actuellement annoncée acquise.

@@ -1,7 +1,7 @@
 # Contexte du projet
 
 Statut : référence de travail
-Dernière mise à jour : 2026-10-12
+Dernière mise à jour : 2026-10-17
 Instantané fonctionnel documenté : branche `main`, Phases 1 et 2 terminées sur staging
 
 ## Mission
@@ -74,13 +74,22 @@ Aucune activation
 V3 ni modification du staging : voir `quality/TC-301-MLS_PROTOTYPE.md` et le
 prompt `prompts/CONTINUE_TC-301.md`. Aucun compte/historique n'est à migrer.
 
-La préparation documentaire de `TC-302` est datée du 12 octobre : socle V3 v0.3
+La préparation documentaire de `TC-302`, ouverte le 12 et actualisée le 17 octobre,
+contient le socle V3 v0.4
 dans `security/CRYPTOGRAPHY_V3.md`, exigences et scénarios d'acceptation, sans
 code intégré ni décision de fournisseur. TC-301 n'est pas clôturée et la
 suspension reste en vigueur. La revue interne TC-302 lot B est consignée dans
 `quality/TC-302-SPEC_REVIEW.md` : huit constats ouverts, fiches TC-303/304/305
-préparées mais non démarrées. La suite documentaire est TC-302 C1, faisabilité
-des bloqueurs structurels et arbitrages (`prompts/CONTINUE_TC-302.md`) ;
+préparées mais non démarrées. La première étude C1 est disponible dans
+`security/V3_FEASIBILITY_STUDY.md` : journal de candidats recommandé, protection
+`reuse_guard` MLS distinguée d'un anti-rollback, première confiance et composants
+de transparence comparés. Aucun constat fermé ni solution technique acceptée.
+Q4 est consignée le 17 octobre dans `adr/ADR-0009-verification-identite-initiale.md` :
+vérification initiale obligatoire par QR/empreinte sur canal fiable, renouvelée
+après remplacement complet d'identité, pas par connexion/message. Le contrat
+de groupe et la détection d'équivoque restent ouverts ; ne pas redemander ce choix.
+La suite est TC-302 C1b : déclinaison de l'ADR-0009, fraîcheur R07 et
+preuve Welcome/arbitrage R02 (`prompts/CONTINUE_TC-302.md`) ;
 la validation finale de TC-302 attend TC-301.
 TC-307 est réalignée sur un démarrage V3 à vide, sans coexistence de données V2
 ni downgrade. Les divergences des anciens documents sont tracées dans le socle,
