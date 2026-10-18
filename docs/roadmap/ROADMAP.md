@@ -118,6 +118,14 @@ ajoute un garde après signal de restauration au laboratoire et des preuves
 locales d'admission/rollback. Ce n'est pas une intégration, un détecteur ou une
 réactivation complète ; aucun constat fermé, aucun paquet, gel inchangé.
 
+Le 18 octobre, [C1d](../quality/TC-302-ADMISSION_RELEASE.md) ajoute le Welcome
+différé et l'invalidation atomique de l'outbox perdante : 38 tests moteur et
+3 tests Rust du pont réussis, 24 cas de crash. Un contre-exemple confirme que
+fusion locale ne vaut pas accord global. L'[ADR-0012](../adr/ADR-0012-livraison-admission-v3.md)
+reste proposée pour le contrat ; Q3 produit est décidée : attendre le retrait
+sécurisé si aucun appareil habilité n'est disponible, lecture/brouillons et
+autres conversations disponibles. Preuve de barrière encore ouverte, aucun constat fermé.
+
 Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
 V3 vers appareil/personne. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
 décrit l'étude et ses impacts. L'autorité de partage vers une nouvelle personne
@@ -129,7 +137,7 @@ Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, C1c testé au laboratoire, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
+| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, C1c/C1d testés au laboratoire, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |

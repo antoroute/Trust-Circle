@@ -126,6 +126,7 @@ fn openmls_and_mls_rs_exchange_private_messages_and_commits() {
         .unwrap();
     let add = open.add(group_id, "add", &[kp], Fault::None).unwrap();
     open.receive(group_id, &add.message, Fault::None).unwrap();
+    let add = open.outbox("add").unwrap();
     let welcome = MlsMessage::from_bytes(add.welcome.as_ref().unwrap()).unwrap();
     let (mut group, _) = peer.join_group(None, &welcome, None).unwrap();
     let from_open = open

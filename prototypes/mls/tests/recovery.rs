@@ -20,6 +20,7 @@ fn pair() -> (TempDir, Device, Device) {
         .add(GROUP, "join", &[b.key_package().unwrap()], Fault::None)
         .unwrap();
     a.receive(GROUP, &add.message, Fault::None).unwrap();
+    let add = a.outbox("join").unwrap();
     b.join(GROUP, add.welcome.as_ref().unwrap(), Fault::None)
         .unwrap();
     (dir, a, b)
@@ -182,7 +183,7 @@ fn post_staging_group_rejection_rolls_back_keypackage_consumption_across_restart
         .add(GROUP, "join", std::slice::from_ref(&key), Fault::None)
         .unwrap();
     a.receive(GROUP, &add.message, Fault::None).unwrap();
-    let welcome = add.welcome.unwrap();
+    let welcome = a.outbox("join").unwrap().welcome.unwrap();
     // This input is valid MLS. The application group check fails AFTER staging.
     assert_eq!(
         b.join(b"wrong-context", &welcome, Fault::None),
@@ -196,6 +197,8 @@ fn post_staging_group_rejection_rolls_back_keypackage_consumption_across_restart
     assert_eq!(b.join(GROUP, &welcome, Fault::None), Err(Error::Conflict));
     a.create(b"other", Fault::None).unwrap();
     let reused = a.add(b"other", "reuse", &[key], Fault::None).unwrap();
+    a.receive(b"other", &reused.message, Fault::None).unwrap();
+    let reused = a.outbox("reuse").unwrap();
     assert!(
         b.join(b"other", reused.welcome.as_ref().unwrap(), Fault::None)
             .is_err()

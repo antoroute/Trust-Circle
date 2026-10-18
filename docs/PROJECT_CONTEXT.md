@@ -1,7 +1,7 @@
 # Contexte du projet
 
 Statut : référence de travail
-Dernière mise à jour : 2026-10-17
+Dernière mise à jour : 2026-10-18
 Instantané fonctionnel documenté : branche `main`, Phases 1 et 2 terminées sur staging
 
 ## Mission
@@ -108,6 +108,18 @@ Linux/RustCrypto, dont dix nouveaux ; preuve de rollback du KeyPackage après
 rejet applicatif et contre-exemple au faux anti-rollback d'un marqueur local.
 Voir `quality/TC-302-RECOVERY_GUARD.md`. Dépendances et suspension inchangées ;
 aucun constat fermé, aucun budget multiplateforme nouvellement validé.
+
+Le 18 octobre, **TC-302 C1d** ajoute le Welcome différé jusqu'à fusion locale
+durable et l'invalidation atomique du pending perdant. Huit nouveaux tests :
+38 fonctions moteur réussies, dont deux pilotent 24 cas de crash ; 3 tests Rust
+du pont réussis. L'extension standard d'arbre est alignée à la jonction pour
+permettre les admissions ultérieures. Un contre-exemple démontre deux branches
+incompatibles sous livraison divergente : pas de garantie d'accord global.
+Voir `quality/TC-302-ADMISSION_RELEASE.md`. Q3 est acceptée : attendre le retrait
+sécurisé si aucun appareil habilité n'est disponible, lecture/brouillons et
+autres conversations disponibles. Ne pas redemander ce choix ; la preuve levant
+la barrière reste ouverte. `adr/ADR-0012-livraison-admission-v3.md` reste proposée
+pour le contrat complet. Ni intégration, ni nouveaux paquets, ni constat fermé.
 
 Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
 d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve

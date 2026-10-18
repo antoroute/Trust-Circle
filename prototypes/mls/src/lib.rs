@@ -45,8 +45,10 @@ pub enum Error {
     Missing,
     #[error("operation identifier already used for different input")]
     Conflict,
-    #[error("restoration detected; secure reactivation required")]
+    #[error("operational state unavailable; secure reactivation required")]
     RecoveryRequired,
+    #[error("outbound operation is no longer publishable")]
+    Superseded,
     #[error("injected failure before durable commit")]
     BeforeCommit,
     #[error("injected failure after durable commit; recover outbox")]
@@ -116,6 +118,8 @@ pub enum Fault {
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Outbound {
     pub message: Vec<u8>,
+    /// Never returned for a pending Commit. Read the outbox again after local
+    /// durable merge. This is NOT proof of global agreement or current rights.
     pub welcome: Option<Vec<u8>>,
 }
 
@@ -170,8 +174,10 @@ fn migrate_probe(connection: &mut Connection) -> Result<()> {
         0 => {
             db(tx.execute_batch(include_str!("../schema/001-probe.sql")))?;
             db(tx.execute_batch(include_str!("../schema/002-recovery.sql")))?;
+            db(tx.execute_batch(include_str!("../schema/003-admission.sql")))?;
         }
-        2 => {}
+        2 => db(tx.execute_batch(include_str!("../schema/003-admission.sql")))?,
+        3 => {}
         _ => return Err(Error::Storage),
     }
     // Never recreate a missing marker on an already migrated database.
@@ -226,6 +232,53 @@ fn signer(
 fn group_input(group: &[u8]) -> Result<()> {
     if group.is_empty() || group.len() > 64 {
         return Err(Error::Input);
+    }
+    Ok(())
+}
+
+fn read_outbound(connection: &Connection, operation: &str) -> Result<Outbound> {
+    let (wire, disposition): (Vec<u8>, String) = db(connection.query_row(
+        "SELECT wire, disposition FROM probe_outbox WHERE operation=?1",
+        [operation],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    ))?;
+    match disposition.as_str() {
+        "legacy" | "superseded" => Err(Error::Superseded),
+        "application" | "pending" | "merged" => {
+            let mut outbound: Outbound = db(serde_json::from_slice(&wire))?;
+            if disposition == "pending" {
+                outbound.welcome = None;
+            }
+            Ok(outbound)
+        }
+        _ => Err(Error::Storage),
+    }
+}
+
+/// Called only in the SAME transaction as an authenticated MLS merge.
+fn settle_pending(connection: &Connection, group: &[u8], pending: &[u8], won: bool) -> Result<()> {
+    let (operation, wire): (String, Vec<u8>) = db(connection.query_row(
+        "SELECT operation, wire FROM probe_outbox WHERE group_id=?1 AND disposition='pending'",
+        [group],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    ))?;
+    let outbound: Outbound = db(serde_json::from_slice(&wire))?;
+    if outbound.message != pending {
+        return Err(Error::Storage);
+    }
+    let (disposition, retained) = if won {
+        ("merged", wire)
+    } else {
+        // Keep operation/fingerprint as a tombstone: retries cannot recreate it.
+        // Logical deletion only; no claim of physical erasure of SQLite pages.
+        ("superseded", Vec::new())
+    };
+    let changed = db(connection.execute(
+        "UPDATE probe_outbox SET disposition=?1, wire=?2 WHERE operation=?3 AND disposition='pending'",
+        params![disposition, retained, operation],
+    ))?;
+    if changed != 1 {
+        return Err(Error::Storage);
     }
     Ok(())
 }
@@ -406,23 +459,24 @@ impl Device {
         }
         let fingerprint = Sha256::digest(input).to_vec();
         self.atomic(fault, |tx, provider| {
-            let previous: Option<(Vec<u8>, Vec<u8>, Vec<u8>)> = db(tx
+            let previous: Option<(Vec<u8>, Vec<u8>)> = db(tx
                 .query_row(
-                    "SELECT group_id, fingerprint, wire FROM probe_outbox WHERE operation=?1",
+                    "SELECT group_id, fingerprint FROM probe_outbox WHERE operation=?1",
                     [operation],
-                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                    |r| Ok((r.get(0)?, r.get(1)?)),
                 )
                 .optional())?;
-            if let Some((old_group, old_fingerprint, wire)) = previous {
+            if let Some((old_group, old_fingerprint)) = previous {
                 if old_group != group || old_fingerprint != fingerprint {
                     return Err(Error::Conflict);
                 }
-                return db(serde_json::from_slice(&wire));
+                return read_outbound(tx, operation);
             }
             let (_, key) = signer(tx, provider)?;
             let mut state = load(provider, group)?;
-            let outbound = op(provider, &mut state, &key)?;
-            if state.pending_commit().is_some() {
+            let mut outbound = op(provider, &mut state, &key)?;
+            let pending = state.pending_commit().is_some();
+            if pending {
                 db(tx.execute(
                     "INSERT INTO probe_pending VALUES(?1,?2)",
                     params![group, outbound.message],
@@ -430,9 +484,14 @@ impl Device {
             }
             let wire = db(serde_json::to_vec(&outbound))?;
             db(tx.execute(
-                "INSERT INTO probe_outbox VALUES(?1,?2,?3,?4)",
-                params![operation, group, fingerprint, wire],
+                "INSERT INTO probe_outbox(operation,group_id,fingerprint,wire,disposition) VALUES(?1,?2,?3,?4,?5)",
+                params![operation, group, fingerprint, wire, if pending { "pending" } else { "application" }],
             ))?;
+            // Persist the Welcome locally, but never return it to a transport
+            // before this exact Commit has been durably merged by its author.
+            if pending {
+                outbound.welcome = None;
+            }
             Ok(outbound)
         })
     }
@@ -580,6 +639,9 @@ impl Device {
             }
             let config = MlsGroupJoinConfig::builder()
                 .wire_format_policy(PURE_CIPHERTEXT_WIRE_FORMAT_POLICY)
+                // Joining devices must also include the standard tree extension
+                // when they later author an Add, just like group creators do.
+                .use_ratchet_tree_extension(true)
                 .max_past_epochs(0)
                 .sender_ratchet_configuration(SenderRatchetConfiguration::new(32, 256))
                 .build();
@@ -622,6 +684,7 @@ impl Device {
                     return Err(Error::Conflict);
                 }
                 mls(state.merge_pending_commit(provider))?;
+                settle_pending(tx, group, wire, true)?;
                 db(tx.execute("DELETE FROM probe_pending WHERE group_id=?1", [group]))?;
                 return Ok(Received::Commit);
             }
@@ -643,6 +706,9 @@ impl Device {
                     mls(state.merge_staged_commit(provider, *commit))?;
                     if state.members().count() > MAX_MEMBERS {
                         return Err(Error::Input);
+                    }
+                    if let Some(pending) = own {
+                        settle_pending(tx, group, &pending, false)?;
                     }
                     db(tx.execute("DELETE FROM probe_pending WHERE group_id=?1", [group]))?;
                     Ok(Received::Commit)
@@ -731,12 +797,7 @@ impl Device {
         if recovery_required(&tx)? {
             return Err(Error::RecoveryRequired);
         }
-        let wire: Vec<u8> = db(tx.query_row(
-            "SELECT wire FROM probe_outbox WHERE operation=?1",
-            [operation],
-            |r| r.get(0),
-        ))?;
-        let outbound = db(serde_json::from_slice(&wire))?;
+        let outbound = read_outbound(&tx, operation)?;
         db(tx.commit())?;
         Ok(outbound)
     }
@@ -826,6 +887,7 @@ mod storage_tests {
         let kp = b.key_package().unwrap();
         let add = a.add(group, "add", &[kp], Fault::None).unwrap();
         a.receive(group, &add.message, Fault::None).unwrap();
+        let add = a.outbox("add").unwrap();
         b.join(group, add.welcome.as_ref().unwrap(), Fault::None)
             .unwrap();
         let pages: u32 = a

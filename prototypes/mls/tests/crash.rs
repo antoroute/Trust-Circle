@@ -29,6 +29,7 @@ fn abrupt_process_exit_preserves_transaction_boundaries() {
             let kp = b.key_package().unwrap();
             let add = a.add(GROUP, "add", &[kp], Fault::None).unwrap();
             a.receive(GROUP, &add.message, Fault::None).unwrap();
+            let add = a.outbox("add").unwrap();
             b.join(GROUP, add.welcome.as_ref().unwrap(), Fault::None)
                 .unwrap();
             if action == "receive" {
@@ -50,7 +51,7 @@ fn abrupt_process_exit_preserves_transaction_boundaries() {
                 let wire = if action == "join" {
                     let add = a.add(GROUP, "add-c", &[kp], Fault::None).unwrap();
                     a.receive(GROUP, &add.message, Fault::None).unwrap();
-                    add.welcome.unwrap()
+                    a.outbox("add-c").unwrap().welcome.unwrap()
                 } else {
                     kp
                 };
@@ -134,6 +135,7 @@ fn abrupt_process_exit_preserves_transaction_boundaries() {
                         if action == "add" { 3 } else { 1 }
                     );
                     if action == "add" {
+                        let wire = a.outbox("crash").unwrap();
                         let mut c = Device::open_synthetic(&dir.path().join("c")).unwrap();
                         c.join(GROUP, wire.welcome.as_ref().unwrap(), Fault::None)
                             .unwrap();

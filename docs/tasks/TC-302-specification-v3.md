@@ -1,8 +1,8 @@
 # TC-302 — Spécification indépendante du protocole V3
 
-Statut : En cours — A/B et C1/C1b documentés, C1c testé dans le laboratoire ; contrat et preuves ouverts, clôture bloquée par TC-301
+Statut : En cours — A/B et C1/C1b documentés, C1c/C1d testés dans le laboratoire ; contrat et preuves ouverts, clôture bloquée par TC-301
 Priorité : critique avant intégration
-Date : 2026-10-17
+Date : 2026-10-18
 Responsable de décision : propriétaire du produit pour les compromis UX ; revue sécurité pour le contrat
 Dépendances : ADR-0003 acceptée, ADR-0005, TC-301 pour la clôture
 
@@ -19,6 +19,10 @@ Le 17 octobre, la demande « continue en mettant en place », suivie de
 **C1c, garde de restauration dans le laboratoire natif existant**, sans
 intégration produit, nouvelle dépendance ou distribution. Elle remplace la
 restriction documentaire pour ce lot borné, pas les autres portes de validation.
+
+La continuation du 18 octobre réalise **C1d, Welcome différé et invalidation
+locale du pending perdant** dans le même laboratoire, avec adaptation minimale
+du consommateur Rust du pont de test Flutter. Aucune intégration produit.
 
 Le laboratoire ne constitue pas la spécification produit : identités
 synthétiques, SQLite non chiffré, transport simulé et absence de politique
@@ -77,6 +81,7 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - [x] Première comparaison de faisabilité R02/R07/R08 sourcée, avec limites et cas de preuve ; aucune résolution définitive déduite.
 - [x] C1b consigné : référent et périmètre de restauration décidés, admission approfondie, huit cas supplémentaires à prouver.
 - [x] C1c : garde local après signal de restauration et rollback d'admission éprouvés ; G06/G07/G08 partiels, sans fermeture de R07.
+- [x] C1d : Welcome différé et perdant invalidé atomiquement ; G04/G05 partiels et contre-exemple de divergence, sans fermeture de R02/R03.
 - [ ] Faisabilité et hypothèses des bloqueurs structurels R02/R07/R08 établies avant acceptation du socle.
 - [ ] TC-301 close avec fournisseur, dépendances et budgets étayés.
 - [ ] Socle accepté et références documentaires alignées, sans écraser les modifications du propriétaire.
@@ -88,9 +93,9 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - Relecture des ADR, décisions V1, invariants et des fonctions/tests du
   laboratoire concernés ; les preuves existantes ne sont citées que dans leur périmètre.
 - `git diff --check` ; changements documentaires pour A/B/C1/C1b ; code et tests
-  synthétiques limités au laboratoire natif pour C1c.
+  synthétiques limités au laboratoire pour C1c/C1d, consommateur Rust du pont compris.
 - Ne pas relancer les matrices CI, compiler de paquets ou déclencher un déploiement
-  pour ces lots. Les preuves partielles exécutées en C1c sont distinguées des
+  pour ces lots. Les preuves partielles exécutées en C1c/C1d sont distinguées des
   autres tests de la matrice, toujours **à écrire**.
 
 ### Contrôles du lot A
@@ -218,6 +223,34 @@ contre-exemple explicite au marqueur restauré avec la base.
 Les détecteurs OS, le chiffrement au repos, la réadmission et l'annulation
 réseau restent à implémenter. Aucun constat de la revue n'est clos.
 
+### C1d — Welcome différé et invalidation locale
+
+Le [rapport C1d](../quality/TC-302-ADMISSION_RELEASE.md) décrit les états durables
+de l'outbox : Welcome masqué tant que le Commit est pending, accessible après
+fusion locale durable, sortie perdante invalidée avec trace d'idempotence.
+Une erreur SQL annule ensemble fusion et changement de disposition. Les bases
+synthétiques anciennes avec outbox/pending sont bloquées conservativement ;
+leur inbox n'est pas effacée. Schéma v3, sans migration de données produit.
+
+Huit nouveaux tests portent le total moteur à **38 fonctions réussies**, dont
+deux pilotent **24 cas de crash**. Les trois tests Rust du pont réussissent ;
+interopérabilité, Clippy et formatage passent. Les participants rejoints
+incluent désormais l'arbre standard lorsqu'ils créent un Welcome à leur tour,
+avec test de régression. Aucun benchmark, audit actualisé ou essai OS relancé.
+
+G04 est partiellement couvert localement, pas le transport/ACK. G05 comprend
+un contre-exemple exécuté : deux auteurs fusionnent des branches divergentes
+et libèrent chacun un Welcome. Aucune garantie de consensus ou détection de
+fork déduite. L'[ADR-0012](../adr/ADR-0012-livraison-admission-v3.md) prépare
+l'addendum transport/admission, **proposé** ; aucun constat R01–R08 fermé.
+
+Le 18 octobre, Q3 est acceptée : si aucun appareil habilité ne peut achever
+un retrait, les nouveaux envois de la conversation attendent ; lecture locale,
+brouillons et autres conversations disponibles. L'attente peut durer jusqu'au
+retour d'un appareil habilité. Ce choix n'efface pas les messages déjà reçus,
+ne couvre pas une révocation cachée par un serveur compromis et ne prouve
+pas encore le mécanisme levant la barrière. Ne pas redemander cet arbitrage.
+
 ## Risques, reset et retour arrière
 
 La principale menace documentaire serait de transformer des hypothèses en
@@ -229,7 +262,7 @@ Un retour arrière des lots documentaires retire seulement leurs ajouts, par
 modification ciblée. Aucun effacement de données ni changement d'environnement
 n'est effectué. TC-307 préparera séparément un reset vérifié et borné ; la
 décision de repartir à vide n'autorise pas une suppression opportuniste ici.
-Pour C1c, ne pas retirer le marqueur ni utiliser un ancien binaire sur une base
+Pour C1c/C1d, ne pas retirer le marqueur ni utiliser un ancien binaire sur une base
 devant rester bloquée ; rollback de code uniquement avec de nouvelles fixtures
 jetables. Voir le rapport pour la stratégie de schéma, sans migration descendante.
 
@@ -240,8 +273,9 @@ changements de groupe, la durée de fonctionnement hors ligne et les limites de
 récupération ; voir les questions Q1–Q5 de la spécification. La suspension reste
 une décision explicite en vigueur, pas une option à retirer automatiquement.
 L'autorité de partage Q1, la vérification initiale Q4, la délégation au référent
-et le périmètre de restauration sont décidés ; leurs contrats détaillés ne le
-sont pas tous. Restent notamment Q2/Q3 et la reprise après journal expiré de Q5,
+et le périmètre de restauration sont décidés, ainsi que l'attente sécurisée Q3 ;
+leurs contrats détaillés ne le sont pas tous. Restent notamment Q2, la preuve
+technique de la barrière Q3 et la reprise après journal expiré de Q5,
 pas une répétition des choix reçus. Le modèle de menace DS/membre hostile de R02
 ne peut être diminué implicitement par l'accord sur les restaurations.
 
@@ -252,6 +286,8 @@ ne peut être diminué implicitement par l'accord sur les restaurations.
 - [Première étude C1 : options, limites et preuves](../security/V3_FEASIBILITY_STUDY.md).
 - [Approfondissement C1b : admission et récupération](../security/V3_ADMISSION_RECOVERY_STUDY.md).
 - [C1c : implémentation locale, preuves et limites](../quality/TC-302-RECOVERY_GUARD.md).
+- [C1d : Welcome différé, invalidation et contre-exemple](../quality/TC-302-ADMISSION_RELEASE.md).
+- [ADR-0012 proposée : contrat transport et Q3 produit décidée](../adr/ADR-0012-livraison-admission-v3.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).
 

@@ -1,7 +1,7 @@
 # Cryptographie V3 — socle de spécification CircleHaven
 
 Version : 0.5 — brouillon avec décisions C1b, non approuvé pour implémentation
-Date : 2026-10-17
+Date : 2026-10-18 — suivi des preuves locales C1c/C1d, contrat v0.5 non accepté
 Décisions acquises : [ADR-0003](../adr/ADR-0003-protocole-crypto-v3.md),
 [ADR-0005](../adr/ADR-0005-confiance-appareil-compte.md),
 [ADR-0009 — vérification initiale](../adr/ADR-0009-verification-identite-initiale.md),
@@ -43,7 +43,8 @@ compare première confiance hors bande et transparence. Aucun constat n'est
 clos. Le [complément C1b](V3_ADMISSION_RECOVERY_STUDY.md) enregistre la délégation
 explicite au référent et le périmètre de restauration décidés, puis précise
 admission transactionnelle et libération du Welcome après fusion. Les deux
-derniers mécanismes sont proposés, pas acceptés ni prouvés ; R02/R07/R08 restent ouverts.
+derniers mécanismes restent des propositions produit. Les preuves locales
+partielles C1c/C1d ci-dessous ne les valident pas intégralement ; R02/R07/R08 restent ouverts.
 
 ### Écarts documentaires identifiés
 
@@ -287,6 +288,13 @@ présente une autre branche. Un GroupInfo valide, une confirmation du même
 auteur ou un badge « en attente » ne prouve pas le choix global du Commit.
 Le contrat vérifiable côté nouvel arrivant reste un blocage R02/R03.
 
+Preuve partielle [C1d](../quality/TC-302-ADMISSION_RELEASE.md) : le laboratoire
+masque le Welcome avant fusion durable, puis invalide atomiquement l'outbox
+pending perdante, y compris après crash/retry. Un contre-exemple exécuté montre
+deux admissions incompatibles sous livraison divergente. Le nouvel
+[addendum ADR-0012](../adr/ADR-0012-livraison-admission-v3.md) est **proposé**, pas accepté :
+pas de transport produit, de preuve globale ni de fermeture de R02/R03.
+
 **V3-013 — Pending, pertes et conflits.** Un timeout de transport laisse le
 résultat indéterminé ; interroger/reprendre l'opération, sans déclarer l'échec
 définitif ni créer une seconde admission. Si un autre Commit valide gagne,
@@ -443,8 +451,11 @@ exécutée. « Partiel labo » désigne le comportement synthétique déjà couv
 dans [lifecycle.rs](../../prototypes/mls/tests/lifecycle.rs),
 [crash.rs](../../prototypes/mls/tests/crash.rs),
 [interop.rs](../../prototypes/mls/tests/interop.rs) ou les rapports TC-301.
-La référence des essais historiques C1 est `27ab9c6`. Aucune nouvelle exécution
-runtime n'accompagne cette préparation documentaire.
+La référence des essais historiques TC-301 C1 est `27ab9c6`. Les études
+documentaires TC-302 C1/C1b n'ont pas exécuté de tests runtime. Les lots locaux
+[C1c](../quality/TC-302-RECOVERY_GUARD.md) puis
+[C1d](../quality/TC-302-ADMISSION_RELEASE.md) en ajoutent, sans valider le contrat
+produit complet ; leurs rapports distinguent preuves, contre-exemples et limites.
 
 | Scénario | Exigences | Invariants | Résultat à démontrer / preuve manquante | Tâche |
 |---|---|---|---|---|
@@ -475,7 +486,7 @@ runtime n'accompagne cette préparation documentaire.
 |---|---|---|
 | Q1 — accès et partage facultatif | Partage facultatif demandé si coût raisonnable ; autorité décidée : propriétaire/admin participant, période choisie et événement visible ; appareil déjà approuvé pour son propre appareil. Copie sélective proposée, pas d'anciennes clés | ADR-0008 proposée ; contrat détaillé, faisabilité et inclusion V1 à valider |
 | Q2 — durée hors ligne et anciennes époques | Favoriser le rattrapage ordonné, avec rétention de secrets strictement bornée ; pas de chiffre choisi sans mesure/menace | Produit + TC-304 ; bloque politique FS/reprise |
-| Q3 — retrait et changement de membres | Mise à jour automatique avec état visible ; aucun nouvel envoi sur état connu obsolète ; préciser le cas dernier appareil disponible | Produit + TC-304/310 ; bloque garantie de révocation |
+| Q3 — retrait et changement de membres | Acceptée le 18 octobre : attendre le retrait sécurisé si aucun appareil habilité ne peut le terminer ; lecture locale/brouillons et autres conversations disponibles, attente potentiellement jusqu'au retour d'un appareil habilité | ADR-0012, décision produit reçue ; contrat technique proposé, preuve de barrière encore ouverte |
 | Q4 — confiance contre serveur compromis | Vérification initiale obligatoire ADR-0009 ; délégation explicite au référent vérifié ADR-0010. AKD étudié, pas sélectionné ; QR/attestation ne valent pas transparence | Contrat, rotation, fraîcheur et preuves restent ouverts ; ne pas redemander ces arbitrages |
 | Q5 — perte d'état ou journal expiré | Périmètre restauration décidé ADR-0011 : réactivation si détectée, historique lisible préservé, image complète sans garantie de détection | TC-304/306/404 ; mécanismes, preuves et reprise après expiration du journal restent ouverts |
 
@@ -485,7 +496,7 @@ invalide et preuve d'autorisation des changements de rôles (TC-304/310).
 Le fait qu'un membre MLS puisse signer ne prouve pas qu'il est administrateur
 CircleHaven ; la validation des changements doit couvrir les deux niveaux.
 
-La revue **TC-302 lot B**, C1 et C1b sont consignés, avec huit constats encore
+La revue **TC-302 lot B**, C1/C1b et les preuves locales C1c/C1d sont consignés, avec huit constats encore
 ouverts et les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1,
 stabilisation R02/Q3 puis Q2**, contrat d'admission et barrière de révocation,
 sous les périmètres produit désormais décidés. La rédaction ne remplace ni TC-301 C2 ni une revue

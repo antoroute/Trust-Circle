@@ -21,6 +21,7 @@ fn pair() -> (TempDir, Device, Device) {
         "no merge before authenticated echo"
     );
     a.receive(GROUP, &add.message, Fault::None).unwrap();
+    let add = a.outbox("initial-add").unwrap();
     b.join(GROUP, add.welcome.as_ref().unwrap(), Fault::None)
         .unwrap();
     (dir, a, b)
@@ -189,7 +190,8 @@ fn welcome_failure_preserves_keypackage_and_success_consumes_it() {
     let add = a
         .add(GROUP, "add", std::slice::from_ref(&key), Fault::None)
         .unwrap();
-    let welcome = add.welcome.unwrap();
+    a.receive(GROUP, &add.message, Fault::None).unwrap();
+    let welcome = a.outbox("add").unwrap().welcome.unwrap();
     let mut bad = welcome.clone();
     *bad.last_mut().unwrap() ^= 1;
     assert!(b.join(GROUP, &bad, Fault::None).is_err());
@@ -202,6 +204,8 @@ fn welcome_failure_preserves_keypackage_and_success_consumes_it() {
     assert!(b.join(GROUP, &welcome, Fault::None).is_err());
     a.create(b"second", Fault::None).unwrap();
     let reused = a.add(b"second", "reuse", &[key], Fault::None).unwrap();
+    a.receive(b"second", &reused.message, Fault::None).unwrap();
+    let reused = a.outbox("reuse").unwrap();
     assert!(
         b.join(b"second", reused.welcome.as_ref().unwrap(), Fault::None)
             .is_err()

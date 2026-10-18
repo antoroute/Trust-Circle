@@ -177,6 +177,7 @@ impl Session {
         let package = checked(devices[1].key_package())?;
         let add = checked(devices[0].add(GROUP, "initial-add", &[package], Fault::None))?;
         checked(devices[0].receive(GROUP, &add.message, Fault::None))?;
+        let add = checked(devices[0].outbox("initial-add"))?;
         checked(devices[1].join(
             GROUP,
             add.welcome.as_deref().ok_or("missing_welcome")?,
@@ -289,6 +290,7 @@ impl Session {
                 let package = checked(self.devices[2].key_package())?;
                 let add = checked(self.devices[0].add(GROUP, &id, &[package], Fault::None))?;
                 self.distribute(&add.message, false)?;
+                let add = checked(self.devices[0].outbox(&id))?;
                 checked(self.devices[2].join(
                     GROUP,
                     add.welcome.as_deref().ok_or("missing_welcome")?,

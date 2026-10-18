@@ -1,9 +1,14 @@
 # TC-301 — laboratoire MLS natif
 
 Prototype isolé, **pas un moteur prêt pour l'application**. Il ne contacte
-aucun backend et ne modifie ni Flutter, ni le staging. Utiliser uniquement des
+aucun backend et ne modifie ni le client principal, ni le staging. Utiliser uniquement des
 identités et messages synthétiques dans des répertoires temporaires privés.
 Les bases SQLite de ce laboratoire ne sont **pas chiffrées**.
+
+Les [nouveaux paquets sont suspendus](../../docs/quality/TC-301-SECURITY_HOLD.md).
+Les commandes ci-dessous décrivent les capacités du laboratoire, pas une levée
+du gel ni une invitation à exécuter la matrice libcrux. Pour C1d, seuls les tests
+locaux verrouillés/hors ligne RustCrypto et le pont Rust ont été exécutés.
 
 ## Exécuter
 
@@ -58,6 +63,26 @@ et ne peut pas simplement redéchiffrer ce message privé. Seule la comparaison
 exacte avec son Commit pending persisté autorise ici la fusion locale.
 L'écho ne prouve pas que tous les pairs l'ont reçu ni que le serveur est honnête.
 
+## Welcome différé — TC-302 C1d
+
+Un Commit pending retourne `welcome: None`, même via `outbox` ou un retry.
+Le Welcome reste stocké localement jusqu'à fusion durable du Commit exact :
+
+```rust,ignore
+let add = author.add(group, "add", &[key_package], Fault::None)?;
+// Le transport simulé retourne le Commit dans son ordre ; ce n'est pas un consensus.
+author.receive(group, &add.message, Fault::None)?;
+let released = author.outbox("add")?; // Welcome désormais accessible.
+```
+
+Un Commit concurrent valide fusionné invalide atomiquement l'ancienne sortie :
+`Superseded` après restart/retry, sans recréer d'opération. La trace d'idempotence
+reste, les octets perdants sont retirés logiquement, sans promesse d'effacement
+physique. Un candidat invalide ou une panne SQL n'invalide pas le pending.
+Un test démontre aussi deux libérations incompatibles sous livraison divergente :
+**fusion locale et même numéro d'époque ne prouvent pas un accord global**.
+Voir [preuves et limites C1d](../../docs/quality/TC-302-ADMISSION_RELEASE.md).
+
 ## Arrêt après un signal de restauration — TC-302 C1c
 
 `require_reactivation()` persiste un arrêt de toutes les mutations MLS et de
@@ -74,8 +99,10 @@ implémentée. Des octets déjà remis à un transport ne peuvent pas être rapp
 par cette API. Aucun contrôle réseau supplémentaire n'est ajouté par message,
 mais le surcoût sur les appareils cibles reste à mesurer.
 
-Le schéma synthétique passe une fois de `user_version=0` à 2, sans effacer
-l'historique. Marqueur absent/invalide et version inconnue échouent sans reset.
+Le schéma C1c ajoutait `user_version=2` ; C1d porte les bases v0/v2 à 3, sans
+effacer l'inbox. Une ancienne outbox ou un pending sans preuve d'issue active
+le garde : aucune ancienne sortie libérée par supposition. Marqueur absent/invalide
+et version inconnue échouent sans reset.
 Ne pas revenir à un ancien binaire sur une base devant rester bloquée : il
 ignorerait le garde. Voir [preuves, limites et reprise](../../docs/quality/TC-302-RECOVERY_GUARD.md).
 
@@ -90,7 +117,8 @@ faux écho local, KeyPackage expiré/réutilisé et échec de Welcome.
 Les processus enfants quittent brutalement avant/après le commit SQLite pour
 dix chemins : création, envoi, réception, réception en lot, ajout, retrait, mise à jour,
 jonction, fusion locale et fusion distante. Ce sont 20 scénarios, **pas une
-simulation de coupure électrique du stockage**. Un quota SQLite de pages
+simulation de coupure électrique du stockage**. C1d ajoute quatre cas de crash
+avant/après libération ou invalidation du Welcome, soit 24 au total. Un quota SQLite de pages
 force aussi une erreur de capacité pendant l'envoi et vérifie la reprise.
 Restaurer malicieusement un ancien fichier complet n'est pas détecté ici.
 
@@ -124,12 +152,14 @@ SQLCipher, le réseau, la batterie ni la baseline V2 sur le même appareil.
   Service réel ; les méthodes simulent des entrées autorisées.
 - Le paramètre expérimental `max_past_epochs=0` rejette les messages d'anciennes
   époques. La politique hors-ligne/rétention compatible avec l'UX attend TC-304.
-- L'outbox ne possède pas encore le cycle ACK/GC/invalidation d'un Commit
-  perdant ; un ancien ciphertext peut être relu, pas fusionné comme un nouveau.
+- L'outbox invalide localement les Commit perdants depuis C1d, mais pas encore
+  de cycle transport ACK/GC ni d'annulation d'octets déjà remis au transport.
+  Une ancienne sortie fusionnée reste lisible, sans preuve de droits actuels.
 - Pas de chiffrement au repos, de protection contre restauration malveillante,
   de preuve d'effacement physique des secrets ou de notifications système.
-- Pas de pont Flutter, de file asynchrone native bornée, de mesure d'énergie
-  ou de validation sur les appareils physiques du propriétaire.
+- Pont et acteur asynchrone expérimentaux dans `../mls_flutter`, pas dans le
+  client principal ; aucune mesure d'énergie ni validation MLS sur les appareils
+  physiques du propriétaire.
 
 Les limites de taille sont locales au laboratoire : 1 Mio par enveloppe,
 16 Kio de texte, 256 appareils. La validation de ressources en amont du

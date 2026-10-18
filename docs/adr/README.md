@@ -13,6 +13,9 @@ Une ADR capture une décision durable, ses alternatives et ses conséquences. Le
 | [ADR-0007](ADR-0007-topologie-temps-reel.md) | Topologie temps réel V1 sans Redis | Acceptée |
 | [ADR-0008](ADR-0008-partage-historique-optionnel.md) | Partage facultatif d'historique vers appareil/personne | Proposée — autorité produit décidée ; contrat détaillé et faisabilité à valider |
 | [ADR-0009](ADR-0009-verification-identite-initiale.md) | Vérification initiale obligatoire par QR/empreinte | Acceptée — décision produit ; contrat technique et preuves à produire |
+| [ADR-0010](ADR-0010-referent-identite-groupes.md) | Délégation explicite au référent d'identité du groupe | Acceptée — décision produit ; contrat et preuves à produire |
+| [ADR-0011](ADR-0011-perimetre-restauration-v1.md) | Périmètre V1 de restauration de l'état cryptographique | Acceptée — périmètre produit/menace ; mécanismes à produire |
+| [ADR-0012](ADR-0012-livraison-admission-v3.md) | Livraison ordonnée, admission et attente de révocation V3 | Proposée — Q3 produit décidée ; contrat technique et preuves globales ouverts |
 
 ## Format
 

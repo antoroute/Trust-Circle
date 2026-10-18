@@ -2,7 +2,7 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation et preuve locale C1c sont sur tc301-mls-prototype, actualisées le 2026-10-17.
+préparation et preuves locales C1c/C1d sont sur tc301-mls-prototype, actualisées le 2026-10-18.
 Objectif : TC-302 C1, stabilisation R02/Q3 puis Q2 à partir du socle V3 v0.5.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
@@ -14,10 +14,12 @@ docs/adr/ADR-0008-partage-historique-optionnel.md (proposée),
 docs/adr/ADR-0009-verification-identite-initiale.md (décision produit acceptée),
 docs/adr/ADR-0010-referent-identite-groupes.md (décision produit acceptée),
 docs/adr/ADR-0011-perimetre-restauration-v1.md (périmètre accepté, preuves ouvertes),
+docs/adr/ADR-0012-livraison-admission-v3.md (proposée, Q3 produit décidée),
 docs/product/V1_DECISIONS.md, docs/security/CRYPTOGRAPHY_V3.md,
 docs/quality/TC-302-SPEC_REVIEW.md, docs/security/V3_FEASIBILITY_STUDY.md,
 docs/security/V3_ADMISSION_RECOVERY_STUDY.md,
 docs/quality/TC-302-RECOVERY_GUARD.md,
+docs/quality/TC-302-ADMISSION_RELEASE.md,
 et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
@@ -31,6 +33,8 @@ automatiquement le gel : suivre la procédure et demander l'accord de reprise.
 
 La demande explicite « continue en mettant en place » du 17 octobre a autorisé
 C1c : un garde et des tests dans le laboratoire natif, pas l'intégration produit.
+La continuation du 18 octobre réalise C1d : Welcome différé et outbox perdante
+invalidée, avec deux lectures adaptées dans le consommateur Rust du pont isolé.
 Ne pas revenir par défaut à une reprise exclusivement documentaire ; distinguer
 les preuves locales réalisables des contrats encore ouverts. Ne pas étendre cette
 autorisation à de nouveaux paquets, à une réadmission non spécifiée ou au backend.
@@ -53,8 +57,12 @@ Les études C1/C1b sont rédigées, pas à recommencer. Elles n'ont exécuté au
 test crypto. C1c, réalisé ensuite sur demande, fournit une preuve G06 synthétique
 et des preuves partielles G07/G08 : 30 tests moteur RustCrypto dont 10 nouveaux,
 dont un test pilote 20 cas de crash ; 3 tests Rust du pont, fmt et Clippy réussis.
-F01–F10 et les autres aspects des G01–G08 restent à prouver. Aucun constat fermé.
-Lire le code et les tests C1c avant de les prolonger : ne pas réécrire ce garde.
+Depuis C1d, 38 fonctions moteur réussissent, dont 8 nouvelles ; deux pilotent
+24 cas de crash. Trois tests Rust du pont, fmt et Clippy passent. G04/G05
+partiels : crash/libération/invalidation et contre-exemple de deux admissions
+divergentes, pas un transport, une preuve globale ou une détection de fork.
+Les autres aspects F01–F10/G01–G08 restent à prouver. Aucun constat fermé.
+Lire le code et les tests C1c/C1d avant de prolonger : ne pas les réécrire.
 
 Pour la stabilisation restante TC-302 C1 :
 1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
@@ -62,12 +70,18 @@ Pour la stabilisation restante TC-302 C1 :
    de retrait et la reprise face à une divergence. Ne pas traiter une Proposal
    absente comme invalide ni affirmer que tous acceptent forcément le même
    Commit hostile. Pas de quorum/consensus maison, fusion ou external join
-   automatique ; préparer l'addendum ADR-0003 nécessaire, sans l'accepter seul.
-   C1b propose une libération du Welcome seulement après fusion locale durable,
+   automatique ; compléter l'ADR-0012 proposée, sans l'accepter seul.
+   C1d implémente dans le laboratoire la libération du Welcome après fusion locale durable,
    sans prépublication sur le DS. Cela ne prouve pas un consensus global et ne
    résout pas l'auteur hostile. Définir les garanties sous chaque adversaire,
    ne pas renommer un ACK, GroupInfo ou défi au même auteur en preuve indépendante.
    La barrière de révocation doit rester distincte d'un compteur d'époque SQL.
+   API du laboratoire : add/retry/outbox masquent le Welcome pending ; après
+   fusion durable, relire outbox(operation). Un perdant retourne Superseded,
+   avec tombstone d'idempotence ; pas de réémission automatique d'anciens octets.
+   Schéma v3 : anciennes outboxes/pending sans preuve arrêtent les opérations,
+   inbox préservée ; nouvelles fixtures privées, pas de déblocage ou downgrade.
+   Création et jonction utilisent la même extension standard ratchet_tree.
    OpenMLS peut consommer le KeyPackage dès la préparation du Welcome : inclure
    les contrôles applicatifs dans la transaction ; pas d'attente réseau sous verrou.
 2. R07 : tenir compte du reuse_guard standard confirmé dans OpenMLS 0.9.0.
@@ -115,9 +129,14 @@ Pour la stabilisation restante TC-302 C1 :
    destinataires limités et priorité au direct, sans exporter clés/états MLS.
    Contrat détaillé, faisabilité et inclusion V1 restent à valider ; cette
    décision d'autorité n'accepte pas l'ADR entière et ne lance aucune
-   implémentation. Présenter les arbitrages Q2/Q3 et journal expiré de Q5 quand
-   les options et coûts UX/sécurité sont établis ; le choix d'autorité Q1 ne
-   doit pas être redemandé.
+   implémentation. Q3 décidée le 18 octobre : si aucun appareil habilité ne peut
+   achever le retrait, les nouveaux envois attendent ; lecture locale/brouillons
+   et autres conversations disponibles, potentiellement jusqu'au retour d'un
+   appareil habilité. Ne pas redemander ce choix. Il n'efface pas les messages
+   reçus et ne couvre pas une révocation cachée par un serveur compromis.
+   Le mécanisme levant la barrière reste à spécifier/tester ; ADR-0012 n'est pas
+   intégralement acceptée. Présenter Q2 et journal expiré de Q5 une fois leurs
+   options et coûts établis ; ne pas répéter les arbitrages déjà reçus.
 6. Mettre à jour la spécification et les fiches sans démarrer l'intégration produit.
    Garder les preuves locales dans prototypes/mls sur données synthétiques,
    sans nouvelles dépendances ni changement de fournisseur. Pas d'activation
@@ -128,7 +147,7 @@ Pour la stabilisation restante TC-302 C1 :
    dépendances, paquets ou infrastructure modifiés. Pour le code laboratoire :
    cargo fmt --check, cargo test --locked --offline --features interop,
    cargo clippy --locked --offline --all-targets --features interop -- -D warnings,
-   puis les tests Rust du pont si l'API native change. Commandes exactes dans C1c.
+   puis les tests Rust du pont si l'API native change. Commandes exactes dans C1d.
    Aucun résultat local ne valide les budgets ou la matrice des OS cibles.
 
 Préserve les neuf documents déjà modifiés par le propriétaire : contexte,

@@ -34,7 +34,10 @@ pub fn run(size: usize, samples: usize, sparse: bool) -> Result<Value> {
     let add = devices[0].add(group, "initial-add", &packages, Fault::None)?;
     let add_ms = elapsed(start);
     devices[0].receive(group, &add.message, Fault::None)?;
-    let welcome = add.welcome.ok_or(Error::Missing)?;
+    let welcome = devices[0]
+        .outbox("initial-add")?
+        .welcome
+        .ok_or(Error::Missing)?;
     let mut joins = Vec::new();
     for device in devices.iter_mut().skip(1) {
         let start = Instant::now();
