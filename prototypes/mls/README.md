@@ -7,7 +7,7 @@ Les bases SQLite de ce laboratoire ne sont **pas chiffrées**.
 
 Les [nouveaux paquets sont suspendus](../../docs/quality/TC-301-SECURITY_HOLD.md).
 Les commandes ci-dessous décrivent les capacités du laboratoire, pas une levée
-du gel ni une invitation à exécuter la matrice libcrux. Pour C1c–C1e, seuls les tests
+du gel ni une invitation à exécuter la matrice libcrux. Pour C1c–C1f, seuls les tests
 locaux verrouillés/hors ligne RustCrypto et le pont Rust ont été exécutés.
 
 ## Exécuter
@@ -111,6 +111,31 @@ conserver intention et copie locale chiffrée séparément : une invalidation ne
 doit pas perdre du contenu ni déclencher une réémission aveugle.
 Voir [preuves et limites C1e](../../docs/quality/TC-302-EPOCH_OUTBOX.md).
 
+## Arrêt ciblé avant retrait — TC-302 C1f
+
+`hold_group_synthetic(group, fault)` injecte un arrêt de publication dans un
+groupe existant. **Ce n'est pas un validateur de révocation** ; ne pas le connecter
+directement à un événement réseau. Il ne connaît ni compte/cible/incarnation ni
+rôle. Le contrat de ces preuves et l'autorité de l'exécutant restent à établir.
+
+Le signal bloque `send`, ses retries, `add` et ses retries avant travail MLS.
+`outbox` refuse les sorties applicatives et masque les Welcome, même fusionnés.
+Les contrôles historiques restent accessibles sans autoriser leur republication.
+Réception, Update et Remove sont possibles ; leur autorisation produit n'est
+toujours pas validée. Inbox et autres groupes préservés ; restauration C1c prioritaire.
+
+Le marqueur persiste dans `probe_group_hold` (schéma v5). Un latch protège
+l'acteur si l'écriture échoue, pas les autres avant retry durable. Un crash avant
+persistance perd le signal : une source durable devra le rejouer avant reprise.
+**Aucun unlock** après époque avancée, pending perdu ou même retrait réussi.
+Cette limitation expérimentale n'est pas une politique UX produit de blocage définitif.
+Absence de marqueur ne prouve pas la fraîcheur ; snapshot complet non détecté.
+
+Migration v4→v5 atomique, inbox/garde global préservés, table manquante en v5
+refusée. Pas de downgrade, de suppression de hold ou d'anciens acteurs simultanés.
+Le chemin courant ajoute une recherche SQL indexée, pas un appel réseau ; coût
+à mesurer. Voir [contrat proposé, preuves et limites](../../docs/quality/TC-302-REVOCATION_SIGNAL.md).
+
 ## Arrêt après un signal de restauration — TC-302 C1c
 
 `require_reactivation()` persiste un arrêt de toutes les mutations MLS et de
@@ -128,7 +153,7 @@ par cette API. Aucun contrôle réseau supplémentaire n'est ajouté par message
 mais le surcoût sur les appareils cibles reste à mesurer.
 
 Le schéma C1c ajoutait `user_version=2` ; la migration C1d mène de v0/v2 à 3,
-puis C1e à 4, sans effacer l'inbox. À l'étape C1d, une ancienne outbox ou un
+puis C1e à 4 et C1f à 5, sans effacer l'inbox. À l'étape C1d, une ancienne outbox ou un
 pending sans preuve d'issue active le garde : aucune ancienne sortie libérée
 par supposition. Marqueur absent/invalide
 et version inconnue échouent sans reset.
@@ -148,7 +173,8 @@ dix chemins : création, envoi, réception, réception en lot, ajout, retrait, m
 jonction, fusion locale et fusion distante. Ce sont 20 scénarios, **pas une
 simulation de coupure électrique du stockage**. C1d ajoute quatre cas de crash
 avant/après libération ou invalidation du Welcome ; C1e ajoute quatre cas
-avant/après fusion et invalidation applicative, soit **28 au total**. Un quota SQLite de pages
+avant/après fusion et invalidation applicative ; C1f ajoute deux cas avant/après
+persistance de l'arrêt ciblé, soit **30 au total**. Un quota SQLite de pages
 force aussi une erreur de capacité pendant l'envoi et vérifie la reprise.
 Restaurer malicieusement un ancien fichier complet n'est pas détecté ici.
 
@@ -186,7 +212,8 @@ SQLCipher, le réseau, la batterie ni la baseline V2 sur le même appareil.
   sorties applicatives après fusion depuis C1e, mais pas encore
   de cycle transport ACK/GC ni d'annulation d'octets déjà remis au transport.
   Un ancien contrôle fusionné reste lisible, sans preuve de droits actuels.
-  Pas de barrière de révocation avant fusion ni de conservation séparée des intentions.
+  C1f teste un arrêt ciblé avant fusion, mais ni authentification du signal,
+  reprise après preuve, ni conservation séparée des intentions.
 - Pas de chiffrement au repos, de protection contre restauration malveillante,
   de preuve d'effacement physique des secrets ou de notifications système.
 - Pont et acteur asynchrone expérimentaux dans `../mls_flutter`, pas dans le

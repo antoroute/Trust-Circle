@@ -358,7 +358,7 @@ fn v3_application_outboxes_are_stopped_while_history_and_controls_are_preserved(
             .unwrap()
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
     }
 }
 

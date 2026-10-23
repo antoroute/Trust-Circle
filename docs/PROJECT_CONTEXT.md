@@ -133,6 +133,17 @@ l'équivoque ; aucune barrière Q3 complète implémentée. Prochaine sous-tâch
 **C1f, signal et portée de la barrière Q3 / admission R02**, puis Q2. Ni nouveaux
 paquets, ni intégration, ni constat fermé ; gel et dépendances inchangés.
 
+La poursuite du 23 octobre, **TC-302 C1f**, propose les sources/portées de
+révocation et teste un arrêt de publication ciblé par groupe, avant fusion MLS.
+Envois/retries/ajouts bloqués, Welcome masqués, réception/contrôles et autres
+groupes disponibles. Aucun authentificateur ni unlock, même après Remove ;
+garde global prioritaire. Schéma v5, 57 tests moteur, 3 du pont Rust et 30 cas
+de crash réussis. Voir `quality/TC-302-REVOCATION_SIGNAL.md`.
+Question C1f-A1 posée, en attente : participant autorisé pouvant appliquer un
+retrait déjà prouvé ou seulement propriétaire/admin participant. Q3 n'est pas
+à redemander. Suite **C1g, validateur d'autorité/succession et obligations de
+retrait**, puis Q2. Gel et dépendances inchangés, aucun constat fermé.
+
 Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
 d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve
 d'un coût raisonnable en ressources et complexité. Voir

@@ -2,7 +2,7 @@
 
 Statut : Proposée — Q3 produit décidée ; contrat technique à compléter et faire accepter
 Date : 2026-10-18
-Actualisation : 2026-10-23 — preuves C1e, conditions nécessaires proposées
+Actualisation : 2026-10-23 — preuves C1e/C1f, conditions nécessaires proposées
 Complète si acceptée : ADR-0003, sans changer MLS 1.0 ni la suite 0x0001
 Suivi : TC-302 R02/R03, Q3 ; détails TC-304/310
 
@@ -82,8 +82,9 @@ accès à toutes les conversations ni un droit implicite de modifier leurs membr
 ### Conditions locales nécessaires proposées — C1e
 
 Ces conditions précisent la cible, **pas un mécanisme déjà implémenté ni une
-preuve suffisante d'accord global**. La prochaine étude C1f doit définir le
-signal authentifié et sa portée avant toute API permettant de lever l'attente.
+preuve suffisante d'accord global**. C1f distingue les sources et propose la
+portée du signal ; leur validateur reste à réaliser avant toute API permettant
+de lever l'attente.
 
 1. Conserver durablement l'obligation connue de retrait et sa portée : compte,
    appareil/incarnation, conversation et génération de groupe. Vérifier son
@@ -127,6 +128,33 @@ le rattrapage ; un Welcome fusionné conservé ne vaut pas droit de republicatio
 Ce correctif ne reçoit pas de signal de révocation authentifié, ne conserve
 pas l'intention de retrait et n'implémente pas la barrière Q3 avant fusion.
 
+### Suite C1f — source du signal et arrêt conservateur
+
+Le [rapport C1f](../quality/TC-302-REVOCATION_SIGNAL.md) distingue indication
+serveur, demande authentifiée/autorisée et transition validée. Les événements
+V1 actuels ne transmettent pas aux pairs une preuve complète d'autorité V3 ;
+ne pas les brancher directement sur une suppression de membre ou un déblocage.
+Les signatures V1 ne sont pas réutilisées sous un nouveau contexte.
+
+La cible doit survivre aux changements de feuille, de credential et de clé :
+lier compte/appareil/incarnation et vérifier la succession, pas seulement
+comparer des octets ou la présence d'un indice. La demande doit se rapporter
+à une autorité antérieure validée et à une portée précise. Les formats,
+la source durable et les validations restent proposés, pas implémentés.
+
+Question **C1f-A1 posée, réponse en attente** : un appareil encore autorisé
+dans la conversation peut-il appliquer un retrait déjà demandé et authentifié
+par la bonne autorité, sans pouvoir en décider un, ajouter quelqu'un ou étendre
+ses droits ? Option recommandée, alternative limitée au propriétaire/admin
+participant. Ce n'est pas une nouvelle demande d'accord sur l'attente Q3.
+
+Preuve locale C1f : un signal injecté arrête envois/retries/nouvelles admissions
+du seul groupe et masque ses Welcome. Réception et contrôles restent possibles
+dans le laboratoire, sans validation des rôles. Aucun unlock, même après Remove ;
+le garde global de restauration reste prioritaire. Un signal perdu avant
+persistance doit être rejoué par une source durable encore à construire.
+Ce hook n'est ni un authentificateur d'événement ni le parcours complet de reprise.
+
 ## Alternatives et coûts
 
 - Verrou SQL au premier candidat : rejeté comme preuve de validité d'un Commit privé.
@@ -136,9 +164,11 @@ pas l'intention de retrait et n'implémente pas la barrière Q3 avant fusion.
 - Journal ordonné : recommandé sous hypothèses explicites ; quotas, dépendances,
   preuve d'admission et traitement des branches à compléter.
 
-Pas d'aller-retour réseau ajouté au chiffrement de chaque message par C1d/C1e.
+Pas d'aller-retour réseau ajouté au chiffrement de chaque message par C1d–C1f.
 C1e ajoute une écriture indexée à chaque fusion, pas à chaque message ; son
 coût avec une grande outbox et sur appareils reste à mesurer.
+C1f ajoute une recherche indexée locale aux envois/admissions/outboxes ; aucun
+benchmark nouveau ni absence mesurée de régression n'est revendiqué.
 Les changements de groupe attendent déjà leur traitement ; coût réseau global,
 latence, reprise et rétention restent à mesurer. L'absence d'un appareil habilité
 peut créer une attente UX longue : ne pas la présenter comme un budget garanti.
@@ -151,7 +181,7 @@ les tests R02/R03 et le contrat hors ligne Q2. La décision Q3 ne vaut pas
 acceptation de toute cette ADR. Aucune primitive, feature MLS en brouillon,
 dépendance, permission produit ou levée du gel n'est décidée ici.
 
-Aucune donnée V2 à migrer. Les schémas SQLite C1d/C1e concernent uniquement les fixtures
+Aucune donnée V2 à migrer. Les schémas SQLite C1d–C1f concernent uniquement les fixtures
 du laboratoire ; ils ne remplacent pas le plan de démarrage V3 à vide. Réexaminer
 cette proposition après preuves contradictoires, résultats TC-301 et revue du
 socle TC-302 ; consigner explicitement tout changement de garantie.

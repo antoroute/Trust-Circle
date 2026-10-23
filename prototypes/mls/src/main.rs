@@ -30,6 +30,7 @@ fn run() -> Result<()> {
             };
             let mut device = Device::open_synthetic(&root.join(actor))?;
             match action {
+                "hold-group" => device.hold_group_synthetic(b"synthetic-group", fault)?,
                 "send" => {
                     device.send(b"synthetic-group", "crash", b"synthetic", fault)?;
                 }

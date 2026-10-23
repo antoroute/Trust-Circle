@@ -134,6 +134,13 @@ ne prouvent pas à eux seuls le retrait/admission actuel. La barrière Q3 compl�
 reste à construire : suite **C1f, signal authentifié et portée**, puis Q2.
 Aucun constat fermé, aucun paquet ni nouvelle validation de performance.
 
+Suite [C1f](../quality/TC-302-REVOCATION_SIGNAL.md), le 23 octobre : sources et
+portées proposées, arrêt ciblé injecté au laboratoire avant fusion. 57 tests
+moteur, 3 du pont Rust et 30 cas de crash réussis ; aucun authentificateur ni
+unlock. C1f-A1 posée, en attente : exécutant d'un retrait déjà prouvé. Suite
+**C1g, validateur d'autorité/succession et obligations**, puis Q2. Aucun constat
+fermé, gel maintenu et aucun parcours complet de révocation déclaré réalisé.
+
 Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
 V3 vers appareil/personne. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
 décrit l'étude et ses impacts. L'autorité de partage vers une nouvelle personne
@@ -145,7 +152,7 @@ Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, C1c/C1d/C1e testés au laboratoire, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
+| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, C1c–C1f testés au laboratoire, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |

@@ -1,6 +1,6 @@
 # TC-302 — Spécification indépendante du protocole V3
 
-Statut : En cours — A/B et C1/C1b documentés, C1c/C1d/C1e testés dans le laboratoire ; contrat et preuves ouverts, clôture bloquée par TC-301
+Statut : En cours — A/B et C1/C1b documentés, C1c–C1f testés dans le laboratoire ; contrat et preuves ouverts, clôture bloquée par TC-301
 Priorité : critique avant intégration
 Date : 2026-10-23
 Responsable de décision : propriétaire du produit pour les compromis UX ; revue sécurité pour le contrat
@@ -28,6 +28,11 @@ La continuation validée le 23 octobre réalise **C1e, invalidation atomique des
 anciennes sorties applicatives après fusion MLS**, dans le même laboratoire.
 Les contrôles historiques sont conservés pour le rattrapage. Les contre-tests
 précisent les conditions nécessaires de reprise, sans implémenter la barrière Q3.
+
+La poursuite C1f du 23 octobre propose les sources/portées de révocation et
+ajoute un arrêt ciblé synthétique avant fusion. Ni validation d'autorité, ni
+reprise automatique, ni intégration produit. L'exécutant d'un retrait prouvé
+fait l'objet de la question C1f-A1, distincte de l'attente Q3 déjà acceptée.
 
 Le laboratoire ne constitue pas la spécification produit : identités
 synthétiques, SQLite non chiffré, transport simulé et absence de politique
@@ -88,6 +93,7 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - [x] C1c : garde local après signal de restauration et rollback d'admission éprouvés ; G06/G07/G08 partiels, sans fermeture de R07.
 - [x] C1d : Welcome différé et perdant invalidé atomiquement ; G04/G05 partiels et contre-exemple de divergence, sans fermeture de R02/R03.
 - [x] C1e : anciennes sorties applicatives invalidées avec la fusion ; S08/S10/S13 partiels, contre-exemples époque/retrait, Welcome ancien et indice réutilisé, sans fermeture de constat.
+- [x] C1f : source/portée proposées et arrêt ciblé testé avant fusion ; pas d'authentificateur ni d'unlock ; S08/S10/S12/S13 partiels, aucun constat fermé.
 - [ ] Faisabilité et hypothèses des bloqueurs structurels R02/R07/R08 établies avant acceptation du socle.
 - [ ] TC-301 close avec fournisseur, dépendances et budgets étayés.
 - [ ] Socle accepté et références documentaires alignées, sans écraser les modifications du propriétaire.
@@ -99,9 +105,9 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - Relecture des ADR, décisions V1, invariants et des fonctions/tests du
   laboratoire concernés ; les preuves existantes ne sont citées que dans leur périmètre.
 - `git diff --check` ; changements documentaires pour A/B/C1/C1b ; code et tests
-  synthétiques limités au laboratoire pour C1c/C1d/C1e, consommateur Rust du pont compris.
+  synthétiques limités au laboratoire pour C1c–C1f, consommateur Rust du pont compris.
 - Ne pas relancer les matrices CI, compiler de paquets ou déclencher un déploiement
-  pour ces lots. Les preuves partielles exécutées en C1c/C1d/C1e sont distinguées des
+  pour ces lots. Les preuves partielles exécutées en C1c–C1f sont distinguées des
   autres tests de la matrice, toujours **à écrire**.
 
 ### Contrôles du lot A
@@ -284,6 +290,28 @@ Le gel, les dépendances et les lockfiles restent inchangés. Pas de benchmark,
 audit actualisé, matrice OS, paquet, VM ou accès PC. Les constats R01–R08 et
 la clôture TC-301 restent ouverts. Q3 produit n'est pas à redemander.
 
+### C1f — entrée de confiance proposée et arrêt ciblé
+
+Le [rapport C1f](../quality/TC-302-REVOCATION_SIGNAL.md) distingue indication
+serveur, obligation autorisée et transition validée. Le registre V1 contient
+une décision signée, mais ses événements ne sont pas une preuve complète V3
+pour les pairs. La cible compte/appareil/incarnation, la succession de credentials
+et l'autorité antérieure restent à lier dans le validateur, sans réutiliser V1.
+
+Le laboratoire reçoit un signal injecté : blocage durable par groupe des
+envois/retries/ajouts, Welcome masqués, réception/contrôles encore possibles,
+inbox et autres groupes disponibles. Schéma v5 ; garde global prioritaire.
+Aucun déblocage, y compris après un Remove réussi ; il ne connaît pas l'identité
+révoquée ou ses permissions. La persistance échouée n'arrête que l'acteur courant
+jusqu'au retry ; crash avant commit nécessite un rejeu depuis une source durable.
+
+Neuf nouvelles fonctions : **57 tests moteur**, **3 tests Rust du pont** et
+**30 cas de crash** réussis. Clippy et formatage passent. Pas de budget validé,
+de paquet, d'audit actualisé, de test UI/OS ou d'accès VM/PC ; gel inchangé.
+Question C1f-A1 posée, en attente : exécution d'un retrait déjà prouvé par un
+participant autorisé ou seulement par un propriétaire/admin participant.
+Ce choix n'accepte pas tout le contrat et ne redemande pas Q3.
+
 ## Risques, reset et retour arrière
 
 La principale menace documentaire serait de transformer des hypothèses en
@@ -295,7 +323,7 @@ Un retour arrière des lots documentaires retire seulement leurs ajouts, par
 modification ciblée. Aucun effacement de données ni changement d'environnement
 n'est effectué. TC-307 préparera séparément un reset vérifié et borné ; la
 décision de repartir à vide n'autorise pas une suppression opportuniste ici.
-Pour C1c/C1d/C1e, ne pas retirer le marqueur ni utiliser un ancien binaire sur une base
+Pour C1c–C1f, ne pas retirer les marqueurs ni utiliser un ancien binaire sur une base
 devant rester bloquée ; rollback de code uniquement avec de nouvelles fixtures
 jetables. Voir le rapport pour la stratégie de schéma, sans migration descendante.
 
@@ -311,6 +339,9 @@ leurs contrats détaillés ne le sont pas tous. Restent notamment Q2, la preuve
 technique de la barrière Q3 et la reprise après journal expiré de Q5,
 pas une répétition des choix reçus. Le modèle de menace DS/membre hostile de R02
 ne peut être diminué implicitement par l'accord sur les restaurations.
+Question C1f-A1 en attente : qui peut exécuter un retrait déjà authentifié et
+autorisé, sans pouvoir en décider un ? Voir rapport C1f ; le hook conservateur
+testé n'impose aucune réponse et n'est pas une implémentation des rôles.
 
 ## Livrables et reprise
 
@@ -321,12 +352,13 @@ ne peut être diminué implicitement par l'accord sur les restaurations.
 - [C1c : implémentation locale, preuves et limites](../quality/TC-302-RECOVERY_GUARD.md).
 - [C1d : Welcome différé, invalidation et contre-exemple](../quality/TC-302-ADMISSION_RELEASE.md).
 - [C1e : outbox applicative, atomicité et limites de preuve du retrait](../quality/TC-302-EPOCH_OUTBOX.md).
+- [C1f : source des révocations et arrêt ciblé](../quality/TC-302-REVOCATION_SIGNAL.md).
 - [ADR-0012 proposée : contrat transport et Q3 produit décidée](../adr/ADR-0012-livraison-admission-v3.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).
 
-Prochaine sous-tâche : **TC-302 C1f, signal et portée de la barrière Q3 / admission R02**,
-puis hors ligne Q2, sans nouveaux paquets. Définir cible authentifiée et
-conditions de reprise avant de coder un déblocage.
+Prochaine sous-tâche : **TC-302 C1g, validateur d'autorité/succession et obligations
+de retrait**, puis hors ligne Q2, sans nouveaux paquets. Tenir compte de C1f-A1 ;
+ne pas coder un déblocage sans cible authentifiée ni preuve de reprise.
 Ne pas recommencer les études ou redemander les décisions acquises. TC-301 C2 reste
 à reprendre selon les conditions de sa suspension, sans être sauté.

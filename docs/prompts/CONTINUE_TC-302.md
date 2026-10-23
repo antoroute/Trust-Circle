@@ -2,8 +2,8 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation et preuves locales C1c/C1d/C1e sont sur tc301-mls-prototype, actualisées le 2026-10-23.
-Objectif : TC-302 C1f, signal et portée de la barrière Q3 / admission R02,
+préparation et preuves locales C1c–C1f sont sur tc301-mls-prototype, actualisées le 2026-10-23.
+Objectif : TC-302 C1g, validateur d'autorité/succession et obligations de retrait,
 puis Q2 à partir du socle V3 v0.5.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
@@ -22,6 +22,7 @@ docs/security/V3_ADMISSION_RECOVERY_STUDY.md,
 docs/quality/TC-302-RECOVERY_GUARD.md,
 docs/quality/TC-302-ADMISSION_RELEASE.md,
 docs/quality/TC-302-EPOCH_OUTBOX.md,
+docs/quality/TC-302-REVOCATION_SIGNAL.md,
 et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
@@ -40,6 +41,8 @@ invalidée, avec deux lectures adaptées dans le consommateur Rust du pont isol�
 La continuation validée le 23 octobre réalise C1e : anciennes sorties applicatives
 invalidées atomiquement après fusion, contrôles historiques conservés pour le
 rattrapage, contre-exemples de levée de barrière insuffisante. Ce n'est pas Q3 complète.
+La poursuite C1f ajoute un arrêt ciblé injecté au laboratoire, sans authentifier
+le signal ni débloquer automatiquement ; sources/portées proposées dans son rapport.
 Ne pas revenir par défaut à une reprise exclusivement documentaire ; distinguer
 les preuves locales réalisables des contrats encore ouverts. Ne pas étendre cette
 autorisation à de nouveaux paquets, à une réadmission non spécifiée ou au backend.
@@ -73,7 +76,10 @@ partiels : sorties applicatives périmées bloquées, rollback/restart, autre gr
 et rattrapage des contrôles. Contre-exemples : Update gagnant sans retrait,
 Welcome ancien encore ouvrable et indice de feuille réutilisé. Aucun benchmark,
 audit de dépendances actualisé ou test OS dans ce lot ; aucun constat fermé.
-Lire le code et les tests C1c/C1d/C1e avant de prolonger : ne pas les réécrire.
+Depuis C1f, 57 fonctions moteur réussissent, dont 9 nouvelles ; quatre pilotent
+30 cas de crash. Trois tests Rust du pont, fmt et Clippy passent. Arrêt ciblé
+avant fusion, Welcome masqués, autre groupe et réception préservés, pas d'unlock.
+Lire le code et les tests C1c–C1f avant de prolonger : ne pas les réécrire.
 
 Pour la stabilisation restante TC-302 C1 :
 1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
@@ -92,20 +98,28 @@ Pour la stabilisation restante TC-302 C1 :
    avec tombstone d'idempotence ; pas de réémission automatique d'anciens octets.
    Migration v3 : anciennes outboxes/pending sans preuve arrêtent les opérations,
    inbox préservée ; nouvelles fixtures privées, pas de déblocage ou downgrade.
-   Schéma courant v4 : v3 avec sorties application d'époque inconnue active le
+   Migration v4 : v3 avec sorties application d'époque inconnue active le
    garde ; v3 sans ces sorties n'ajoute pas de signal et ne retire jamais un
    garde existant. Arrêter les anciens acteurs avant mise à niveau.
    C1e invalide seulement les anciennes sorties application à chaque fusion,
    pas les contrôles historiques utiles au rattrapage. Superseded conserve
    l'idempotence, pas les octets ; le produit devra conserver séparément
    intention et copie chiffrée pour éviter perte ou réémission aveugle.
-   C1f : définir le signal authentifié, la cible compte/appareil/incarnation
+   C1f propose les sources/portées ; C1g doit valider le signal, la cible compte/appareil/incarnation
    et la génération de conversation. L'indice de feuille seul est réutilisable.
    Vérifier l'absence de toutes les cibles dans l'état validé, les obligations
    connues et les autres gardes, avec atomicité et sérialisation du départ.
    Une époque supérieure, un pending perdu ou un ACK ne suffisent pas ; un
    Update concurrent peut laisser la cible présente. Aucune intention durable
-   Q3 ni barrière avant fusion n'est implémentée dans le laboratoire.
+   Q3 authentifiée n'est implémentée dans le laboratoire. C1f offre seulement
+   hold_group_synthetic(group, fault) : arrêt irréversible par cette API,
+   schéma v5, sends/retries/adds refusés et Welcome masqués dans l'outbox.
+   Réception et Update/Remove restent disponibles, sans contrôle de rôle produit.
+   Le garde global C1c reste prioritaire. Échec de persistance : latch du seul
+   acteur courant ; avant commit, un crash perd le signal. Une source durable
+   doit le rejouer avant publication. Aucun compteur/ACK/Remove ne lève le hold.
+   Pas d'appel du hook depuis un événement V1 ni de SQL DELETE pour simuler une
+   reprise. Il ne contient pas une cible/autorité et n'est pas le parcours produit.
    Conditions nécessaires proposées dans ADR-0012, pas preuve suffisante contre
    l'équivoque ; un Welcome ancien valide ne prouve pas une admission actuelle.
    Création et jonction utilisent la même extension standard ratchet_tree.
@@ -161,6 +175,11 @@ Pour la stabilisation restante TC-302 C1 :
    et autres conversations disponibles, potentiellement jusqu'au retour d'un
    appareil habilité. Ne pas redemander ce choix. Il n'efface pas les messages
    reçus et ne couvre pas une révocation cachée par un serveur compromis.
+   C1f-A1 posée, réponse en attente : permettre à un participant autorisé
+   d'exécuter un retrait déjà demandé/authentifié par la bonne autorité, ou
+   limiter cette exécution au propriétaire/admin participant. Ne pas confondre
+   décision de retrait et exécution. Consigner une réponse si elle arrive ;
+   ne pas la présumer ni redemander Q3. Pas de rôle supplémentaire implémenté.
    Le mécanisme levant la barrière reste à spécifier/tester ; ADR-0012 n'est pas
    intégralement acceptée. Présenter Q2 et journal expiré de Q5 une fois leurs
    options et coûts établis ; ne pas répéter les arbitrages déjà reçus.

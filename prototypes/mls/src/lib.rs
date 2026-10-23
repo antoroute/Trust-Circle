@@ -15,6 +15,7 @@ use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
+    collections::BTreeSet,
     io::Cursor,
     path::Path,
     time::{Duration, Instant},
@@ -47,6 +48,8 @@ pub enum Error {
     Conflict,
     #[error("operational state unavailable; secure reactivation required")]
     RecoveryRequired,
+    #[error("group publication suspended; authorization must be resolved")]
+    GroupHeld,
     #[error("outbound operation is no longer publishable")]
     Superseded,
     #[error("injected failure before durable commit")]
@@ -151,6 +154,16 @@ pub struct Device {
     last_transaction: Option<TransactionTiming>,
     // Sticky in this actor even if persisting the stop fails. Not a detector.
     recovery_latched: bool,
+    // Synthetic local stop signals; not account/device identity or authority.
+    held_groups: BTreeSet<Vec<u8>>,
+}
+
+fn group_held(connection: &Connection, group: &[u8]) -> Result<bool> {
+    db(connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM probe_group_hold WHERE group_id=?1)",
+        [group],
+        |r| r.get(0),
+    ))
 }
 
 fn recovery_required(connection: &Connection) -> Result<bool> {
@@ -182,9 +195,14 @@ fn migrate_probe(connection: &mut Connection) -> Result<()> {
             db(tx.execute_batch(include_str!("../schema/004-epoch-outbox.sql")))?;
         }
         3 => db(tx.execute_batch(include_str!("../schema/004-epoch-outbox.sql")))?,
-        4 => {}
+        4 | 5 => {}
         _ => return Err(Error::Storage),
     }
+    if version != 5 {
+        db(tx.execute_batch(include_str!("../schema/005-group-hold.sql")))?;
+    }
+    // Also fail closed if the current version is missing its hold table.
+    group_held(&tx, b"")?;
     // Never recreate a missing marker on an already migrated database.
     recovery_required(&tx)?;
     db(tx.commit())
@@ -241,17 +259,23 @@ fn group_input(group: &[u8]) -> Result<()> {
     Ok(())
 }
 
-fn read_outbound(connection: &Connection, operation: &str) -> Result<Outbound> {
-    let (wire, disposition): (Vec<u8>, String) = db(connection.query_row(
-        "SELECT wire, disposition FROM probe_outbox WHERE operation=?1",
+fn read_outbound(
+    connection: &Connection,
+    operation: &str,
+    locally_held: impl FnOnce(&[u8]) -> bool,
+) -> Result<Outbound> {
+    let (group, wire, disposition): (Vec<u8>, Vec<u8>, String) = db(connection.query_row(
+        "SELECT group_id, wire, disposition FROM probe_outbox WHERE operation=?1",
         [operation],
-        |r| Ok((r.get(0)?, r.get(1)?)),
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
     ))?;
+    let held = locally_held(&group) || group_held(connection, &group)?;
     match disposition.as_str() {
         "legacy" | "superseded" => Err(Error::Superseded),
+        "application" if held => Err(Error::GroupHeld),
         "application" | "pending" | "merged" => {
             let mut outbound: Outbound = db(serde_json::from_slice(&wire))?;
-            if disposition == "pending" {
+            if disposition == "pending" || held {
                 outbound.welcome = None;
             }
             Ok(outbound)
@@ -318,7 +342,31 @@ impl Device {
             crypto,
             last_transaction: None,
             recovery_latched: false,
+            held_groups: BTreeSet::new(),
         })
+    }
+
+    /// Inject a conservative stop into an EXISTING synthetic group. This does
+    /// not verify a remote notice, target identity or permission. Never wire it
+    /// directly to a network event. No unlock API, even after a successful Remove.
+    /// On persistence failure only this actor is latched until retry succeeds.
+    pub fn hold_group_synthetic(&mut self, group: &[u8], fault: Fault) -> Result<()> {
+        group_input(group)?;
+        self.held_groups.insert(group.to_vec());
+        self.atomic(fault, |tx, provider| {
+            load(provider, group)?;
+            db(tx.execute(
+                "INSERT INTO probe_group_hold(group_id) VALUES(?1) ON CONFLICT DO NOTHING",
+                [group],
+            ))?;
+            Ok(())
+        })
+    }
+
+    /// Diagnostic only: absence of a hold is NOT a proof of authorization.
+    pub fn group_publication_held(&self, group: &[u8]) -> Result<bool> {
+        group_input(group)?;
+        Ok(self.held_groups.contains(group) || group_held(&self.connection, group)?)
     }
 
     /// Laboratory hook for an external detector, NOT detection of old snapshots.
@@ -469,6 +517,7 @@ impl Device {
         operation: &str,
         input: &[u8],
         fault: Fault,
+        requires_ready: bool,
         op: impl FnOnce(&Provider<'_>, &mut MlsGroup, &SignatureKeyPair) -> Result<Outbound>,
     ) -> Result<Outbound> {
         group_input(group)?;
@@ -476,7 +525,14 @@ impl Device {
             return Err(Error::Input);
         }
         let fingerprint = Sha256::digest(input).to_vec();
+        let locally_held = self.held_groups.contains(group);
         self.atomic(fault, |tx, provider| {
+            // Before retry OR MLS work, under the same write lock. Control
+            // processing remains possible; the policy for authorizing it is
+            // deliberately not implemented by this synthetic stop hook.
+            if requires_ready && (locally_held || group_held(tx, group)?) {
+                return Err(Error::GroupHeld);
+            }
             let previous: Option<(Vec<u8>, Vec<u8>)> = db(tx
                 .query_row(
                     "SELECT group_id, fingerprint FROM probe_outbox WHERE operation=?1",
@@ -488,7 +544,7 @@ impl Device {
                 if old_group != group || old_fingerprint != fingerprint {
                     return Err(Error::Conflict);
                 }
-                return read_outbound(tx, operation);
+                return read_outbound(tx, operation, |_| locally_held);
             }
             let (_, key) = signer(tx, provider)?;
             let mut state = load(provider, group)?;
@@ -534,6 +590,7 @@ impl Device {
             operation,
             &fingerprint,
             fault,
+            true,
             |provider, state, key| {
                 if state.members().count() + packages.len() > MAX_MEMBERS {
                     return Err(Error::Input);
@@ -567,6 +624,7 @@ impl Device {
             operation,
             b"update",
             fault,
+            false,
             |provider, state, key| {
                 let bundle = mls(state.self_update(provider, key, LeafNodeParameters::default()))?;
                 Ok(Outbound {
@@ -602,6 +660,7 @@ impl Device {
             operation,
             &db(serde_json::to_vec(&("remove", leaves)))?,
             fault,
+            false,
             |provider, state, key| {
                 let indices: Vec<_> = leaves.iter().copied().map(LeafNodeIndex::new).collect();
                 let (commit, _, _) = mls(state.remove_members(provider, key, &indices))?;
@@ -628,6 +687,7 @@ impl Device {
             operation,
             &db(serde_json::to_vec(&("message", plaintext)))?,
             fault,
+            true,
             |provider, state, key| {
                 Ok(Outbound {
                     message: encode(mls(state.create_message(provider, key, plaintext))?)?,
@@ -817,7 +877,7 @@ impl Device {
         if recovery_required(&tx)? {
             return Err(Error::RecoveryRequired);
         }
-        let outbound = read_outbound(&tx, operation)?;
+        let outbound = read_outbound(&tx, operation, |group| self.held_groups.contains(group))?;
         db(tx.commit())?;
         Ok(outbound)
     }
@@ -826,6 +886,40 @@ impl Device {
 #[cfg(test)]
 mod storage_tests {
     use super::*;
+
+    #[test]
+    fn contending_group_hold_precedes_message_work_under_the_write_lock() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a");
+        let mut a = Device::open_synthetic(&path).unwrap();
+        a.initialize(b"synthetic").unwrap();
+        a.create(b"group", Fault::None).unwrap();
+        a.connection.busy_timeout(Duration::ZERO).unwrap();
+        let mut other = Connection::open(&path).unwrap();
+        let tx = other
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .unwrap();
+        tx.execute(
+            "INSERT INTO probe_group_hold VALUES(?1)",
+            [b"group".as_slice()],
+        )
+        .unwrap();
+        assert!(matches!(
+            a.send(b"group", "send", b"synthetic", Fault::None),
+            Err(Error::Storage)
+        ));
+        tx.commit().unwrap();
+        assert!(matches!(
+            a.send(b"group", "send", b"synthetic", Fault::None),
+            Err(Error::GroupHeld)
+        ));
+        let count: i64 = a
+            .connection
+            .query_row("SELECT COUNT(*) FROM probe_outbox", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 0);
+        assert!(a.last_transaction_timing().is_none());
+    }
 
     #[test]
     fn contending_writer_cannot_bypass_the_recovery_gate() {
