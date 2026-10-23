@@ -2,8 +2,9 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation et preuves locales C1c/C1d sont sur tc301-mls-prototype, actualisées le 2026-10-18.
-Objectif : TC-302 C1, stabilisation R02/Q3 puis Q2 à partir du socle V3 v0.5.
+préparation et preuves locales C1c/C1d/C1e sont sur tc301-mls-prototype, actualisées le 2026-10-23.
+Objectif : TC-302 C1f, signal et portée de la barrière Q3 / admission R02,
+puis Q2 à partir du socle V3 v0.5.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
 Lis entièrement AGENTS.md, docs/PROJECT_CONTEXT.md,
@@ -20,6 +21,7 @@ docs/quality/TC-302-SPEC_REVIEW.md, docs/security/V3_FEASIBILITY_STUDY.md,
 docs/security/V3_ADMISSION_RECOVERY_STUDY.md,
 docs/quality/TC-302-RECOVERY_GUARD.md,
 docs/quality/TC-302-ADMISSION_RELEASE.md,
+docs/quality/TC-302-EPOCH_OUTBOX.md,
 et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
@@ -35,6 +37,9 @@ La demande explicite « continue en mettant en place » du 17 octobre a autoris�
 C1c : un garde et des tests dans le laboratoire natif, pas l'intégration produit.
 La continuation du 18 octobre réalise C1d : Welcome différé et outbox perdante
 invalidée, avec deux lectures adaptées dans le consommateur Rust du pont isolé.
+La continuation validée le 23 octobre réalise C1e : anciennes sorties applicatives
+invalidées atomiquement après fusion, contrôles historiques conservés pour le
+rattrapage, contre-exemples de levée de barrière insuffisante. Ce n'est pas Q3 complète.
 Ne pas revenir par défaut à une reprise exclusivement documentaire ; distinguer
 les preuves locales réalisables des contrats encore ouverts. Ne pas étendre cette
 autorisation à de nouveaux paquets, à une réadmission non spécifiée ou au backend.
@@ -62,7 +67,13 @@ Depuis C1d, 38 fonctions moteur réussissent, dont 8 nouvelles ; deux pilotent
 partiels : crash/libération/invalidation et contre-exemple de deux admissions
 divergentes, pas un transport, une preuve globale ou une détection de fork.
 Les autres aspects F01–F10/G01–G08 restent à prouver. Aucun constat fermé.
-Lire le code et les tests C1c/C1d avant de prolonger : ne pas les réécrire.
+Depuis C1e, 48 fonctions moteur réussissent, dont 10 nouvelles ; trois pilotent
+28 cas de crash. Trois tests Rust du pont, fmt et Clippy passent. S08/S10/S13
+partiels : sorties applicatives périmées bloquées, rollback/restart, autre groupe
+et rattrapage des contrôles. Contre-exemples : Update gagnant sans retrait,
+Welcome ancien encore ouvrable et indice de feuille réutilisé. Aucun benchmark,
+audit de dépendances actualisé ou test OS dans ce lot ; aucun constat fermé.
+Lire le code et les tests C1c/C1d/C1e avant de prolonger : ne pas les réécrire.
 
 Pour la stabilisation restante TC-302 C1 :
 1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
@@ -79,8 +90,24 @@ Pour la stabilisation restante TC-302 C1 :
    API du laboratoire : add/retry/outbox masquent le Welcome pending ; après
    fusion durable, relire outbox(operation). Un perdant retourne Superseded,
    avec tombstone d'idempotence ; pas de réémission automatique d'anciens octets.
-   Schéma v3 : anciennes outboxes/pending sans preuve arrêtent les opérations,
+   Migration v3 : anciennes outboxes/pending sans preuve arrêtent les opérations,
    inbox préservée ; nouvelles fixtures privées, pas de déblocage ou downgrade.
+   Schéma courant v4 : v3 avec sorties application d'époque inconnue active le
+   garde ; v3 sans ces sorties n'ajoute pas de signal et ne retire jamais un
+   garde existant. Arrêter les anciens acteurs avant mise à niveau.
+   C1e invalide seulement les anciennes sorties application à chaque fusion,
+   pas les contrôles historiques utiles au rattrapage. Superseded conserve
+   l'idempotence, pas les octets ; le produit devra conserver séparément
+   intention et copie chiffrée pour éviter perte ou réémission aveugle.
+   C1f : définir le signal authentifié, la cible compte/appareil/incarnation
+   et la génération de conversation. L'indice de feuille seul est réutilisable.
+   Vérifier l'absence de toutes les cibles dans l'état validé, les obligations
+   connues et les autres gardes, avec atomicité et sérialisation du départ.
+   Une époque supérieure, un pending perdu ou un ACK ne suffisent pas ; un
+   Update concurrent peut laisser la cible présente. Aucune intention durable
+   Q3 ni barrière avant fusion n'est implémentée dans le laboratoire.
+   Conditions nécessaires proposées dans ADR-0012, pas preuve suffisante contre
+   l'équivoque ; un Welcome ancien valide ne prouve pas une admission actuelle.
    Création et jonction utilisent la même extension standard ratchet_tree.
    OpenMLS peut consommer le KeyPackage dès la préparation du Welcome : inclure
    les contrôles applicatifs dans la transaction ; pas d'attente réseau sous verrou.
@@ -147,7 +174,7 @@ Pour la stabilisation restante TC-302 C1 :
    dépendances, paquets ou infrastructure modifiés. Pour le code laboratoire :
    cargo fmt --check, cargo test --locked --offline --features interop,
    cargo clippy --locked --offline --all-targets --features interop -- -D warnings,
-   puis les tests Rust du pont si l'API native change. Commandes exactes dans C1d.
+   puis les tests Rust du pont si l'API native change. Commandes exactes dans C1e.
    Aucun résultat local ne valide les budgets ou la matrice des OS cibles.
 
 Préserve les neuf documents déjà modifiés par le propriétaire : contexte,
@@ -166,5 +193,5 @@ Modèle conseillé : **GPT-6 Astra, raisonnement élevé** pour la conception et
 la revue contradictoire. Réserver le niveau maximal aux cas difficiles qui
 le justifient ; un effort faible suffit aux liens et mises à jour mécaniques.
 Recommandation de travail, pas mesure comparative réalisée sur ce projet.
-Vérifiée avec OpenAI Docs :
+Vérifiée le 23 octobre 2026 avec OpenAI Docs :
 [fiche officielle GPT-6 Astra](https://developers.openai.com/api/docs/models/gpt-6-astra).

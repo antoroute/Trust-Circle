@@ -1,7 +1,7 @@
 # Contexte du projet
 
 Statut : référence de travail
-Dernière mise à jour : 2026-10-18
+Dernière mise à jour : 2026-10-23
 Instantané fonctionnel documenté : branche `main`, Phases 1 et 2 terminées sur staging
 
 ## Mission
@@ -120,6 +120,18 @@ sécurisé si aucun appareil habilité n'est disponible, lecture/brouillons et
 autres conversations disponibles. Ne pas redemander ce choix ; la preuve levant
 la barrière reste ouverte. `adr/ADR-0012-livraison-admission-v3.md` reste proposée
 pour le contrat complet. Ni intégration, ni nouveaux paquets, ni constat fermé.
+
+Le 23 octobre, **TC-302 C1e** invalide les anciennes sorties applicatives dans
+la transaction de fusion MLS, avec trace d'idempotence et contrôles historiques
+conservés pour le rattrapage. Dix nouveaux tests : 48 fonctions moteur et
+3 du pont Rust réussies, dont trois tests moteur pilotent 28 cas de crash.
+Schéma labo v4, anciennes sorties applicatives v3 bloquées conservativement.
+Les contre-exemples distinguent époque avancée, retrait réel, indice de feuille
+réutilisé et Welcome ancien valide. Voir `quality/TC-302-EPOCH_OUTBOX.md`.
+L'ADR-0012 précise les conditions nécessaires, pas une preuve suffisante contre
+l'équivoque ; aucune barrière Q3 complète implémentée. Prochaine sous-tâche :
+**C1f, signal et portée de la barrière Q3 / admission R02**, puis Q2. Ni nouveaux
+paquets, ni intégration, ni constat fermé ; gel et dépendances inchangés.
 
 Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
 d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve

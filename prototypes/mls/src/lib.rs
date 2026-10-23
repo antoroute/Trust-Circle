@@ -175,9 +175,14 @@ fn migrate_probe(connection: &mut Connection) -> Result<()> {
             db(tx.execute_batch(include_str!("../schema/001-probe.sql")))?;
             db(tx.execute_batch(include_str!("../schema/002-recovery.sql")))?;
             db(tx.execute_batch(include_str!("../schema/003-admission.sql")))?;
+            db(tx.execute_batch(include_str!("../schema/004-epoch-outbox.sql")))?;
         }
-        2 => db(tx.execute_batch(include_str!("../schema/003-admission.sql")))?,
-        3 => {}
+        2 => {
+            db(tx.execute_batch(include_str!("../schema/003-admission.sql")))?;
+            db(tx.execute_batch(include_str!("../schema/004-epoch-outbox.sql")))?;
+        }
+        3 => db(tx.execute_batch(include_str!("../schema/004-epoch-outbox.sql")))?,
+        4 => {}
         _ => return Err(Error::Storage),
     }
     // Never recreate a missing marker on an already migrated database.
@@ -253,6 +258,19 @@ fn read_outbound(connection: &Connection, operation: &str) -> Result<Outbound> {
         }
         _ => Err(Error::Storage),
     }
+}
+
+/// Retire application ciphertexts under the same write lock as the MLS merge.
+/// All such rows predate this transition. Keep controls for ordered catch-up;
+/// a retained Welcome still proves neither freshness nor current authorization.
+/// No automatic re-encryption or transport cancellation.
+fn retire_epoch_applications(connection: &Connection, group: &[u8]) -> Result<()> {
+    db(connection.execute(
+        "UPDATE probe_outbox SET disposition='superseded', wire=X''
+         WHERE group_id=?1 AND disposition='application'",
+        [group],
+    ))?;
+    Ok(())
 }
 
 /// Called only in the SAME transaction as an authenticated MLS merge.
@@ -684,6 +702,7 @@ impl Device {
                     return Err(Error::Conflict);
                 }
                 mls(state.merge_pending_commit(provider))?;
+                retire_epoch_applications(tx, group)?;
                 settle_pending(tx, group, wire, true)?;
                 db(tx.execute("DELETE FROM probe_pending WHERE group_id=?1", [group]))?;
                 return Ok(Received::Commit);
@@ -707,6 +726,7 @@ impl Device {
                     if state.members().count() > MAX_MEMBERS {
                         return Err(Error::Input);
                     }
+                    retire_epoch_applications(tx, group)?;
                     if let Some(pending) = own {
                         settle_pending(tx, group, &pending, false)?;
                     }

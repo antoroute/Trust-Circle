@@ -7,7 +7,7 @@ Les bases SQLite de ce laboratoire ne sont **pas chiffrées**.
 
 Les [nouveaux paquets sont suspendus](../../docs/quality/TC-301-SECURITY_HOLD.md).
 Les commandes ci-dessous décrivent les capacités du laboratoire, pas une levée
-du gel ni une invitation à exécuter la matrice libcrux. Pour C1d, seuls les tests
+du gel ni une invitation à exécuter la matrice libcrux. Pour C1c–C1e, seuls les tests
 locaux verrouillés/hors ligne RustCrypto et le pont Rust ont été exécutés.
 
 ## Exécuter
@@ -83,6 +83,34 @@ Un test démontre aussi deux libérations incompatibles sous livraison divergent
 **fusion locale et même numéro d'époque ne prouvent pas un accord global**.
 Voir [preuves et limites C1d](../../docs/quality/TC-302-ADMISSION_RELEASE.md).
 
+## Sorties applicatives périmées — TC-302 C1e
+
+Une fusion MLS réussie, propre ou distante, invalide les anciennes sorties
+`application` du groupe dans la même transaction. `outbox` et retry renvoient
+`Superseded`, sans recréer d'opération ; un autre contenu sous le même
+identifiant reste un conflit. Erreur SQL ou crash avant commit : ni la fusion
+ni l'invalidation ne survit. Les autres groupes et l'inbox sont préservés.
+
+Cette règle de laboratoire s'applique à **toute** transition d'époque. Les
+Commit historiques restent disponibles pour le rattrapage ordonné ; un Welcome
+fusionné conservé ne prouve pas une admission actuelle. Ni préparation ni
+candidat invalide ne déclenche l'invalidation. Les octets déjà retournés ne
+peuvent pas être rappelés ; suppression logique, pas effacement physique.
+
+Le schéma v4 ajoute un index partiel et bloque conservativement une ancienne
+base v3 contenant des sorties applicatives, dont l'époque ne peut pas être
+reconstruite. Sans ces sorties, pas de nouveau signal ; un garde déjà actif
+reste actif. Aucun déblocage ou downgrade. Arrêter tous les acteurs avant mise
+à niveau ; anciens binaires simultanés non supportés.
+
+Ce n'est **pas** la barrière Q3 complète : pas de signal authentifié ni d'intention
+de retrait durable. Un contre-test montre qu'un Update concurrent peut avancer
+l'époque tout en laissant le membre visé lire les nouveaux messages. L'indice
+de feuille peut aussi être réutilisé pour une autre identité. Avant intégration,
+conserver intention et copie locale chiffrée séparément : une invalidation ne
+doit pas perdre du contenu ni déclencher une réémission aveugle.
+Voir [preuves et limites C1e](../../docs/quality/TC-302-EPOCH_OUTBOX.md).
+
 ## Arrêt après un signal de restauration — TC-302 C1c
 
 `require_reactivation()` persiste un arrêt de toutes les mutations MLS et de
@@ -99,9 +127,10 @@ implémentée. Des octets déjà remis à un transport ne peuvent pas être rapp
 par cette API. Aucun contrôle réseau supplémentaire n'est ajouté par message,
 mais le surcoût sur les appareils cibles reste à mesurer.
 
-Le schéma C1c ajoutait `user_version=2` ; C1d porte les bases v0/v2 à 3, sans
-effacer l'inbox. Une ancienne outbox ou un pending sans preuve d'issue active
-le garde : aucune ancienne sortie libérée par supposition. Marqueur absent/invalide
+Le schéma C1c ajoutait `user_version=2` ; la migration C1d mène de v0/v2 à 3,
+puis C1e à 4, sans effacer l'inbox. À l'étape C1d, une ancienne outbox ou un
+pending sans preuve d'issue active le garde : aucune ancienne sortie libérée
+par supposition. Marqueur absent/invalide
 et version inconnue échouent sans reset.
 Ne pas revenir à un ancien binaire sur une base devant rester bloquée : il
 ignorerait le garde. Voir [preuves, limites et reprise](../../docs/quality/TC-302-RECOVERY_GUARD.md).
@@ -118,7 +147,8 @@ Les processus enfants quittent brutalement avant/après le commit SQLite pour
 dix chemins : création, envoi, réception, réception en lot, ajout, retrait, mise à jour,
 jonction, fusion locale et fusion distante. Ce sont 20 scénarios, **pas une
 simulation de coupure électrique du stockage**. C1d ajoute quatre cas de crash
-avant/après libération ou invalidation du Welcome, soit 24 au total. Un quota SQLite de pages
+avant/après libération ou invalidation du Welcome ; C1e ajoute quatre cas
+avant/après fusion et invalidation applicative, soit **28 au total**. Un quota SQLite de pages
 force aussi une erreur de capacité pendant l'envoi et vérifie la reprise.
 Restaurer malicieusement un ancien fichier complet n'est pas détecté ici.
 
@@ -152,9 +182,11 @@ SQLCipher, le réseau, la batterie ni la baseline V2 sur le même appareil.
   Service réel ; les méthodes simulent des entrées autorisées.
 - Le paramètre expérimental `max_past_epochs=0` rejette les messages d'anciennes
   époques. La politique hors-ligne/rétention compatible avec l'UX attend TC-304.
-- L'outbox invalide localement les Commit perdants depuis C1d, mais pas encore
+- L'outbox invalide localement les Commit perdants depuis C1d et les anciennes
+  sorties applicatives après fusion depuis C1e, mais pas encore
   de cycle transport ACK/GC ni d'annulation d'octets déjà remis au transport.
-  Une ancienne sortie fusionnée reste lisible, sans preuve de droits actuels.
+  Un ancien contrôle fusionné reste lisible, sans preuve de droits actuels.
+  Pas de barrière de révocation avant fusion ni de conservation séparée des intentions.
 - Pas de chiffrement au repos, de protection contre restauration malveillante,
   de preuve d'effacement physique des secrets ou de notifications système.
 - Pont et acteur asynchrone expérimentaux dans `../mls_flutter`, pas dans le

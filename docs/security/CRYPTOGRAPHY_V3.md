@@ -1,7 +1,7 @@
 # Cryptographie V3 — socle de spécification CircleHaven
 
 Version : 0.5 — brouillon avec décisions C1b, non approuvé pour implémentation
-Date : 2026-10-18 — suivi des preuves locales C1c/C1d, contrat v0.5 non accepté
+Date : 2026-10-23 — suivi des preuves locales C1c/C1d/C1e, contrat v0.5 non accepté
 Décisions acquises : [ADR-0003](../adr/ADR-0003-protocole-crypto-v3.md),
 [ADR-0005](../adr/ADR-0005-confiance-appareil-compte.md),
 [ADR-0009 — vérification initiale](../adr/ADR-0009-verification-identite-initiale.md),
@@ -44,7 +44,7 @@ clos. Le [complément C1b](V3_ADMISSION_RECOVERY_STUDY.md) enregistre la délég
 explicite au référent et le périmètre de restauration décidés, puis précise
 admission transactionnelle et libération du Welcome après fusion. Les deux
 derniers mécanismes restent des propositions produit. Les preuves locales
-partielles C1c/C1d ci-dessous ne les valident pas intégralement ; R02/R07/R08 restent ouverts.
+partielles C1c/C1d/C1e ci-dessous ne les valident pas intégralement ; R02/R07/R08 restent ouverts.
 
 ### Écarts documentaires identifiés
 
@@ -226,6 +226,14 @@ signifie « persisté par le service », pas « lu ou vérifié par tous les pai
 La copie locale envoyée est nécessaire pour l'historique : ne pas compter sur
 le redéchiffrement ultérieur de son propre PrivateMessage.
 
+Preuve partielle [C1e](../quality/TC-302-EPOCH_OUTBOX.md) : le laboratoire
+invalide atomiquement les anciennes sorties applicatives à chaque fusion MLS.
+Le retry est alors refusé, pas rechiffré. Cette politique conservatrice de
+laboratoire ne décide pas la rétention produit ; intention et copie locale
+chiffrée doivent être conservées séparément avant intégration, sans perte
+silencieuse ni réémission aveugle après ACK inconnu. Les contrôles historiques
+restent disponibles pour le rattrapage ; les octets déjà remis ne sont pas rappelables.
+
 **V3-010 — Transaction de réception.** Le destinataire borne et décode les
 octets, vérifie MLS et les règles CircleHaven, puis persiste dans une même
 transaction état avancé, inbox vérifiée, déduplication et progression durable
@@ -321,6 +329,18 @@ dans TC-304/310 avec les ACL et les changements de rôles. Bloquer le transport
 ne fait pas oublier les secrets déjà détenus : un serveur malveillant qui livre
 des ciphertexts d'une ancienne époque peut encore exposer ceux-ci à un ancien
 membre. Aucune promesse d'effacement distant ni de révocation rétroactive.
+
+Q3 produit est décidée : attendre le retrait sécurisé, lecture locale/brouillons
+et autres conversations disponibles. Les conditions locales nécessaires proposées
+dans l'[ADR-0012](../adr/ADR-0012-livraison-admission-v3.md) demandent une cible
+authentifiée stable, l'absence de toutes les cibles dans l'état validé et des
+obligations connues traitées, avec persistance atomique et contrôle au départ.
+Les contre-tests C1e montrent qu'un Update concurrent peut avancer l'époque sans
+retirer la cible et qu'un indice de feuille peut être réutilisé. Ils montrent
+aussi qu'un Welcome ancien valide ne prouve pas une admission actuelle.
+Le signal de révocation, l'intention durable et la preuve suffisante de reprise
+restent ouverts : C1e ne réalise pas la barrière complète avant fusion et ne
+résout pas l'équivoque du service.
 
 ## 7. Hors ligne, resynchronisation et erreurs
 
@@ -453,8 +473,9 @@ dans [lifecycle.rs](../../prototypes/mls/tests/lifecycle.rs),
 [interop.rs](../../prototypes/mls/tests/interop.rs) ou les rapports TC-301.
 La référence des essais historiques TC-301 C1 est `27ab9c6`. Les études
 documentaires TC-302 C1/C1b n'ont pas exécuté de tests runtime. Les lots locaux
-[C1c](../quality/TC-302-RECOVERY_GUARD.md) puis
-[C1d](../quality/TC-302-ADMISSION_RELEASE.md) en ajoutent, sans valider le contrat
+[C1c](../quality/TC-302-RECOVERY_GUARD.md),
+[C1d](../quality/TC-302-ADMISSION_RELEASE.md) et
+[C1e](../quality/TC-302-EPOCH_OUTBOX.md) en ajoutent, sans valider le contrat
 produit complet ; leurs rapports distinguent preuves, contre-exemples et limites.
 
 | Scénario | Exigences | Invariants | Résultat à démontrer / preuve manquante | Tâche |
@@ -466,12 +487,12 @@ produit complet ; leurs rapports distinguent preuves, contre-exemples et limites
 | S05 — Welcome concurrent | V3-005, V3-012 | 7, 10 | Réservation concurrente, Welcome perdant/rejoué/expiré : aucune double admission ; partiel labo | TC-304/310 |
 | S06 — nouvel appareil/personne | V3-006 | 10, 13, 16, 25 | Pas de clés anciennes ni d'import implicite ; partage demandé à spécifier selon ADR-0008, provenance distincte et admission visible | TC-303/311 |
 | S07 — entrée hostile | V3-008 | 14, 15 | Limites, extensions, longueurs, octets résiduels : pas de panic ni allocation non bornée ; partiel labo | TC-305/309 |
-| S08 — retry d'envoi | V3-009 | 21 | Même opération et restart : octets identiques ; autre contenu : conflit ; partiel labo | TC-501/502 |
+| S08 — retry d'envoi | V3-009 | 21 | Même opération éligible et restart : octets identiques ; autre contenu : conflit ; C1e refuse les sorties applicatives périmées, partiel labo | TC-501/502 |
 | S09 — clair non authentifié | V3-010 | 16, 17, 18 | Altération ou erreur SQL : aucun affichage/index/push et aucun ratchet partiel ; partiel labo | TC-309/311 |
 | S10 — crash et deux acteurs | V3-011 | 21, 23 | Avant/après transaction et écrivains concurrents : état/outbox/inbox cohérents ; crash partiel labo | TC-306/309 |
 | S11 — faux écho local | V3-012, V3-013 | 15, 16 | OwnPrivateMessage ou octets modifiés ne fusionnent pas ; écho exact seul ne prouve pas la position ; partiel labo | TC-304/310 |
 | S12 — Commit perdant/invalide | V3-012, V3-013 | 7, 21, 22 | Pas de Welcome orphelin, ciphertext perdant réémis ni saut d'époque ; partiel labo | TC-304/310 |
-| S13 — retrait hors ligne | V3-014 | 10, 12 | Coupure serveur + retrait MLS ; absence d'accès au futur démontrée avec timing explicite ; partiel labo | TC-304/310 |
+| S13 — retrait hors ligne | V3-014 | 10, 12 | Coupure serveur + retrait MLS ; absence d'accès au futur avec timing explicite ; C1e invalide l'ancienne outbox après fusion mais expose l'absence de barrière avant fusion, partiel labo | TC-304/310 |
 | S14 — reconnexion multi-époques | V3-015, V3-016 | 21, 22, 25 | Ajout/retrait pendant l'absence, message retardé et journal expiré : reprise ou erreur explicite | TC-304/504 |
 | S15 — lot empoisonné | V3-010, V3-015 | 16, 21, 22 | Pas de clair partiel, boucle infinie ou saut de Commit ; atomicité partielle labo | TC-309/504 |
 | S16 — base copiée/ancien disque | V3-011, V3-017 | 11, 13, 23 | Changement de compte, clé OS perdue, ancien snapshot : pas de fuite croisée ni faux anti-rollback ; C1c teste seulement le garde après signal et le marqueur restaurable | TC-306 |
@@ -496,9 +517,9 @@ invalide et preuve d'autorisation des changements de rôles (TC-304/310).
 Le fait qu'un membre MLS puisse signer ne prouve pas qu'il est administrateur
 CircleHaven ; la validation des changements doit couvrir les deux niveaux.
 
-La revue **TC-302 lot B**, C1/C1b et les preuves locales C1c/C1d sont consignés, avec huit constats encore
-ouverts et les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1,
-stabilisation R02/Q3 puis Q2**, contrat d'admission et barrière de révocation,
+La revue **TC-302 lot B**, C1/C1b et les preuves locales C1c/C1d/C1e sont consignés, avec huit constats encore
+ouverts et les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1f,
+signal et portée de la barrière Q3 / admission R02**, puis Q2,
 sous les périmètres produit désormais décidés. La rédaction ne remplace ni TC-301 C2 ni une revue
 cryptographique indépendante. Ce document ne doit pas être déclaré final tant
 que les dépendances et la revue de la fiche TC-302 restent ouvertes.

@@ -2,6 +2,7 @@
 
 Statut : Proposée — Q3 produit décidée ; contrat technique à compléter et faire accepter
 Date : 2026-10-18
+Actualisation : 2026-10-23 — preuves C1e, conditions nécessaires proposées
 Complète si acceptée : ADR-0003, sans changer MLS 1.0 ni la suite 0x0001
 Suivi : TC-302 R02/R03, Q3 ; détails TC-304/310
 
@@ -78,6 +79,54 @@ ni compteur SQL, ni ACK d'un appareil, ni simple rôle admin fourni par le serve
 ne suffisent à eux seuls. La délégation d'identité ADR-0010 ne confère pas un
 accès à toutes les conversations ni un droit implicite de modifier leurs membres.
 
+### Conditions locales nécessaires proposées — C1e
+
+Ces conditions précisent la cible, **pas un mécanisme déjà implémenté ni une
+preuve suffisante d'accord global**. La prochaine étude C1f doit définir le
+signal authentifié et sa portée avant toute API permettant de lever l'attente.
+
+1. Conserver durablement l'obligation connue de retrait et sa portée : compte,
+   appareil/incarnation, conversation et génération de groupe. Vérifier son
+   origine et son autorité ; un rôle serveur ou un indice de feuille MLS seul
+   n'identifie pas durablement la cible. Pour un compte retiré, couvrir tous
+   ses appareils concernés, pas seulement celui qui a déclenché la demande.
+2. Traiter une transition MLS valide et autorisée, puis vérifier dans l'état
+   résultant l'absence de **toutes** les cibles couvertes. Une époque supérieure,
+   un ACK, la préparation d'un Remove ou la disparition du pending ne suffisent
+   pas. Un Update concurrent peut gagner sans retirer l'appareil : l'obligation
+   ne doit pas disparaître avec le pending perdant.
+3. Ne reprendre que si les obligations connues sont satisfaites, l'appareil
+   local est encore autorisé et aucun garde de restauration, divergence ou
+   dépendance manquante n'interdit l'envoi. Persister atomiquement état validé,
+   obligations et disposition des sorties ; sérialiser la vérification au départ
+   réseau avec les transitions. Des octets déjà remis ne sont pas rappelables.
+4. Séparer l'intention du message et sa copie locale chiffrée des octets de
+   transport. Une sortie invalidée ne doit ni perdre silencieusement son contenu,
+   ni être rechiffrée automatiquement sous le même identifiant. En cas d'ACK
+   perdu, résoudre publication antérieure et déduplication avant réémission.
+
+Ces conditions restent locales à la vue validée. Le service doit aussi appliquer
+les ACL et la barrière de publication avec les candidats de contrôle admissibles,
+sans interpréter un compteur comme preuve de retrait cryptographique. Le lien
+entre ces décisions, la fraîcheur, les nouvelles admissions et les branches
+divergentes reste à spécifier. Aucun quorum ou protocole crypto maison n'est ajouté.
+
+Les [tests C1e](../quality/TC-302-EPOCH_OUTBOX.md) montrent qu'un indice de feuille
+peut être réattribué à un autre appareil après retrait. Le standard distingue
+identité applicative stable et indice valable dans une époque :
+[RFC 9420 §5.3.3](https://www.rfc-editor.org/rfc/rfc9420.html#section-5.3.3).
+Ils montrent aussi qu'un Welcome déjà libéré peut encore ouvrir un ancien état
+après un retrait ultérieur. Les validations MLS du Welcome ne remplacent donc
+pas le contrat CircleHaven de fraîcheur, contexte, confiance et autorisation :
+[RFC 9420 §12.4.3.1](https://www.rfc-editor.org/rfc/rfc9420.html#section-12.4.3.1).
+Aucune preuve indépendante de fraîcheur n'est déclarée acquise ici.
+
+Correctif exécuté C1e : une fusion réussie invalide atomiquement les anciennes
+sorties **applicatives** du groupe. Les Commit historiques sont conservés pour
+le rattrapage ; un Welcome fusionné conservé ne vaut pas droit de republication.
+Ce correctif ne reçoit pas de signal de révocation authentifié, ne conserve
+pas l'intention de retrait et n'implémente pas la barrière Q3 avant fusion.
+
 ## Alternatives et coûts
 
 - Verrou SQL au premier candidat : rejeté comme preuve de validité d'un Commit privé.
@@ -87,7 +136,9 @@ accès à toutes les conversations ni un droit implicite de modifier leurs membr
 - Journal ordonné : recommandé sous hypothèses explicites ; quotas, dépendances,
   preuve d'admission et traitement des branches à compléter.
 
-Pas d'aller-retour réseau ajouté au chiffrement de chaque message par C1d.
+Pas d'aller-retour réseau ajouté au chiffrement de chaque message par C1d/C1e.
+C1e ajoute une écriture indexée à chaque fusion, pas à chaque message ; son
+coût avec une grande outbox et sur appareils reste à mesurer.
 Les changements de groupe attendent déjà leur traitement ; coût réseau global,
 latence, reprise et rétention restent à mesurer. L'absence d'un appareil habilité
 peut créer une attente UX longue : ne pas la présenter comme un budget garanti.
@@ -100,7 +151,7 @@ les tests R02/R03 et le contrat hors ligne Q2. La décision Q3 ne vaut pas
 acceptation de toute cette ADR. Aucune primitive, feature MLS en brouillon,
 dépendance, permission produit ou levée du gel n'est décidée ici.
 
-Aucune donnée V2 à migrer. Le schéma SQLite C1d concerne uniquement les fixtures
-du laboratoire ; il ne remplace pas le plan de démarrage V3 à vide. Réexaminer
+Aucune donnée V2 à migrer. Les schémas SQLite C1d/C1e concernent uniquement les fixtures
+du laboratoire ; ils ne remplacent pas le plan de démarrage V3 à vide. Réexaminer
 cette proposition après preuves contradictoires, résultats TC-301 et revue du
 socle TC-302 ; consigner explicitement tout changement de garantie.
