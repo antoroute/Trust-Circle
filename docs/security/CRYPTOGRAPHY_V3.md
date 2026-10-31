@@ -1,7 +1,7 @@
 # Cryptographie V3 — socle de spécification CircleHaven
 
 Version : 0.5 — brouillon avec décisions C1b, non approuvé pour implémentation
-Date : 2026-10-23 — suivi des preuves locales C1c–C1f, contrat v0.5 non accepté
+Date : 2026-10-31 — suivi local jusqu'à C1g-1, contrat v0.5 non accepté
 Décisions acquises : [ADR-0003](../adr/ADR-0003-protocole-crypto-v3.md),
 [ADR-0005](../adr/ADR-0005-confiance-appareil-compte.md),
 [ADR-0009 — vérification initiale](../adr/ADR-0009-verification-identite-initiale.md),
@@ -353,9 +353,18 @@ Welcome masqués, réception et contrôles possibles, autres groupes et inbox
 préservés. Ce hook n'authentifie rien et ne permet aucun unlock, même après
 retrait. C'est une preuve d'arrêt, pas le parcours Q3 complet ni une décision
 de blocage produit définitif. La source durable et la reprise restent à construire.
-Question C1f-A1 posée, en attente : participant autorisé exécutant un retrait
-déjà prouvé, ou seulement propriétaire/admin participant ; droit de décider
-le retrait et droit de l'appliquer sont distincts.
+C1f-A1 acceptée, consignée le 24 octobre : tout participant encore autorisé
+peut exécuter un retrait déjà demandé et authentifié par la bonne autorité,
+après vérification ; aucun droit d'initiative, d'ajout ou d'accès supplémentaire.
+Ne pas redemander cette décision ; elle n'accepte pas le contrat complet.
+
+Preuve partielle [C1g-1](../quality/TC-302-COMMIT_POLICY_GATE.md) : contrôle
+pré-fusion local/distant et rollback après refus de politique ; identité stable,
+autorité/exécutant et succession de credential/clé expérimentés sur fixtures.
+Les demandes, ancres et rôles sont injectés, pas authentifiés par une preuve V3.
+Pas d'obligations durables, de reprise ou d'intégration ; le `receive` historique
+du laboratoire reste sans politique CircleHaven. C1g-2 doit établir la source
+et la continuité vérifiables avant le registre et son résolveur.
 
 ## 7. Hors ligne, resynchronisation et erreurs
 
@@ -491,7 +500,8 @@ documentaires TC-302 C1/C1b n'ont pas exécuté de tests runtime. Les lots locau
 [C1c](../quality/TC-302-RECOVERY_GUARD.md),
 [C1d](../quality/TC-302-ADMISSION_RELEASE.md),
 [C1e](../quality/TC-302-EPOCH_OUTBOX.md) et
-[C1f](../quality/TC-302-REVOCATION_SIGNAL.md) en ajoutent, sans valider le contrat
+[C1f](../quality/TC-302-REVOCATION_SIGNAL.md), puis
+[C1g-1](../quality/TC-302-COMMIT_POLICY_GATE.md) en ajoutent, sans valider le contrat
 produit complet ; leurs rapports distinguent preuves, contre-exemples et limites.
 
 | Scénario | Exigences | Invariants | Résultat à démontrer / preuve manquante | Tâche |
@@ -533,9 +543,9 @@ invalide et preuve d'autorisation des changements de rôles (TC-304/310).
 Le fait qu'un membre MLS puisse signer ne prouve pas qu'il est administrateur
 CircleHaven ; la validation des changements doit couvrir les deux niveaux.
 
-La revue **TC-302 lot B**, C1/C1b et les preuves locales C1c–C1f sont consignés, avec huit constats encore
-ouverts et les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1g,
-validateur d'autorité/succession et obligations de retrait**, avec C1f-A1 puis Q2,
+La revue **TC-302 lot B**, C1/C1b et les preuves locales jusqu'à C1g-1 sont consignées, avec huit constats encore
+ouverts et les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1g-2,
+origine et continuité des preuves, puis obligations durables**, selon C1f-A1 acceptée, avant Q2,
 sous les périmètres produit désormais décidés. La rédaction ne remplace ni TC-301 C2 ni une revue
 cryptographique indépendante. Ce document ne doit pas être déclaré final tant
 que les dépendances et la revue de la fiche TC-302 restent ouvertes.

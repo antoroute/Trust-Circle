@@ -2,8 +2,8 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation et preuves locales C1c–C1f sont sur tc301-mls-prototype, actualisées le 2026-10-23.
-Objectif : TC-302 C1g, validateur d'autorité/succession et obligations de retrait,
+préparation et preuves locales jusqu'à C1g-1 sont sur tc301-mls-prototype, actualisées le 2026-10-31.
+Objectif : TC-302 C1g-2, origine et continuité des preuves, puis obligations durables,
 puis Q2 à partir du socle V3 v0.5.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
@@ -23,6 +23,7 @@ docs/quality/TC-302-RECOVERY_GUARD.md,
 docs/quality/TC-302-ADMISSION_RELEASE.md,
 docs/quality/TC-302-EPOCH_OUTBOX.md,
 docs/quality/TC-302-REVOCATION_SIGNAL.md,
+docs/quality/TC-302-COMMIT_POLICY_GATE.md,
 et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
@@ -80,6 +81,16 @@ Depuis C1f, 57 fonctions moteur réussissent, dont 9 nouvelles ; quatre pilotent
 30 cas de crash. Trois tests Rust du pont, fmt et Clippy passent. Arrêt ciblé
 avant fusion, Welcome masqués, autre groupe et réception préservés, pas d'unlock.
 Lire le code et les tests C1c–C1f avant de prolonger : ne pas les réécrire.
+Depuis C1g-1, 68 fonctions moteur réussissent, dont 11 nouvelles ; 3 tests Rust
+du pont, fmt et Clippy passent. Les 30 cas de crash existants passent toujours,
+sans nouveau crash brutal dans ce lot. Hook receive_with_commit_policy_synthetic
+avant fusion propre/distant : refus annule aussi le ratchet, retry exact après
+reopen testé. FixturePolicy est uniquement cfg(test), avec pins credential/clé,
+rôles et demandes injectés : PAS de validation de leur source ni de ledger durable.
+UpdatePath et vraie nouvelle clé testés ; pas de rotation persistante du signer.
+Le receive historique reste permissif, le pont aussi. Aucun unlock ; retirer
+partiellement ou traiter un Update n'épuise pas les obligations. Le callback
+doit rester pur et sans réseau : ses effets externes ne sont pas transactionnels.
 
 Pour la stabilisation restante TC-302 C1 :
 1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
@@ -105,7 +116,9 @@ Pour la stabilisation restante TC-302 C1 :
    pas les contrôles historiques utiles au rattrapage. Superseded conserve
    l'idempotence, pas les octets ; le produit devra conserver séparément
    intention et copie chiffrée pour éviter perte ou réémission aveugle.
-   C1f propose les sources/portées ; C1g doit valider le signal, la cible compte/appareil/incarnation
+   C1f propose les sources/portées ; C1g-1 teste le point de contrôle et un modèle
+   de fixture. C1g-2 doit établir la source/continuité de la preuve avant le registre,
+   sans transformer des champs serveur en autorité. Valider le signal, la cible compte/appareil/incarnation
    et la génération de conversation. L'indice de feuille seul est réutilisable.
    Vérifier l'absence de toutes les cibles dans l'état validé, les obligations
    connues et les autres gardes, avec atomicité et sérialisation du départ.
@@ -175,11 +188,12 @@ Pour la stabilisation restante TC-302 C1 :
    et autres conversations disponibles, potentiellement jusqu'au retour d'un
    appareil habilité. Ne pas redemander ce choix. Il n'efface pas les messages
    reçus et ne couvre pas une révocation cachée par un serveur compromis.
-   C1f-A1 posée, réponse en attente : permettre à un participant autorisé
-   d'exécuter un retrait déjà demandé/authentifié par la bonne autorité, ou
-   limiter cette exécution au propriétaire/admin participant. Ne pas confondre
-   décision de retrait et exécution. Consigner une réponse si elle arrive ;
-   ne pas la présumer ni redemander Q3. Pas de rôle supplémentaire implémenté.
+   C1f-A1 acceptée, consignée le 24 octobre : tout participant encore autorisé
+   peut exécuter un retrait déjà demandé/authentifié par la bonne autorité,
+   après vérification. Il ne gagne ni initiative de retrait, ni ajout, ni
+   accès à une autre conversation. Ne pas redemander A1 ou Q3. La politique
+   de fixture C1g-1 ne constitue pas son implémentation produit ou la validation
+   cryptographique des demandes. L'accord ne valide aucun format de preuve.
    Le mécanisme levant la barrière reste à spécifier/tester ; ADR-0012 n'est pas
    intégralement acceptée. Présenter Q2 et journal expiré de Q5 une fois leurs
    options et coûts établis ; ne pas répéter les arbitrages déjà reçus.

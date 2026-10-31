@@ -1,8 +1,8 @@
 # TC-302 — Spécification indépendante du protocole V3
 
-Statut : En cours — A/B et C1/C1b documentés, C1c–C1f testés dans le laboratoire ; contrat et preuves ouverts, clôture bloquée par TC-301
+Statut : En cours — A/B et C1/C1b documentés, preuves locales jusqu'à C1g-1 ; contrat et preuves ouverts, clôture bloquée par TC-301
 Priorité : critique avant intégration
-Date : 2026-10-23
+Date : 2026-10-31
 Responsable de décision : propriétaire du produit pour les compromis UX ; revue sécurité pour le contrat
 Dépendances : ADR-0003 acceptée, ADR-0005, TC-301 pour la clôture
 
@@ -32,7 +32,13 @@ précisent les conditions nécessaires de reprise, sans implémenter la barrièr
 La poursuite C1f du 23 octobre propose les sources/portées de révocation et
 ajoute un arrêt ciblé synthétique avant fusion. Ni validation d'autorité, ni
 reprise automatique, ni intégration produit. L'exécutant d'un retrait prouvé
-fait l'objet de la question C1f-A1, distincte de l'attente Q3 déjà acceptée.
+fait l'objet de la décision C1f-A1, consignée le 24 octobre, distincte de Q3 :
+tout participant encore autorisé peut exécuter une demande authentifiée et
+autorisée, sans pouvoir en décider une ni obtenir de nouveaux droits.
+
+La continuation C1g-1, commencée le 24 et validée le 31 octobre, teste le
+contrôle pré-fusion propre/distant et une politique d'autorité/succession sur
+fixtures. Pas d'authentificateur V3, de registre durable ni de déblocage.
 
 Le laboratoire ne constitue pas la spécification produit : identités
 synthétiques, SQLite non chiffré, transport simulé et absence de politique
@@ -94,6 +100,7 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - [x] C1d : Welcome différé et perdant invalidé atomiquement ; G04/G05 partiels et contre-exemple de divergence, sans fermeture de R02/R03.
 - [x] C1e : anciennes sorties applicatives invalidées avec la fusion ; S08/S10/S13 partiels, contre-exemples époque/retrait, Welcome ancien et indice réutilisé, sans fermeture de constat.
 - [x] C1f : source/portée proposées et arrêt ciblé testé avant fusion ; pas d'authentificateur ni d'unlock ; S08/S10/S12/S13 partiels, aucun constat fermé.
+- [x] C1g-1 : refus pré-fusion transactionnel et permissions/succession sur fixtures ; A1 consignée, S03/S04/S10/S12/S13 partiels, pas de validation de source ni de registre durable.
 - [ ] Faisabilité et hypothèses des bloqueurs structurels R02/R07/R08 établies avant acceptation du socle.
 - [ ] TC-301 close avec fournisseur, dépendances et budgets étayés.
 - [ ] Socle accepté et références documentaires alignées, sans écraser les modifications du propriétaire.
@@ -105,9 +112,9 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - Relecture des ADR, décisions V1, invariants et des fonctions/tests du
   laboratoire concernés ; les preuves existantes ne sont citées que dans leur périmètre.
 - `git diff --check` ; changements documentaires pour A/B/C1/C1b ; code et tests
-  synthétiques limités au laboratoire pour C1c–C1f, consommateur Rust du pont compris.
+  synthétiques limités au laboratoire jusqu'à C1g-1, consommateur Rust du pont compris.
 - Ne pas relancer les matrices CI, compiler de paquets ou déclencher un déploiement
-  pour ces lots. Les preuves partielles exécutées en C1c–C1f sont distinguées des
+  pour ces lots. Les preuves partielles exécutées jusqu'à C1g-1 sont distinguées des
   autres tests de la matrice, toujours **à écrire**.
 
 ### Contrôles du lot A
@@ -308,9 +315,31 @@ jusqu'au retry ; crash avant commit nécessite un rejeu depuis une source durabl
 Neuf nouvelles fonctions : **57 tests moteur**, **3 tests Rust du pont** et
 **30 cas de crash** réussis. Clippy et formatage passent. Pas de budget validé,
 de paquet, d'audit actualisé, de test UI/OS ou d'accès VM/PC ; gel inchangé.
-Question C1f-A1 posée, en attente : exécution d'un retrait déjà prouvé par un
-participant autorisé ou seulement par un propriétaire/admin participant.
+C1f-A1 est depuis acceptée, consignée le 24 octobre : tout participant encore
+autorisé peut exécuter un retrait déjà demandé/authentifié par la bonne autorité,
+après vérification. Pas de droit d'initiative, d'ajout ou d'accès supplémentaire.
 Ce choix n'accepte pas tout le contrat et ne redemande pas Q3.
+
+### C1g-1 — contrôle pré-fusion et politique sur fixtures
+
+Le [rapport C1g-1](../quality/TC-302-COMMIT_POLICY_GATE.md) décrit le hook
+transactionnel avant fusion propre/distante et les onze nouveaux tests.
+**68 fonctions moteur**, **3 tests Rust du pont** et les **30 cas de crash**
+existants réussissent le 31 octobre ; Clippy et formatage passent.
+
+Les pins credential/clé, rôles antérieurs et demandes sont injectés, compilés
+uniquement dans les tests. Refus/retry exact/restart, autorité distincte de
+l'exécutant, mauvaise cible, Remove+Add, succession et indice réutilisé sont
+éprouvés ; aucune signature V3 de demande vérifiée. `receive` historique reste
+permissif. Aucun registre durable d'obligations, unlock, nouveau schéma ou
+contrat de reprise ; C1g continue en C1g-2, aucun constat fermé.
+
+Contrôles documentaires : 100 liens relatifs valides dans neuf documents,
+20 exigences uniques couvertes par 20 scénarios, références revue/études
+cohérentes ; TC-303/304/305 toujours « À faire ». Deux verrous actifs et
+inchangés, manifestes/lockfiles/backend/client/schéma non modifiés et
+`git diff --check` réussi. Pas de benchmark, audit actualisé, UI/OS, paquet,
+VM/PC ou déploiement : lot isolé, gel conservé, aucune performance déduite des tests.
 
 ## Risques, reset et retour arrière
 
@@ -339,9 +368,11 @@ leurs contrats détaillés ne le sont pas tous. Restent notamment Q2, la preuve
 technique de la barrière Q3 et la reprise après journal expiré de Q5,
 pas une répétition des choix reçus. Le modèle de menace DS/membre hostile de R02
 ne peut être diminué implicitement par l'accord sur les restaurations.
-Question C1f-A1 en attente : qui peut exécuter un retrait déjà authentifié et
-autorisé, sans pouvoir en décider un ? Voir rapport C1f ; le hook conservateur
-testé n'impose aucune réponse et n'est pas une implémentation des rôles.
+C1f-A1 décidée : tout participant encore autorisé peut exécuter une demande
+vérifiée de la bonne autorité, sans initiative de retrait ni autres droits.
+Ne pas redemander. Aucune nouvelle décision humaine nécessaire pour C1g-1 ;
+origine/continuité des preuves et obligations durables restent des bloqueurs
+techniques avant reprise, pas des options contournables.
 
 ## Livrables et reprise
 
@@ -353,12 +384,13 @@ testé n'impose aucune réponse et n'est pas une implémentation des rôles.
 - [C1d : Welcome différé, invalidation et contre-exemple](../quality/TC-302-ADMISSION_RELEASE.md).
 - [C1e : outbox applicative, atomicité et limites de preuve du retrait](../quality/TC-302-EPOCH_OUTBOX.md).
 - [C1f : source des révocations et arrêt ciblé](../quality/TC-302-REVOCATION_SIGNAL.md).
+- [C1g-1 : contrôle pré-fusion et permissions sur fixtures](../quality/TC-302-COMMIT_POLICY_GATE.md).
 - [ADR-0012 proposée : contrat transport et Q3 produit décidée](../adr/ADR-0012-livraison-admission-v3.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).
 
-Prochaine sous-tâche : **TC-302 C1g, validateur d'autorité/succession et obligations
-de retrait**, puis hors ligne Q2, sans nouveaux paquets. Tenir compte de C1f-A1 ;
+Prochaine sous-tâche : **TC-302 C1g-2, origine et continuité des preuves, puis
+obligations durables**, avant hors ligne Q2, sans nouveaux paquets. C1f-A1 est décidée ;
 ne pas coder un déblocage sans cible authentifiée ni preuve de reprise.
 Ne pas recommencer les études ou redemander les décisions acquises. TC-301 C2 reste
 à reprendre selon les conditions de sa suspension, sans être sauté.

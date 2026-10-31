@@ -91,16 +91,16 @@ La preuve ne peut pas s'autoriser depuis le rôle qu'elle vient de modifier.
 
 ### C1f-A1 — Qui exécute un retrait déjà autorisé ?
 
-Question posée au propriétaire, réponse en attente : permettre à **tout appareil
-encore autorisé dans la conversation** d'appliquer un retrait dont la demande
-et l'autorité ont été vérifiées, ou réserver cette exécution à un propriétaire/
-admin participant. Première option recommandée pour réduire l'attente, sans
-lui donner le droit de décider un retrait, ajouter un membre ou lire un autre groupe.
+Décision reçue, consignée le 24 octobre : **tout appareil encore autorisé dans
+la conversation** peut appliquer un retrait déjà demandé et authentifié par
+la bonne autorité, après vérification. Cela ne lui donne pas le droit de décider
+un retrait, ajouter un membre ou lire une autre conversation. Réponse explicite :
+« Tout participant autorisé, après vérification de la demande ». Ne pas redemander.
 
-Ce n'est pas une répétition de Q3 : l'attente sécurisée est déjà acceptée.
-L'accord éventuel ne validera ni le format de preuve ni le résolveur. Le moteur
-de laboratoire n'a toujours aucun contrôle de rôle ; ses contrôles disponibles
-ne constituent pas une implémentation de cette permission proposée.
+Cet accord ne valide ni format de preuve, ni résolveur, ni ADR-0012 entière.
+Q3 reste distincte et déjà acceptée. Le hook C1f n'implémente aucun rôle ; la
+suite [C1g-1](TC-302-COMMIT_POLICY_GATE.md) expérimente la permission sur des
+fixtures, sans authentifier l'origine de la demande ni permettre la reprise.
 
 ## 4. Reprise proposée et admission
 
@@ -201,4 +201,5 @@ Aucun audit de dépendances actualisé, libcrux, fuzzing, benchmark, test Dart/U
 matrice OS, paquet, déploiement ou accès VM/PC. Dernier audit consigné : 11 octobre,
 pas une vérification de l'état amont aujourd'hui. Gel, manifestes, lockfiles,
 backend et client principal inchangés ; ni fournisseur final sélectionné ni
-contrat complet accepté. La question A1 n'empêche pas de tester cet arrêt conservateur.
+contrat complet accepté. L'arrêt conservateur ne dépendait pas de la réponse A1,
+désormais consignée ci-dessus ; les chiffres de ce rapport restent ceux de C1f.

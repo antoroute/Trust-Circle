@@ -1,8 +1,8 @@
 # ADR-0012 — Livraison ordonnée, admission et attente de révocation V3
 
-Statut : Proposée — Q3 produit décidée ; contrat technique à compléter et faire accepter
+Statut : Proposée — Q3 et C1f-A1 produit décidées ; contrat technique à compléter et faire accepter
 Date : 2026-10-18
-Actualisation : 2026-10-23 — preuves C1e/C1f, conditions nécessaires proposées
+Actualisation : 2026-10-31 — décision C1f-A1 et contrôle pré-fusion C1g-1 sur fixtures
 Complète si acceptée : ADR-0003, sans changer MLS 1.0 ni la suite 0x0001
 Suivi : TC-302 R02/R03, Q3 ; détails TC-304/310
 
@@ -142,11 +142,13 @@ comparer des octets ou la présence d'un indice. La demande doit se rapporter
 à une autorité antérieure validée et à une portée précise. Les formats,
 la source durable et les validations restent proposés, pas implémentés.
 
-Question **C1f-A1 posée, réponse en attente** : un appareil encore autorisé
-dans la conversation peut-il appliquer un retrait déjà demandé et authentifié
-par la bonne autorité, sans pouvoir en décider un, ajouter quelqu'un ou étendre
-ses droits ? Option recommandée, alternative limitée au propriétaire/admin
-participant. Ce n'est pas une nouvelle demande d'accord sur l'attente Q3.
+**C1f-A1 acceptée, consignée le 24 octobre** : tout appareil encore autorisé
+dans la conversation peut appliquer un retrait déjà demandé et authentifié
+par la bonne autorité, après vérification. Il ne peut pas en décider un,
+ajouter quelqu'un ou accéder à d'autres conversations. Réponse explicite :
+« Tout participant autorisé, après vérification de la demande ». Ne pas
+redemander ; cette permission limitée doit être vérifiée et testée avant intégration.
+Elle n'accepte ni le format de preuve, ni le déblocage, ni l'ensemble de cette ADR.
 
 Preuve locale C1f : un signal injecté arrête envois/retries/nouvelles admissions
 du seul groupe et masque ses Welcome. Réception et contrôles restent possibles
@@ -154,6 +156,24 @@ dans le laboratoire, sans validation des rôles. Aucun unlock, même après Remo
 le garde global de restauration reste prioritaire. Un signal perdu avant
 persistance doit être rejoué par une source durable encore à construire.
 Ce hook n'est ni un authentificateur d'événement ni le parcours complet de reprise.
+
+### C1g-1 — contrôle avant fusion, avec autorités injectées
+
+Le [rapport C1g-1](../quality/TC-302-COMMIT_POLICY_GATE.md) démontre un refus
+applicatif transactionnel avant fusion distante **et** locale. Une politique
+compilée seulement dans les tests résout credential/clé vers identité stable,
+compare l'autorité antérieure injectée, limite les Remove et vérifie la succession
+portée par l'UpdatePath. Un membre ordinaire peut exécuter une demande autorisée
+de fixture, sans obtenir le droit d'initiative ou d'ajout.
+
+Les demandes, rôles et ancres sont injectés : aucune authentification V3 de
+leur source n'est réalisée. L'API historique `receive` reste sans politique
+CircleHaven. Ni acceptation de contrôle, ni retrait partiel, ni Update ne résout
+automatiquement les obligations ou le hold. Source de confiance, continuité
+vérifiable et registre durable restent **C1g-2** avant tout déblocage.
+
+Le callback n'ajoute pas de réseau et n'est exécuté que pour les Commit ;
+sa politique de fixture ne mesure pas le coût d'un futur validateur complet.
 
 ## Alternatives et coûts
 
@@ -178,8 +198,9 @@ peut créer une attente UX longue : ne pas la présenter comme un budget garanti
 Avant acceptation technique : préciser preuve d'admission et barrière de
 révocation, garantir une reprise sûre sous chaque adversaire retenu, compléter
 les tests R02/R03 et le contrat hors ligne Q2. La décision Q3 ne vaut pas
-acceptation de toute cette ADR. Aucune primitive, feature MLS en brouillon,
-dépendance, permission produit ou levée du gel n'est décidée ici.
+acceptation de toute cette ADR, pas plus que C1f-A1. Aucune primitive, feature
+MLS en brouillon, dépendance ou levée du gel n'est décidée ici. La seule nouvelle
+permission produit est l'exécution limitée explicitement acceptée dans C1f-A1.
 
 Aucune donnée V2 à migrer. Les schémas SQLite C1d–C1f concernent uniquement les fixtures
 du laboratoire ; ils ne remplacent pas le plan de démarrage V3 à vide. Réexaminer

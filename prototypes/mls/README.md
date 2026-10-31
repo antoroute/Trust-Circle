@@ -7,7 +7,7 @@ Les bases SQLite de ce laboratoire ne sont **pas chiffrées**.
 
 Les [nouveaux paquets sont suspendus](../../docs/quality/TC-301-SECURITY_HOLD.md).
 Les commandes ci-dessous décrivent les capacités du laboratoire, pas une levée
-du gel ni une invitation à exécuter la matrice libcrux. Pour C1c–C1f, seuls les tests
+du gel ni une invitation à exécuter la matrice libcrux. Jusqu'à C1g-1, seuls les tests
 locaux verrouillés/hors ligne RustCrypto et le pont Rust ont été exécutés.
 
 ## Exécuter
@@ -116,7 +116,8 @@ Voir [preuves et limites C1e](../../docs/quality/TC-302-EPOCH_OUTBOX.md).
 `hold_group_synthetic(group, fault)` injecte un arrêt de publication dans un
 groupe existant. **Ce n'est pas un validateur de révocation** ; ne pas le connecter
 directement à un événement réseau. Il ne connaît ni compte/cible/incarnation ni
-rôle. Le contrat de ces preuves et l'autorité de l'exécutant restent à établir.
+rôle. L'exécution par tout participant encore autorisé après vérification est
+décidée (C1f-A1), mais le contrat de preuve reste à établir.
 
 Le signal bloque `send`, ses retries, `add` et ses retries avant travail MLS.
 `outbox` refuse les sorties applicatives et masque les Welcome, même fusionnés.
@@ -135,6 +136,21 @@ Migration v4→v5 atomique, inbox/garde global préservés, table manquante en v
 refusée. Pas de downgrade, de suppression de hold ou d'anciens acteurs simultanés.
 Le chemin courant ajoute une recherche SQL indexée, pas un appel réseau ; coût
 à mesurer. Voir [contrat proposé, preuves et limites](../../docs/quality/TC-302-REVOCATION_SIGNAL.md).
+
+## Contrôle pré-fusion — TC-302 C1g-1
+
+`receive_with_commit_policy_synthetic` appelle un contrôle synchrone en lecture
+après validation MLS et avant fusion, y compris pour l'écho propre exact.
+Une erreur annule toute la transaction, ratchet compris. Callback sans réseau
+ni effets externes : ceux-ci ne seraient pas annulés par SQLite.
+
+Le modèle de permissions/succession n'existe que dans `cfg(test)` : demandes,
+ancres et rôles sont injectés, jamais vérifiés depuis une source V3. Onze tests
+supplémentaires portent le moteur à 68 fonctions ; 3 tests Rust du pont et
+30 cas de crash existants passent. Pas de ledger durable ni d'unlock.
+**`receive` historique reste permissif**, le pont n'intègre pas ce validateur.
+Ce lot n'est ni l'authentificateur V3 ni une activation de permissions produit.
+Voir [preuves et limites C1g-1](../../docs/quality/TC-302-COMMIT_POLICY_GATE.md).
 
 ## Arrêt après un signal de restauration — TC-302 C1c
 
@@ -202,8 +218,9 @@ SQLCipher, le réseau, la batterie ni la baseline V2 sur le même appareil.
 
 ## Limites avant intégration
 
-- Identités MLS basiques synthétiques : aucune validation d'approbation de
-  compte/appareil, de rôles ou de transparence de clés dans ce laboratoire.
+- Identités MLS basiques synthétiques : pas d'authentification des preuves
+  d'approbation, des rôles ou de transparence. C1g-1 teste seulement une
+  politique pré-fusion avec ancres, rôles et demandes injectés sous `cfg(test)`.
 - Pas encore de binding complet au contexte CircleHaven/AAD ni de Delivery
   Service réel ; les méthodes simulent des entrées autorisées.
 - Le paramètre expérimental `max_past_epochs=0` rejette les messages d'anciennes

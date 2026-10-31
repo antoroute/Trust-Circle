@@ -1,7 +1,7 @@
 # Roadmap de développement vers la V1
 
 Statut : plan directeur suivi ; avancement détaillé dans les fiches
-Dernière mise à jour : 2026-10-12
+Dernière mise à jour : 2026-10-31
 
 ## Mode d'emploi
 
@@ -137,8 +137,15 @@ Aucun constat fermé, aucun paquet ni nouvelle validation de performance.
 Suite [C1f](../quality/TC-302-REVOCATION_SIGNAL.md), le 23 octobre : sources et
 portées proposées, arrêt ciblé injecté au laboratoire avant fusion. 57 tests
 moteur, 3 du pont Rust et 30 cas de crash réussis ; aucun authentificateur ni
-unlock. C1f-A1 posée, en attente : exécutant d'un retrait déjà prouvé. Suite
-**C1g, validateur d'autorité/succession et obligations**, puis Q2. Aucun constat
+unlock. C1f-A1 acceptée, consignée le 24 octobre : tout participant encore
+autorisé peut exécuter un retrait déjà demandé/authentifié par la bonne autorité,
+après vérification, sans initiative de retrait ni nouveaux droits.
+
+Suite [C1g-1](../quality/TC-302-COMMIT_POLICY_GATE.md), validée le 31 octobre : contrôle
+avant fusion et modèle d'autorité/succession sur fixtures ; 68 tests moteur,
+3 du pont Rust et 30 cas de crash existants réussis. Pas d'authentification de
+source, de registre durable d'obligations ni de reprise. Suite **C1g-2, origine
+et continuité des preuves, puis obligations durables**, avant Q2. Aucun constat
 fermé, gel maintenu et aucun parcours complet de révocation déclaré réalisé.
 
 Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
@@ -152,7 +159,7 @@ Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, C1c–C1f testés au laboratoire, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
+| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, preuves locales jusqu'à C1g-1, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |

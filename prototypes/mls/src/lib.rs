@@ -50,6 +50,10 @@ pub enum Error {
     RecoveryRequired,
     #[error("group publication suspended; authorization must be resolved")]
     GroupHeld,
+    #[error("synthetic application policy rejected the transition")]
+    PolicyRejected,
+    #[error("synthetic application policy requires more evidence")]
+    PolicyEvidenceRequired,
     #[error("outbound operation is no longer publishable")]
     Superseded,
     #[error("injected failure before durable commit")]
@@ -740,6 +744,24 @@ impl Device {
     /// match with its atomically persisted pending ciphertext may confirm it.
     /// OpenMLS's OwnPrivateMessage hint alone is NEVER sufficient authority.
     pub fn receive(&mut self, group: &[u8], wire: &[u8], fault: Fault) -> Result<Received> {
+        // Historical laboratory path, NOT CircleHaven authorization.
+        self.receive_with_commit_policy_synthetic(group, wire, fault, |_, _, _| Ok(()))
+    }
+
+    /// Laboratory-only, synchronous inspection after MLS validation and BEFORE
+    /// either own or peer merge, under the existing SQLite transaction. This is
+    /// NOT an authenticator for revocation requests or a production policy.
+    /// The callback must be read-only: no network, logging of secrets, durable
+    /// side effects or retained MLS objects. Its external effects cannot roll back.
+    /// Applications are processed normally; this hook only inspects Commits.
+    /// An error rolls back ratchet writes too. Success never releases a hold.
+    pub fn receive_with_commit_policy_synthetic(
+        &mut self,
+        group: &[u8],
+        wire: &[u8],
+        fault: Fault,
+        check: impl FnOnce(&MlsGroup, &Sender, &StagedCommit) -> Result<()>,
+    ) -> Result<Received> {
         self.last_transaction = None;
         group_input(group)?;
         let message = decode(wire)?;
@@ -758,9 +780,8 @@ impl Device {
                 )
                 .optional())?;
             if own.as_deref() == Some(wire) {
-                if state.pending_commit().is_none() {
-                    return Err(Error::Conflict);
-                }
+                let pending = state.pending_commit().ok_or(Error::Conflict)?;
+                check(&state, &Sender::Member(state.own_leaf_index()), pending)?;
                 mls(state.merge_pending_commit(provider))?;
                 retire_epoch_applications(tx, group)?;
                 settle_pending(tx, group, wire, true)?;
@@ -769,6 +790,7 @@ impl Device {
             }
             let protocol = mls(message.try_into_protocol_message())?;
             let processed = mls(state.process_message(provider, protocol))?;
+            let sender = processed.sender().clone();
             match processed.into_content() {
                 ProcessedMessageContent::ApplicationMessage(message) => {
                     let payload = message.into_bytes();
@@ -782,6 +804,7 @@ impl Device {
                     Ok(Received::Application)
                 }
                 ProcessedMessageContent::StagedCommitMessage(commit) => {
+                    check(&state, &sender, &commit)?;
                     mls(state.merge_staged_commit(provider, *commit))?;
                     if state.members().count() > MAX_MEMBERS {
                         return Err(Error::Input);
@@ -882,6 +905,9 @@ impl Device {
         Ok(outbound)
     }
 }
+
+#[cfg(test)]
+mod commit_policy_tests;
 
 #[cfg(test)]
 mod storage_tests {

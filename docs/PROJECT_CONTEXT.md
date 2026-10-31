@@ -1,7 +1,7 @@
 # Contexte du projet
 
 Statut : référence de travail
-Dernière mise à jour : 2026-10-23
+Dernière mise à jour : 2026-10-31
 Instantané fonctionnel documenté : branche `main`, Phases 1 et 2 terminées sur staging
 
 ## Mission
@@ -139,10 +139,20 @@ Envois/retries/ajouts bloqués, Welcome masqués, réception/contrôles et autre
 groupes disponibles. Aucun authentificateur ni unlock, même après Remove ;
 garde global prioritaire. Schéma v5, 57 tests moteur, 3 du pont Rust et 30 cas
 de crash réussis. Voir `quality/TC-302-REVOCATION_SIGNAL.md`.
-Question C1f-A1 posée, en attente : participant autorisé pouvant appliquer un
-retrait déjà prouvé ou seulement propriétaire/admin participant. Q3 n'est pas
-à redemander. Suite **C1g, validateur d'autorité/succession et obligations de
-retrait**, puis Q2. Gel et dépendances inchangés, aucun constat fermé.
+C1f-A1 acceptée, consignée le 24 octobre : tout participant encore autorisé
+peut exécuter un retrait déjà demandé/authentifié par la bonne autorité, après
+vérification, sans droit d'initiative, d'ajout ou d'accès à une autre conversation.
+Ne pas redemander A1 ou Q3 ; ni contrat complet ni unlock acceptés.
+
+Commencée le 24 et validée le 31 octobre, **TC-302 C1g-1** ajoute le contrôle
+transactionnel avant fusion distante et locale ; politique d'autorité/succession compilée uniquement dans
+les tests, avec ancres, rôles et demandes injectés. Onze nouveaux tests portent
+le moteur à 68 fonctions réussies ; 3 tests Rust du pont et les 30 cas de crash
+existants passent. Voir `quality/TC-302-COMMIT_POLICY_GATE.md`.
+Ce n'est pas l'authentificateur V3 : `receive` historique reste permissif,
+aucun registre durable d'obligations ni déblocage. Suite **C1g-2, origine et
+continuité des preuves, puis obligations durables**, avant Q2. Gel, dépendances
+et schéma v5 inchangés ; aucun constat fermé, aucune intégration produit.
 
 Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
 d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve
