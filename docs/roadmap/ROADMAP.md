@@ -1,7 +1,7 @@
 # Roadmap de développement vers la V1
 
 Statut : plan directeur suivi ; avancement détaillé dans les fiches
-Dernière mise à jour : 2026-10-31
+Dernière mise à jour : 2026-11-04
 
 ## Mode d'emploi
 
@@ -148,6 +148,13 @@ source, de registre durable d'obligations ni de reprise. Suite **C1g-2, origine
 et continuité des preuves, puis obligations durables**, avant Q2. Aucun constat
 fermé, gel maintenu et aucun parcours complet de révocation déclaré réalisé.
 
+Suite [C1g-2a](../quality/TC-302-REQUEST_ORIGIN.md), le 4 novembre : origine MLS
+privée d'une demande, références et hold transactionnel ; 82 tests moteur,
+3 du pont Rust et 30 cas de crash existants réussis. Racines/rôles encore
+injectés, succession locale non durable ; contre-exemples époque/rôle/commit SQL.
+C1g-2 demeure ouverte : **C1g-2b, autorité antérieure authentifiée et continuité
+inter-contextes**, avant obligations durables puis Q2. Aucun unlock ni nouvelle distribution.
+
 Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
 V3 vers appareil/personne. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
 décrit l'étude et ses impacts. L'autorité de partage vers une nouvelle personne
@@ -159,7 +166,7 @@ Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, preuves locales jusqu'à C1g-1, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
+| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, preuves locales jusqu'à C1g-2a, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |

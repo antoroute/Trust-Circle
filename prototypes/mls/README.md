@@ -7,7 +7,7 @@ Les bases SQLite de ce laboratoire ne sont **pas chiffrées**.
 
 Les [nouveaux paquets sont suspendus](../../docs/quality/TC-301-SECURITY_HOLD.md).
 Les commandes ci-dessous décrivent les capacités du laboratoire, pas une levée
-du gel ni une invitation à exécuter la matrice libcrux. Jusqu'à C1g-1, seuls les tests
+du gel ni une invitation à exécuter la matrice libcrux. Jusqu'à C1g-2a, seuls les tests
 locaux verrouillés/hors ligne RustCrypto et le pont Rust ont été exécutés.
 
 ## Exécuter
@@ -151,6 +151,24 @@ supplémentaires portent le moteur à 68 fonctions ; 3 tests Rust du pont et
 **`receive` historique reste permissif**, le pont n'intègre pas ce validateur.
 Ce lot n'est ni l'authentificateur V3 ni une activation de permissions produit.
 Voir [preuves et limites C1g-1](../../docs/quality/TC-302-COMMIT_POLICY_GATE.md).
+
+## Origine des demandes — TC-302 C1g-2a
+
+`receive_removal_proposal_with_policy_synthetic` authentifie une Remove Proposal
+privée MLS, appelle une politique de confiance fournie, puis stocke proposition
+et hold ensemble. Les tests utilisent des pins/rôles initiaux injectés, pas
+une chaîne d'identité V3. La portée reste cette feuille/groupe/époque ; aucune
+révocation globale de compte/appareil n'est déduite. Pas d'API d'émission fiable.
+
+Références manquantes dans un Commit : `PolicyEvidenceRequired`, y compris via
+`receive` historique ; rollback puis retry exact après réception des propositions.
+Exécution par un autre participant et revalidation propre/distante éprouvées.
+La file locale n'est ni une preuve portable ni un registre durable. Les tests
+exposent son effacement après Update et la réautorisation possible d'une demande
+si les rôles de fixture changent à même époque. Succession de clé testée dans
+un groupe, sans chaîne de pins durable ou rotation du magasin de signer Device.
+82 fonctions moteur, 3 du pont Rust et 30 cas de crash existants passent ; aucun
+unlock. Voir [preuves, contre-exemples et suite C1g-2b](../../docs/quality/TC-302-REQUEST_ORIGIN.md).
 
 ## Arrêt après un signal de restauration — TC-302 C1c
 

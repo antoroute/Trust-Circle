@@ -2,8 +2,8 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation et preuves locales jusqu'à C1g-1 sont sur tc301-mls-prototype, actualisées le 2026-10-31.
-Objectif : TC-302 C1g-2, origine et continuité des preuves, puis obligations durables,
+préparation et preuves locales jusqu'à C1g-2a sont sur tc301-mls-prototype, actualisées le 2026-11-04.
+Objectif : TC-302 C1g-2b, autorité antérieure authentifiée et continuité inter-contextes, puis obligations durables,
 puis Q2 à partir du socle V3 v0.5.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
@@ -24,6 +24,7 @@ docs/quality/TC-302-ADMISSION_RELEASE.md,
 docs/quality/TC-302-EPOCH_OUTBOX.md,
 docs/quality/TC-302-REVOCATION_SIGNAL.md,
 docs/quality/TC-302-COMMIT_POLICY_GATE.md,
+docs/quality/TC-302-REQUEST_ORIGIN.md,
 et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
@@ -92,6 +93,31 @@ Le receive historique reste permissif, le pont aussi. Aucun unlock ; retirer
 partiellement ou traiter un Update n'épuise pas les obligations. Le callback
 doit rester pur et sans réseau : ses effets externes ne sont pas transactionnels.
 
+Depuis C1g-2a (4 novembre), 82 fonctions moteur dont 14 nouvelles, 3 tests Rust
+du pont, Clippy et fmt réussissent ; les 30 cas de crash existants passent.
+receive_removal_proposal_with_policy_synthetic traite une Remove Proposal
+privée via MLS, contrôle sa politique puis stocke proposition/hold atomiquement.
+La politique PriorView n'injecte plus de demandes, mais conserve des racines,
+pins et rôles de confiance INJECTÉS : pas de chaîne d'autorité V3 complète.
+L'auteur initial d'une référence est distinct du committer ; revalidation des
+droits et refus d'inline/Add/Remove supplémentaire sur les deux chemins.
+MissingProposal devient PolicyEvidenceRequired dans receive également : retry
+exact après réception de la dépendance. Les erreurs annulent le ratchet.
+Après autorisation puis panne SQL, latch du seul acteur, pas des autres avant
+persistance ; test de reprise. Proposeurs locaux : helpers cfg(test), pas
+outbox fiable ni parcours produit. QueuedProposal stockée n'est pas une preuve
+portable et ne doit jamais être désérialisée depuis le réseau.
+La portée d'une Remove est une feuille/groupe/époque, PAS tout un compte ni
+une révocation globale. Update peut purger la file sans retrait : hold conservé.
+Contre-exemple : modifier le rôle de fixture à même époque peut autoriser une
+ancienne demande refusée. La future source doit lier une autorité antérieure
+authentifiée immuable ; ne pas annoncer un anti-rejeu de droits déjà résolu.
+Succession testée : ancienne clé signe le Commit, nouvelle feuille MLS validée,
+credential/identité inchangés ; pin dérivé après succès SQL. Pin seulement en
+mémoire, magasin persistant de signer non tourné. Erreur après commit SQL : MLS
+avance sans nouveau pin, vue refusée ; pas de récupération implémentée.
+Ces preuves bornent C1g-2a, ne clôturent PAS C1g-2, R08 ni TC-302.
+
 Pour la stabilisation restante TC-302 C1 :
 1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
    couplage Welcome/arbitrage vérifiable par un nouvel arrivant, la barrière
@@ -117,7 +143,8 @@ Pour la stabilisation restante TC-302 C1 :
    l'idempotence, pas les octets ; le produit devra conserver séparément
    intention et copie chiffrée pour éviter perte ou réémission aveugle.
    C1f propose les sources/portées ; C1g-1 teste le point de contrôle et un modèle
-   de fixture. C1g-2 doit établir la source/continuité de la preuve avant le registre,
+   de fixture. C1g-2a éprouve une source MLS intra-groupe, pas les ancres/rôles.
+   C1g-2b doit établir l'autorité antérieure et la continuité inter-contextes avant le registre,
    sans transformer des champs serveur en autorité. Valider le signal, la cible compte/appareil/incarnation
    et la génération de conversation. L'indice de feuille seul est réutilisable.
    Vérifier l'absence de toutes les cibles dans l'état validé, les obligations
@@ -226,5 +253,5 @@ Modèle conseillé : **GPT-6 Astra, raisonnement élevé** pour la conception et
 la revue contradictoire. Réserver le niveau maximal aux cas difficiles qui
 le justifient ; un effort faible suffit aux liens et mises à jour mécaniques.
 Recommandation de travail, pas mesure comparative réalisée sur ce projet.
-Vérifiée le 23 octobre 2026 avec OpenAI Docs :
+Vérifiée le 4 novembre 2026 avec OpenAI Docs :
 [fiche officielle GPT-6 Astra](https://developers.openai.com/api/docs/models/gpt-6-astra).

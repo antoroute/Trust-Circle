@@ -748,6 +748,64 @@ impl Device {
         self.receive_with_commit_policy_synthetic(group, wire, fault, |_, _, _| Ok(()))
     }
 
+    /// Laboratory-only reception of a private, current-epoch Remove proposal.
+    /// MLS authenticates its author, NOT the account identity or authority:
+    /// `check` must validate those from a trusted prior view, without side effects.
+    /// Store the proposal and a publication hold together; never unlock here.
+    /// The MLS proposal store is epoch-scoped, NOT a durable revocation ledger.
+    /// No own-echo path, outbound proposal API or external proof format is added.
+    pub fn receive_removal_proposal_with_policy_synthetic(
+        &mut self,
+        group: &[u8],
+        wire: &[u8],
+        fault: Fault,
+        check: impl FnOnce(&MlsGroup, &QueuedProposal) -> Result<()>,
+    ) -> Result<()> {
+        self.last_transaction = None;
+        group_input(group)?;
+        let message = decode(wire)?;
+        if message.wire_format() != WireFormat::PrivateMessage {
+            return Err(Error::Input);
+        }
+        let mut authorized = false;
+        let result = self.atomic(fault, |tx, provider| {
+            let mut state = load(provider, group)?;
+            if state.pending_proposals().count() >= MAX_MEMBERS {
+                return Err(Error::Input);
+            }
+            let processed =
+                mls(state.process_message(provider, mls(message.try_into_protocol_message())?))?;
+            if processed.group_id() != state.group_id() || processed.epoch() != state.epoch() {
+                return Err(Error::PolicyRejected);
+            }
+            let ProcessedMessageContent::ProposalMessage(proposal) = processed.into_content()
+            else {
+                return Err(Error::Input);
+            };
+            if !matches!(proposal.sender(), Sender::Member(_))
+                || !matches!(proposal.proposal(), Proposal::Remove(_))
+                || proposal.proposal_or_ref_type() != ProposalOrRefType::Reference
+            {
+                return Err(Error::Input);
+            }
+            check(&state, &proposal)?;
+            authorized = true;
+            db(state.store_pending_proposal(provider.storage(), *proposal))?;
+            db(tx.execute(
+                "INSERT INTO probe_group_hold(group_id) VALUES(?1) ON CONFLICT DO NOTHING",
+                [group],
+            ))?;
+            Ok(())
+        });
+        // Only a fully authenticated AND policy-approved signal may latch us.
+        // On failed persistence this protects this actor, not other handles or
+        // a restart; the caller must retry before considering the signal durable.
+        if authorized {
+            self.held_groups.insert(group.to_vec());
+        }
+        result
+    }
+
     /// Laboratory-only, synchronous inspection after MLS validation and BEFORE
     /// either own or peer merge, under the existing SQLite transaction. This is
     /// NOT an authenticator for revocation requests or a production policy.
@@ -789,7 +847,15 @@ impl Device {
                 return Ok(Received::Commit);
             }
             let protocol = mls(message.try_into_protocol_message())?;
-            let processed = mls(state.process_message(provider, protocol))?;
+            let processed =
+                state
+                    .process_message(provider, protocol)
+                    .map_err(|error| match error {
+                        ProcessMessageError::InvalidCommit(StageCommitError::MissingProposal) => {
+                            Error::PolicyEvidenceRequired
+                        }
+                        _ => Error::Crypto,
+                    })?;
             let sender = processed.sender().clone();
             match processed.into_content() {
                 ProcessedMessageContent::ApplicationMessage(message) => {

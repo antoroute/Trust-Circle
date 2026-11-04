@@ -2,7 +2,7 @@
 
 Statut : Proposée — Q3 et C1f-A1 produit décidées ; contrat technique à compléter et faire accepter
 Date : 2026-10-18
-Actualisation : 2026-10-31 — décision C1f-A1 et contrôle pré-fusion C1g-1 sur fixtures
+Actualisation : 2026-11-04 — origine MLS intra-groupe C1g-2a, autorité globale toujours ouverte
 Complète si acceptée : ADR-0003, sans changer MLS 1.0 ni la suite 0x0001
 Suivi : TC-302 R02/R03, Q3 ; détails TC-304/310
 
@@ -174,6 +174,21 @@ vérifiable et registre durable restent **C1g-2** avant tout déblocage.
 
 Le callback n'ajoute pas de réseau et n'est exécuté que pour les Commit ;
 sa politique de fixture ne mesure pas le coût d'un futur validateur complet.
+
+### Preuve complémentaire C1g-2a — pas un contrat complet
+
+Le [rapport C1g-2a](../quality/TC-302-REQUEST_ORIGIN.md) éprouve une source
+standard : Remove Proposal privée authentifiée par MLS, contrôle des droits
+de fixture, stockage avec hold atomique, exécution par un autre participant
+via référence et revalidation pré-fusion. Pas de signature de révocation V3
+inventée. La portée reste une feuille à cette époque, pas tout un compte ou
+une révocation inter-conversations. Ancres/rôles initiaux toujours injectés.
+
+L'Update concurrent purge la file sans résoudre le retrait ; un rôle changé
+dans la fixture à même époque peut réautoriser une ancienne demande refusée.
+La succession de clé intra-groupe n'est pas une chaîne de confiance globale
+ni persistante. C1g-2b doit fixer la référence d'autorité immuable, les preuves
+de continuité et leur portée avant le registre durable ; aucun unlock ajouté.
 
 ## Alternatives et coûts
 

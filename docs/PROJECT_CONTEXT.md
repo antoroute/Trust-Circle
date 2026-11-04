@@ -1,7 +1,7 @@
 # Contexte du projet
 
 Statut : référence de travail
-Dernière mise à jour : 2026-10-31
+Dernière mise à jour : 2026-11-04
 Instantané fonctionnel documenté : branche `main`, Phases 1 et 2 terminées sur staging
 
 ## Mission
@@ -153,6 +153,18 @@ Ce n'est pas l'authentificateur V3 : `receive` historique reste permissif,
 aucun registre durable d'obligations ni déblocage. Suite **C1g-2, origine et
 continuité des preuves, puis obligations durables**, avant Q2. Gel, dépendances
 et schéma v5 inchangés ; aucun constat fermé, aucune intégration produit.
+
+Le 4 novembre, **TC-302 C1g-2a** éprouve l'origine d'une Remove Proposal privée
+MLS, son auteur distinct de l'exécutant et sa réception atomique avec le hold.
+Pins initiaux et rôles restent injectés : pas de chaîne d'autorité produit.
+14 tests nouveaux : **82 fonctions moteur**, 3 du pont Rust et les 30 cas de
+crash existants passent ; Clippy/formatage réussis. Continuité de clé testée
+intra-groupe, sans persistance des pins ni rotation du magasin de signer.
+Contre-exemples : file de propositions purgée par Update, demande réautorisée
+si rôle de fixture changé à même époque, pin non publié après commit SQL.
+Voir `quality/TC-302-REQUEST_ORIGIN.md`. **C1g-2 reste ouverte** : suite C1g-2b,
+autorité antérieure authentifiée et continuité inter-contextes, avant registre
+durable et reprise. Aucun unlock, schéma/dépendances/gel inchangés, aucun constat fermé.
 
 Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
 d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve

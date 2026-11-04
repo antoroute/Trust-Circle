@@ -4,6 +4,9 @@
 use super::*;
 use std::collections::BTreeMap;
 
+#[path = "authenticated_proposal_tests.rs"]
+mod authenticated_proposal_tests;
+
 const GROUP: &[u8] = b"fixture-env/circle/conversation/generation-1";
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
