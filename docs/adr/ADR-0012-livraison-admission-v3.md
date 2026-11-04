@@ -2,7 +2,7 @@
 
 Statut : Proposée — Q3 et C1f-A1 produit décidées ; contrat technique à compléter et faire accepter
 Date : 2026-10-18
-Actualisation : 2026-11-04 — origine MLS intra-groupe C1g-2a, autorité globale toujours ouverte
+Actualisation : 2026-11-04 — banc candidat C1g-2b.1 ; autorité complète et reprise toujours ouvertes
 Complète si acceptée : ADR-0003, sans changer MLS 1.0 ni la suite 0x0001
 Suivi : TC-302 R02/R03, Q3 ; détails TC-304/310
 
@@ -189,6 +189,23 @@ dans la fixture à même époque peut réautoriser une ancienne demande refusée
 La succession de clé intra-groupe n'est pas une chaîne de confiance globale
 ni persistante. C1g-2b doit fixer la référence d'autorité immuable, les preuves
 de continuité et leur portée avant le registre durable ; aucun unlock ajouté.
+
+### C1g-2b.1 — modèle d'autorité signé, non accepté pour le produit
+
+Le [banc candidat](../quality/TC-302-AUTHORITY_PROOFS.md) utilise une bibliothèque
+JWS existante pour éprouver des approbations et rôles réellement signés depuis
+des genèses ancrées par hypothèse. Chaque demande désigne les états exacts du
+cercle et des appareils de son auteur ; une promotion ne réautorise pas une
+ancienne demande. Les bindings incluent la genèse exacte du contexte.
+Ni format V3 final ni délégation positive au référent implémentés ; modèle mémoire
+sans raccordement MLS, registre durable, garde de divergence ou unlock.
+
+Un ordre référençant un ancien rôle ne prouve pas qu'il a été signé avant le
+déclassement. Le sort d'une demande déjà validée puis suivie d'une perte de droits
+est demandé au propriétaire le 4 novembre. En attendant réponse, maintenir
+le refus conservateur et le hold ; ne pas déduire l'irrévocabilité d'une demande
+de la permission limitée C1f-A1. Révocations cachées et rattrapage historique
+restent ouverts. Le banc ne modifie aucune décision produit déjà reçue.
 
 ## Alternatives et coûts
 

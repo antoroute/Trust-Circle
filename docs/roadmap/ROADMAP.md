@@ -155,6 +155,12 @@ injectés, succession locale non durable ; contre-exemples époque/rôle/commit 
 C1g-2 demeure ouverte : **C1g-2b, autorité antérieure authentifiée et continuité
 inter-contextes**, avant obligations durables puis Q2. Aucun unlock ni nouvelle distribution.
 
+Suite [C1g-2b.1](../quality/TC-302-AUTHORITY_PROOFS.md), le 4 novembre : banc
+candidat Node de preuves standard signées, 29 tests et non-régression 82 moteur
+et 3 pont Rust réussis. Ancres simulées, états mémoire, aucun format produit
+accepté ni raccordement natif. Suite **C1g-2b.2 : référent, dépendances historiques
+et fraîcheur locale**, puis registre/obligations ; C1g-2 et tous les constats ouverts.
+
 Le propriétaire demande le 12 octobre un partage facultatif de futurs historiques
 V3 vers appareil/personne. L'[ADR-0008 proposée](../adr/ADR-0008-partage-historique-optionnel.md)
 décrit l'étude et ses impacts. L'autorité de partage vers une nouvelle personne
@@ -166,7 +172,7 @@ Ce besoin ne réintroduit ni migration V2 ni distribution pendant la suspension.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | TC-301 | Comparer/prototyper MLS ou alternatives et accepter ADR-0003 | TC-006, TC-112 |
-| TC-302 | Écrire la spécification V3 indépendante du code — A/B, C1/C1b documentés, preuves locales jusqu'à C1g-2a, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
+| TC-302 | Écrire la spécification V3 indépendante du code — preuves locales jusqu'à C1g-2b.1, constats ouverts | TC-301 pour clôture ; préparation et preuves locales bornées possibles |
 | TC-303 | Spécifier identité, preuve et confiance des appareils | TC-302 |
 | TC-304 | Spécifier changements de membres, époques, rotation et révocation | TC-302 |
 | TC-305 | Définir encodage canonique, domaine signé et limites | TC-302 |

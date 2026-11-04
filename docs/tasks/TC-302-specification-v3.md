@@ -1,6 +1,6 @@
 # TC-302 — Spécification indépendante du protocole V3
 
-Statut : En cours — A/B et C1/C1b documentés, preuves locales jusqu'à C1g-2a ; contrat et preuves ouverts, clôture bloquée par TC-301
+Statut : En cours — preuves locales jusqu'à C1g-2b.1 ; contrat et preuves ouverts, clôture bloquée par TC-301
 Priorité : critique avant intégration
 Date : 2026-11-04
 Responsable de décision : propriétaire du produit pour les compromis UX ; revue sécurité pour le contrat
@@ -44,6 +44,12 @@ La demande « passe à C1g-2 », reprise le 4 novembre, réalise **C1g-2a** :
 source MLS authentifiée intra-groupe, réception de Proposal et hold atomiques,
 continuité de clé locale et contre-exemples. C1g-2 reste ouverte pour les
 preuves d'autorité/continuité inter-contextes ; aucun registre ni unlock.
+
+La continuation suivante réalise **C1g-2b.1**, un banc Node candidat utilisant
+une bibliothèque JWS déjà verrouillée : transitions signées d'approbations et
+de rôles, référence à l'autorité exacte et liaisons entre contextes. Ancres
+simulées, mémoire seulement, aucun format produit accepté ni raccordement MLS.
+C1g-2b.2 doit encore traiter référent, dépendances historiques et fraîcheur locale.
 
 Le laboratoire ne constitue pas la spécification produit : identités
 synthétiques, SQLite non chiffré, transport simulé et absence de politique
@@ -107,7 +113,8 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - [x] C1f : source/portée proposées et arrêt ciblé testé avant fusion ; pas d'authentificateur ni d'unlock ; S08/S10/S12/S13 partiels, aucun constat fermé.
 - [x] C1g-1 : refus pré-fusion transactionnel et permissions/succession sur fixtures ; A1 consignée, S03/S04/S10/S12/S13 partiels, pas de validation de source ni de registre durable.
 - [x] C1g-2a : origine MLS intra-groupe et réception/hold atomiques ; références, rotation locale et limites éprouvées ; racines/rôles initiaux injectés.
-- [ ] C1g-2b : source d'autorité antérieure authentifiée et continuité inter-contextes, avant le registre durable et toute reprise.
+- [x] C1g-2b.1 : banc candidat de preuves standard signées, autorité antérieure et bindings inter-contextes ; ancres simulées et mémoire seulement.
+- [ ] C1g-2b.2 : référent, dépendances historiques et fraîcheur locale ; source complète avant registre durable et reprise.
 - [ ] Faisabilité et hypothèses des bloqueurs structurels R02/R07/R08 établies avant acceptation du socle.
 - [ ] TC-301 close avec fournisseur, dépendances et budgets étayés.
 - [ ] Socle accepté et références documentaires alignées, sans écraser les modifications du propriétaire.
@@ -119,9 +126,9 @@ pas présentés comme déjà résolus par TC-302 ; la spécification finale rest
 - Relecture des ADR, décisions V1, invariants et des fonctions/tests du
   laboratoire concernés ; les preuves existantes ne sont citées que dans leur périmètre.
 - `git diff --check` ; changements documentaires pour A/B/C1/C1b ; code et tests
-  synthétiques limités au laboratoire jusqu'à C1g-2a, consommateur Rust du pont compris.
+  synthétiques limités au laboratoire jusqu'à C1g-2b.1, consommateur Rust du pont compris.
 - Ne pas relancer les matrices CI, compiler de paquets ou déclencher un déploiement
-  pour ces lots. Les preuves partielles exécutées jusqu'à C1g-2a sont distinguées des
+  pour ces lots. Les preuves partielles exécutées jusqu'à C1g-2b.1 sont distinguées des
   autres tests de la matrice, toujours **à écrire**.
 
 ### Contrôles du lot A
@@ -373,6 +380,27 @@ Deux verrous actifs et inchangés, manifestes/lockfiles/schéma/backend/client
 principal inchangés, `git diff --check` réussi. Modifications préexistantes
 du propriétaire préservées hors commit.
 
+### C1g-2b.1 — banc candidat d'autorité portable
+
+Le [rapport](../quality/TC-302-AUTHORITY_PROOFS.md) compare les enveloppes standard
+et détaille le banc Node sans nouvelle dépendance. Rôles dérivés de transitions
+signées depuis genèse ancrée, comptes/appareils et possession, demandes liées
+aux deux états exacts compte/cercle, liaisons à la genèse/conversation/génération.
+Promotion non rétroactive, déclassement/révocation connus bloquants ; pas de
+preuve de fraîcheur cachée. **29 tests Node**, **82 fonctions moteur**, **3 pont
+Rust** et les **30 cas de crash** existants passent, Clippy/fmt et syntaxe réussis.
+
+Relecture interne : corrections genèse du binding, registre non substituable,
+schéma exact et garde d'encodage canonique, avec régressions. Ancres hors bande
+simulées, octets MLS synthétiques ; pas de QR, attestation positive ADR-0010,
+registre durable ni unlock. Refuser une branche n'installe pas de quarantaine.
+Un redémarrage complet du banc perd ses connaissances. Le rattrapage historique
+reste à concevoir. Aucun constat fermé, nouveau paquet ou changement du gel.
+
+Question produit posée le 4 novembre : confirmation d'une demande déjà acceptée
+si son auteur perd ensuite ses droits. En attendant réponse, conserver le refus
+conservateur et le hold de C1g-2a ; aucun choix reçu n'est remplacé.
+
 ## Risques, reset et retour arrière
 
 La principale menace documentaire serait de transformer des hypothèses en
@@ -418,12 +446,13 @@ techniques avant reprise, pas des options contournables.
 - [C1f : source des révocations et arrêt ciblé](../quality/TC-302-REVOCATION_SIGNAL.md).
 - [C1g-1 : contrôle pré-fusion et permissions sur fixtures](../quality/TC-302-COMMIT_POLICY_GATE.md).
 - [C1g-2a : origine MLS, continuité locale et contre-exemples](../quality/TC-302-REQUEST_ORIGIN.md).
+- [C1g-2b.1 : banc de preuves d'autorité portables et limites](../quality/TC-302-AUTHORITY_PROOFS.md).
 - [ADR-0012 proposée : contrat transport et Q3 produit décidée](../adr/ADR-0012-livraison-admission-v3.md).
 - [Roadmap corrigée](../roadmap/ROADMAP.md) et index documentaire.
 - [Prompt structuré TC-302](../prompts/CONTINUE_TC-302.md).
 
-Prochaine sous-tâche : **TC-302 C1g-2b, autorité antérieure authentifiée et
-continuité inter-contextes**, puis obligations durables, avant hors ligne Q2,
+Prochaine sous-tâche : **TC-302 C1g-2b.2, référent, dépendances historiques et
+fraîcheur locale**, puis obligations durables, avant hors ligne Q2,
 sans nouveaux paquets. C1f-A1 est décidée ;
 ne pas coder un déblocage sans cible authentifiée ni preuve de reprise.
 Ne pas recommencer les études ou redemander les décisions acquises. TC-301 C2 reste

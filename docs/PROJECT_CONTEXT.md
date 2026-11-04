@@ -166,6 +166,18 @@ Voir `quality/TC-302-REQUEST_ORIGIN.md`. **C1g-2 reste ouverte** : suite C1g-2b,
 autorité antérieure authentifiée et continuité inter-contextes, avant registre
 durable et reprise. Aucun unlock, schéma/dépendances/gel inchangés, aucun constat fermé.
 
+Le 4 novembre, **C1g-2b.1** ajoute un banc indépendant Node de preuves signées
+standard avec fast-jwt 6.3.3 déjà verrouillé : comptes/appareils, rôles issus
+de transitions signées, demandes liées aux parents exacts et bindings entre
+contextes. **29 tests Node** et non-régression **82 moteur + 3 pont Rust** passent.
+Ancres OOB/genèse et octets MLS simulés ; mémoire seulement, pas de profil V3
+accepté ni d'intégration native. Révocations cachées, branches sans quarantaine
+et perte de mémoire restent des contre-exemples. Voir
+`quality/TC-302-AUTHORITY_PROOFS.md`. Suite **C1g-2b.2 : référent, dépendances
+historiques et fraîcheur locale**, avant registre/obligations/reprise.
+Question produit posée : sort d'une demande acceptée lorsque son auteur perd
+ses droits ; ne pas confondre recommandation et décision reçue. Gel inchangé.
+
 Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
 d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve
 d'un coût raisonnable en ressources et complexité. Voir

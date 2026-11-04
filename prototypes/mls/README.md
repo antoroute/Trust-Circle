@@ -9,6 +9,8 @@ Les [nouveaux paquets sont suspendus](../../docs/quality/TC-301-SECURITY_HOLD.md
 Les commandes ci-dessous décrivent les capacités du laboratoire, pas une levée
 du gel ni une invitation à exécuter la matrice libcrux. Jusqu'à C1g-2a, seuls les tests
 locaux verrouillés/hors ligne RustCrypto et le pont Rust ont été exécutés.
+C1g-2b.1 ajoute un banc Node indépendant de preuves signées, sans changement
+de dépendance ni raccordement natif ; voir [authority](authority/README.md).
 
 ## Exécuter
 
@@ -169,6 +171,15 @@ si les rôles de fixture changent à même époque. Succession de clé testée d
 un groupe, sans chaîne de pins durable ou rotation du magasin de signer Device.
 82 fonctions moteur, 3 du pont Rust et 30 cas de crash existants passent ; aucun
 unlock. Voir [preuves, contre-exemples et suite C1g-2b](../../docs/quality/TC-302-REQUEST_ORIGIN.md).
+
+## Autorité portable candidate — TC-302 C1g-2b.1
+
+[authority](authority/README.md) éprouve les états d'autorité exacts et des
+liaisons entre contextes avec la bibliothèque JWS existante : 29 tests Node,
+ancres simulées et mémoire seulement. Aucun format produit accepté ou import
+dans le moteur. Les 82 fonctions natives restent inchangées. Référent et
+rattrapage historique ouverts ; pas de registre durable, de quarantaine de
+branche ni de reprise. [Rapport](../../docs/quality/TC-302-AUTHORITY_PROOFS.md).
 
 ## Arrêt après un signal de restauration — TC-302 C1c
 

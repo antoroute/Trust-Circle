@@ -1,7 +1,7 @@
 # Cryptographie V3 — socle de spécification CircleHaven
 
 Version : 0.5 — brouillon avec décisions C1b, non approuvé pour implémentation
-Date : 2026-11-04 — suivi local jusqu'à C1g-2a, contrat v0.5 non accepté
+Date : 2026-11-04 — suivi local jusqu'à C1g-2b.1, contrat v0.5 non accepté
 Décisions acquises : [ADR-0003](../adr/ADR-0003-protocole-crypto-v3.md),
 [ADR-0005](../adr/ADR-0005-confiance-appareil-compte.md),
 [ADR-0009 — vérification initiale](../adr/ADR-0009-verification-identite-initiale.md),
@@ -376,6 +376,15 @@ le groupe ne persiste pas la chaîne de confiance. **C1g-2 reste ouverte** pour
 la référence d'autorité immuable et la continuité inter-contextes (C1g-2b),
 avant obligations durables. Aucune reprise sûre ou permission produit activée.
 
+Le [banc C1g-2b.1](../quality/TC-302-AUTHORITY_PROOFS.md) éprouve séparément des
+preuves JWS standard avec la bibliothèque existante : genèses compte/cercle
+ancrées par hypothèse, approbations et rôles signés, parents exacts de la demande,
+bindings spécifiques au contexte. La promotion ne réautorise plus d'anciens
+octets dans ce modèle. Aucun format final, QR/référent positif, rattachement MLS
+ou stockage durable. Les révocations cachées et la reconstruction de la mémoire
+restent des contre-exemples ; le rejet d'une branche n'ajoute pas de quarantaine.
+Suite C1g-2b.2 : référent/dépendances historiques/fraîcheur, avant registre/reprise.
+
 ## 7. Hors ligne, resynchronisation et erreurs
 
 **V3-015 — Journal et lots.** Retrouver les changements manquants dans l'ordre
@@ -554,9 +563,9 @@ invalide et preuve d'autorisation des changements de rôles (TC-304/310).
 Le fait qu'un membre MLS puisse signer ne prouve pas qu'il est administrateur
 CircleHaven ; la validation des changements doit couvrir les deux niveaux.
 
-La revue **TC-302 lot B**, C1/C1b et les preuves locales jusqu'à C1g-2a sont consignées, avec huit constats encore
-ouverts et les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1g-2b,
-autorité antérieure authentifiée et continuité inter-contextes**, puis obligations durables, selon C1f-A1 acceptée, avant Q2,
+La revue **TC-302 lot B**, C1/C1b et les preuves locales jusqu'à C1g-2b.1 sont consignées, avec huit constats encore
+ouverts et les fiches TC-303/304/305 préparées. Prochaine action : **TC-302 C1g-2b.2,
+référent, dépendances historiques et fraîcheur locale**, puis obligations durables, selon C1f-A1 acceptée, avant Q2,
 sous les périmètres produit désormais décidés. La rédaction ne remplace ni TC-301 C2 ni une revue
 cryptographique indépendante. Ce document ne doit pas être déclaré final tant
 que les dépendances et la revue de la fiche TC-302 restent ouvertes.

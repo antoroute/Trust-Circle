@@ -2,8 +2,8 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation et preuves locales jusqu'à C1g-2a sont sur tc301-mls-prototype, actualisées le 2026-11-04.
-Objectif : TC-302 C1g-2b, autorité antérieure authentifiée et continuité inter-contextes, puis obligations durables,
+préparation et preuves locales jusqu'à C1g-2b.1 sont sur tc301-mls-prototype, actualisées le 2026-11-04.
+Objectif : TC-302 C1g-2b.2, référent, dépendances historiques et fraîcheur locale, puis obligations durables,
 puis Q2 à partir du socle V3 v0.5.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
@@ -25,6 +25,7 @@ docs/quality/TC-302-EPOCH_OUTBOX.md,
 docs/quality/TC-302-REVOCATION_SIGNAL.md,
 docs/quality/TC-302-COMMIT_POLICY_GATE.md,
 docs/quality/TC-302-REQUEST_ORIGIN.md,
+docs/quality/TC-302-AUTHORITY_PROOFS.md,
 et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
@@ -118,6 +119,36 @@ mémoire, magasin persistant de signer non tourné. Erreur après commit SQL : M
 avance sans nouveau pin, vue refusée ; pas de récupération implémentée.
 Ces preuves bornent C1g-2a, ne clôturent PAS C1g-2, R08 ni TC-302.
 
+Depuis C1g-2b.1 (4 novembre), 29 tests Node dans prototypes/mls/authority,
+avec fast-jwt 6.3.3 déjà verrouillé côté Messaging ; aucun changement de graphe.
+Vraies signatures JWS d'approbations, rôles et demandes, mais ancres OOB et
+genèse du cercle SIMULÉES. Demandes liées aux parents exacts compte/cercle ;
+bindings liés aussi à circleRoot, appareil, conversation/génération. Registre
+TrustedAccounts non substituable dans un contexte vivant ; reconstruction
+complète perd les révocations. Aucun raccordement natif, storage ou hold.
+Les bindings utilisent des octets MLS synthétiques, pas un KeyPackage/LeafNode
+validé ni sa preuve de possession. La succession n'est pas une rotation MLS.
+Relecture : alias base64url, genèse manquante, remplacement registre et comparaison
+ambiguë de champs corrigés avec régressions. JSON last-wins explicite, pas
+profil canonique interlangage. RFC9864 préfère Ed25519 entièrement spécifié ;
+EdDSA+clé Ed25519 fixée est seulement l'outil du banc, pas le choix produit.
+28 tests de comportement et 1 relevé de tailles, pas benchmark ou audit nouveau.
+82 fonctions natives, 3 du pont et 30 cas de crash existants relancés avec succès,
+Clippy/fmt réussis. Révocation cachée reste possible ; refuser un frère signé
+n'installe PAS de quarantaine. Pas de délégation positive ADR0010 ni d'unlock.
+Question posée sur demande acceptée puis perte de droits de son auteur : lire
+une éventuelle réponse humaine plus récente avant de la consigner ; sinon ne
+pas transformer notre recommandation en décision. Maintenir le hold existant.
+
+Prochain lot concret C1g-2b.2 : preuve positive du référent selon ADR0010,
+contradiction avec vérification directe, absence de délégation transitive ;
+contrat de dépendances historiques compte/cercle comparées aux révocations
+actuelles, et garde de divergence. Un Circle reconstruit depuis une genèse
+ancienne exige aujourd'hui le compte à ce même parent ; ne pas contourner le
+contrôle avec un vieux registre en prétendant que le rattrapage est résolu.
+Définir cette frontière avant réception durable/registre/obligations ; conserver
+les contre-exemples de fraîcheur et éviter un consensus ou codec crypto maison.
+
 Pour la stabilisation restante TC-302 C1 :
 1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
    couplage Welcome/arbitrage vérifiable par un nouvel arrivant, la barrière
@@ -144,7 +175,8 @@ Pour la stabilisation restante TC-302 C1 :
    intention et copie chiffrée pour éviter perte ou réémission aveugle.
    C1f propose les sources/portées ; C1g-1 teste le point de contrôle et un modèle
    de fixture. C1g-2a éprouve une source MLS intra-groupe, pas les ancres/rôles.
-   C1g-2b doit établir l'autorité antérieure et la continuité inter-contextes avant le registre,
+   C1g-2b.1 éprouve une autorité signée dans un banc candidat ; C1g-2b.2 doit
+   compléter référent, dépendances et fraîcheur locale avant le registre,
    sans transformer des champs serveur en autorité. Valider le signal, la cible compte/appareil/incarnation
    et la génération de conversation. L'indice de feuille seul est réutilisable.
    Vérifier l'absence de toutes les cibles dans l'état validé, les obligations
@@ -235,6 +267,9 @@ Pour la stabilisation restante TC-302 C1 :
    cargo fmt --check, cargo test --locked --offline --features interop,
    cargo clippy --locked --offline --all-targets --features interop -- -D warnings,
    puis les tests Rust du pont si l'API native change. Commandes exactes dans C1e.
+   Pour le banc d'autorité : node --test prototypes/mls/authority/model.test.mjs
+   et node --check sur model.mjs/model.test.mjs. Ne pas compter ces tests Node
+   comme preuves d'intégration MLS. Pas de npm install ou de mise à jour implicite.
    Aucun résultat local ne valide les budgets ou la matrice des OS cibles.
 
 Préserve les neuf documents déjà modifiés par le propriétaire : contexte,
