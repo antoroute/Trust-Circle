@@ -181,6 +181,12 @@ dans le moteur. Les 82 fonctions natives restent inchangées. Référent et
 rattrapage historique ouverts ; pas de registre durable, de quarantaine de
 branche ni de reprise. [Rapport](../../docs/quality/TC-302-AUTHORITY_PROOFS.md).
 
+Complément [C1g-2b.2](../../docs/quality/TC-302-DELEGATED_AUTHORITY.md) : **47 tests
+Node**, référent à provenance distincte, historique connu recontrôlé et garde
+de divergence des rôles dans le banc. Toujours sans raccordement natif ni
+registre durable. A2 décidée : confirmation actuelle après perte des droits
+de l'auteur, attente maintenue ; aucun unlock implémenté.
+
 ## Arrêt après un signal de restauration — TC-302 C1c
 
 `require_reactivation()` persiste un arrêt de toutes les mutations MLS et de

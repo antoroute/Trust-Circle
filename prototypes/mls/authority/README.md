@@ -2,8 +2,9 @@
 
 **Expérimental, synthétique et uniquement en mémoire.** Aucun module de ce
 dossier n'est importé par le moteur Rust, Flutter ou le backend. Ce n'est pas
-un profil V3 accepté : ni QR, ni attestation positive du référent, ni registre
-durable, ni reprise MLS. Voir le [rapport détaillé](../../../docs/quality/TC-302-AUTHORITY_PROOFS.md).
+un profil V3 accepté : ni QR réel, ni registre durable, ni reprise MLS. Voir les
+rapports [C1g-2b.1](../../../docs/quality/TC-302-AUTHORITY_PROOFS.md) et
+[C1g-2b.2](../../../docs/quality/TC-302-DELEGATED_AUTHORITY.md).
 
 Depuis la racine du dépôt, Node ≥20 et dépendances Messaging déjà installées
 conformément à son lockfile :
@@ -25,7 +26,13 @@ liées aux états exacts de compte/cercle. `Binding` éprouve le lien entre iden
 et octets de clé/credential dans un contexte ; **il ne valide pas un objet MLS**.
 Les helpers d'émission de fixtures ne constituent pas une outbox fiable.
 
-29 tests, dont contre-exemples : révocation cachée, branches séparées et perte
+`IdentityDelegation` distingue confiance attestée propre au cercle et confiance
+directe, sans ajouter de membre ou de droit. L'historique public de compte sert
+à vérifier une clé antérieure ET encore active ; il ne réactive aucun appareil.
+Circle ajoute un garde mémoire contre un frère de rôles autorisé/signé, sans
+quarantaine globale ni méthode de déblocage. Aucun état ne survit au processus.
+
+47 tests, dont contre-exemples : révocation cachée, référent menteur et perte
 de connaissances après reconstruction complète. La durée du runner n'est pas
 une mesure de latence produit. Ne pas réutiliser les objets JSON retournés
 comme preuves reçues du serveur ni effacer un hold après un refus.

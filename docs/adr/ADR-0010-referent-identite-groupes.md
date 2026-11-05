@@ -67,7 +67,12 @@ Les cas G01–G03 du [rapport C1b](../security/V3_ADMISSION_RECOVERY_STUDY.md)
 complètent S03/S04/S06/S12 : faux référent, substitution d'identité,
 attestation hors périmètre, contradiction directe, référent remplacé et
 confusion entre attestation, rôle et approbation d'appareil.
-Ces tests ne sont pas encore exécutés.
+Ils n'étaient pas exécutés à la décision. Le [banc C1g-2b.2 du 5 novembre](../quality/TC-302-DELEGATED_AUTHORITY.md)
+apporte ensuite des preuves partielles : sujet initialement inconnu, délégation
+explicite simulée, provenance scoped, contradictions directes et contrôles de
+droits/appareil. Le contre-test du référent menteur reste acceptable au plan
+cryptographique, conformément au risque décidé. Pas de QR réel, transfert de
+vérifications, admission MLS ou stockage durable validés ; contrat toujours ouvert.
 
 Coût visé : vérifications à l'entrée et aux changements sensibles, cache
 versionné, aucun aller-retour d'annuaire ajouté au message courant. Disponibilité

@@ -2,8 +2,8 @@
 
 ```text
 Travaille dans /root/Projets/Trust-Circle. Vérifie branche et état Git ; la
-préparation et preuves locales jusqu'à C1g-2b.1 sont sur tc301-mls-prototype, actualisées le 2026-11-04.
-Objectif : TC-302 C1g-2b.2, référent, dépendances historiques et fraîcheur locale, puis obligations durables,
+préparation et preuves locales jusqu'à C1g-2b.2 sont sur tc301-mls-prototype, actualisées le 2026-11-05.
+Objectif : TC-302 C1g-2c, contrat puis réception durable des preuves et obligations,
 puis Q2 à partir du socle V3 v0.5.
 Ne pas activer MLS dans l'application ni déclarer TC-301 terminée.
 
@@ -26,6 +26,7 @@ docs/quality/TC-302-REVOCATION_SIGNAL.md,
 docs/quality/TC-302-COMMIT_POLICY_GATE.md,
 docs/quality/TC-302-REQUEST_ORIGIN.md,
 docs/quality/TC-302-AUTHORITY_PROOFS.md,
+docs/quality/TC-302-DELEGATED_AUTHORITY.md,
 et docs/quality/TC-301-SECURITY_HOLD.md ;
 puis les documents et le code réellement
 nécessaires à chaque constat. N'assimile pas le laboratoire au produit.
@@ -136,18 +137,41 @@ EdDSA+clé Ed25519 fixée est seulement l'outil du banc, pas le choix produit.
 82 fonctions natives, 3 du pont et 30 cas de crash existants relancés avec succès,
 Clippy/fmt réussis. Révocation cachée reste possible ; refuser un frère signé
 n'installe PAS de quarantaine. Pas de délégation positive ADR0010 ni d'unlock.
-Question posée sur demande acceptée puis perte de droits de son auteur : lire
-une éventuelle réponse humaine plus récente avant de la consigner ; sinon ne
-pas transformer notre recommandation en décision. Maintenir le hold existant.
+C1g-A2 acceptée le 5 novembre : « Nouvelle confirmation, attente maintenue ».
+Si l'administrateur auteur perd ses droits avant exécution, un administrateur
+encore habilité confirme ; aucune exécution aveugle ou suppression du hold.
+La confirmation devra lier la même obligation/cible/portée. Ne pas redemander.
+Cette décision ne fixe PAS la durée de vie des anciennes attestations du référent.
 
-Prochain lot concret C1g-2b.2 : preuve positive du référent selon ADR0010,
-contradiction avec vérification directe, absence de délégation transitive ;
-contrat de dépendances historiques compte/cercle comparées aux révocations
-actuelles, et garde de divergence. Un Circle reconstruit depuis une genèse
-ancienne exige aujourd'hui le compte à ce même parent ; ne pas contourner le
-contrôle avec un vieux registre en prétendant que le rattrapage est résolu.
-Définir cette frontière avant réception durable/registre/obligations ; conserver
-les contre-exemples de fraîcheur et éviter un consensus ou codec crypto maison.
+Depuis C1g-2b.2 : 47 tests Node, dont 18 nouveaux ; 82 moteur + 3 pont Rust et
+30 cas de crash existants relancés, Clippy/fmt/syntaxe réussis. IdentityDelegation
+accepte un candidat extérieur réellement inconnu, référent directement vérifié
+et choix local explicite. Pas de promotion dans TrustedAccounts, ni rôle/appareil
+ou admission MLS implicites. Identité directe contradictoire bloque même après
+cache, preuves conservées ; isolation par environnement. Le référent menteur
+reste un contre-exemple accepté par ADR0010. QR/consentements sont simulés.
+Account garde des snapshots PUBLICS déjà validés, bornés. Actor compare la clé
+active à l'état référencé ET aujourd'hui : même device/incarnation/clé, jamais
+réactivés/réutilisés. Un changement bénin d'un autre appareil ne périme plus la
+preuve ; révocation de l'auteur et appareil absent du parent restent refusés.
+Parent exact courant du cercle toujours exigé ; transitions Account gardent
+parent exact. Seule la genèse de cercle DÉJÀ ancrée peut utiliser une ancienne
+clé sans lui rendre des droits. Pas d'import de snapshot serveur de confiance.
+Circle installe une quarantaine mémoire sur frère de rôles signé/autorisé d'un
+parent connu. Ni invalides, ni membres non habilités, ni parent inconnu ne doivent
+la déclencher. Ne concerne PAS forks de comptes, bindings ou messages MLS.
+Propriétaire/appartenances constants dans ce banc ; extensions exigent nouvelle
+preuve. Aucune persistance, résolution de fork ou API d'unlock. Test A2 limité
+à ancienne demande refusée/nouvelle preuve autorisée, pas lien à obligation.
+
+Prochain lot C1g-2c : spécifier frontière de validation native et persistance
+transactionnelle des preuves/obligations/gardes, puis tests crash/rejeu et
+confirmation A2. Ne pas importer un JSON Node « vérifié » comme si Rust avait
+authentifié sa signature. Choix du validateur natif standard et interop toujours
+ouverts ; aucune nouvelle dépendance ou codec crypto manuel pendant le gel.
+Le registre de laboratoire peut éprouver la transaction, pas masquer cette
+frontière en revendiquant un parcours produit complet. Longues dépendances,
+référent perdu/remplacé, saturation, Q2/Q5 et fraîcheur globale restent ouverts.
 
 Pour la stabilisation restante TC-302 C1 :
 1. R02 : approfondir la piste de journal ordonné RFC 9750 §5.3. Établir le
@@ -175,8 +199,8 @@ Pour la stabilisation restante TC-302 C1 :
    intention et copie chiffrée pour éviter perte ou réémission aveugle.
    C1f propose les sources/portées ; C1g-1 teste le point de contrôle et un modèle
    de fixture. C1g-2a éprouve une source MLS intra-groupe, pas les ancres/rôles.
-   C1g-2b.1 éprouve une autorité signée dans un banc candidat ; C1g-2b.2 doit
-   compléter référent, dépendances et fraîcheur locale avant le registre,
+   C1g-2b.1/2 éprouvent une autorité signée et le référent dans un banc candidat ;
+   C1g-2c doit définir la frontière native puis les preuves/obligations durables,
    sans transformer des champs serveur en autorité. Valider le signal, la cible compte/appareil/incarnation
    et la génération de conversation. L'indice de feuille seul est réutilisable.
    Vérifier l'absence de toutes les cibles dans l'état validé, les obligations

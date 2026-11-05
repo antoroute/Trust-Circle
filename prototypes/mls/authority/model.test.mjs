@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { Account, TrustedAccounts, Circle, Binding, issue, proofId, MAX_WIRE } from './model.mjs';
+import { Account, TrustedAccounts, Circle, Binding, IdentityDelegation, issue, proofId, MAX_WIRE } from './model.mjs';
 
 const require = createRequire(new URL('../../../backend/messaging/package.json', import.meta.url));
 const { createSigner, createVerifier } = require('fast-jwt');
@@ -18,12 +18,12 @@ const keyDevice = (id = 'phone', incarnation = 'one') => {
   const key = keys();
   return { key, value: { id, incarnation, key: key.public }, id: `${id}/${incarnation}` };
 };
-function person(name, incarnation = 'one') {
+function person(name, incarnation = 'one', environment = ENV) {
   const first = keyDevice();
   const genesis = issue(first.key.private, 'account-genesis', {
-    environment: ENV, account: name, incarnation, first: first.value,
+    environment, account: name, incarnation, first: first.value,
   });
-  const anchor = { environment: ENV, account: name, incarnation, digest: proofId(genesis) };
+  const anchor = { environment, account: name, incarnation, digest: proofId(genesis) };
   return { first, genesis, anchor, account: new Account(genesis, anchor) };
 }
 function setup() {
@@ -159,11 +159,12 @@ test('signed siblings are a known conflict, not authority to choose or merge bra
   const one = role(f, f.people[2], 'admin');
   const two = role(f, f.people[1], 'member');
   f.circle.changeRole(one, f.accounts); other.changeRole(two, f.accounts);
-  rejects(() => f.circle.changeRole(two, f.accounts), /ContextMismatch/);
-  rejects(() => other.changeRole(one, f.accounts), /ContextMismatch/);
+  rejects(() => f.circle.changeRole(two, f.accounts), /DivergenceDetected/);
+  rejects(() => other.changeRole(one, f.accounts), /DivergenceDetected/);
   assert.notEqual(f.circle.head, other.head);
-  // Another limit: detecting/refusing the sibling does NOT install a quarantine.
-  assert.ok(f.circle.authorizeRemoval(request(f).wire, f.accounts));
+  assert.equal(f.circle.quarantined, true);
+  rejects(() => f.circle.authorizeRemoval(request(f).wire, f.accounts), /DivergenceDetected/);
+  rejects(() => f.circle.changeRole(role(f, f.people[2], 'member'), f.accounts), /DivergenceDetected/);
 });
 
 test('counterexample: a valid prefix cannot reveal a withheld demotion or unseen fork', () => {
@@ -214,10 +215,10 @@ test('revoked device, reused incarnation and reused public key cannot approve or
   assert.equal(p.account.key(replacement.target.id), replacement.target.key.public);
 });
 
-test('account state is bound too: approval changes cannot reinterpret an old request', () => {
+test('account state is bound without invalidating a continuously approved signer for a benign addition', () => {
   const f = setup(); const admin = f.people[1]; const old = request(f);
   const desktop = approval(admin); admin.account.apply(desktop.wire);
-  rejects(() => f.circle.authorizeRemoval(old.wire, f.accounts), /ContextMismatch/);
+  assert.ok(f.circle.authorizeRemoval(old.wire, f.accounts));
   assert.ok(f.circle.authorizeRemoval(request(f).wire, f.accounts));
   admin.account.apply(revoke(admin, admin.first, desktop.target));
   rejects(() => f.circle.authorizeRemoval(request(f).wire, f.accounts), /DeviceNotActive/);
@@ -232,6 +233,8 @@ test('account-chain missing events, siblings and environments are not silently a
   rejects(() => lagging.apply(second.wire), /ContextMismatch/);
   lagging.apply(first.wire); lagging.apply(second.wire);
   rejects(() => lagging.apply(sibling.wire), /ContextMismatch/);
+  // Account forks are refused but do not yet latch an account-wide quarantine.
+  assert.equal(lagging.key(p.first.id), p.first.key.public);
   const bad = approval(p, keyDevice('bad'), { environment: 'another-env' });
   rejects(() => p.account.apply(bad.wire), /ContextMismatch/);
 });
@@ -372,7 +375,7 @@ test('bounded device and event collections fail closed while exact event duplica
   assert.deepEqual(f.circle.changeRole(last, f.accounts), { duplicate: true });
 });
 
-test('unsupported identity attestations cannot act as roles or device approvals', () => {
+test('identity attestations cannot act as removal requests, roles or device approvals', () => {
   const f = setup(); const owner = f.people[0];
   const statement = issue(owner.first.key.private, 'identity-attestation', {
     issuerRoot: owner.account.root, targetRoot: f.people[2].account.root,
@@ -380,7 +383,218 @@ test('unsupported identity attestations cannot act as roles or device approvals'
   rejects(() => f.circle.changeRole(statement, f.accounts));
   rejects(() => f.circle.authorizeRemoval(statement, f.accounts));
   rejects(() => f.people[2].account.apply(statement));
-  // This rejects an unsupported profile; ADR-0010's valid attestation path is NOT implemented.
+  // The positive attestation path has a separate consumer and cannot grant these rights.
+});
+
+function delegatedSetup() {
+  const f = setup();
+  const subject = person('new-person'); // OUTSIDE the initial circle and direct registry.
+  const authorAccounts = new TrustedAccounts([...f.people.map(p => p.account), subject.account]);
+  const authorCircle = new Circle(f.genesis, f.anchor, authorAccounts);
+  const referent = f.people[1];
+  const delegation = new IdentityDelegation(f.circle, f.accounts);
+  const attest = () => authorCircle.attestIdentity(referent.account.root, referent.first.id,
+    subject.account.root, referent.first.key.private, authorAccounts);
+  const payload = extra => ({
+    ...f.circle.context, parent: f.circle.head, issuerRoot: referent.account.root,
+    issuerDevice: referent.first.id, accountHead: referent.account.head,
+    subjectRoot: subject.account.root, subjectAccount: subject.account.identity.account,
+    subjectIncarnation: subject.account.identity.incarnation, verification: 'direct', ...extra,
+  });
+  return { ...f, subject, authorAccounts, authorCircle, referent, delegation, attest, payload };
+}
+const acceptIdentity = (f, wire = f.attest()) => f.delegation.accept(wire, f.subject.genesis, f.subject.account.identity);
+
+test('explicit delegated verification accepts an initially unknown outsider with scoped provenance only', () => {
+  const f = delegatedSetup(); const root = f.subject.account.root;
+  assert.equal(f.accounts.get(root), undefined);
+  rejects(() => acceptIdentity(f), /DelegationRequired/);
+  f.delegation.delegate(f.referent.account.root);
+  const result = acceptIdentity(f);
+  assert.equal(result.provenance, 'attested'); assert.equal(result.root, root);
+  assert.equal(result.referent, f.referent.account.root); assert.equal(result.circleRoot, f.anchor.digest);
+  assert.equal(f.accounts.get(root), undefined); // NOT promoted to direct/global trust.
+  rejects(() => f.circle.authorizeRemoval(request(f, f.subject).wire, f.accounts), /EvidenceRequired/);
+  rejects(() => f.circle.changeRole(role(f, f.subject, 'admin'), f.accounts), /RoleDenied/);
+  const b = binding(f, f.subject);
+  rejects(() => new Binding(b.context, root, f.subject.first.id).accept(b.wire, f.accounts), /EvidenceRequired/);
+});
+
+test('honest attestation writer requires direct verification, not an attested chain', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root); acceptIdentity(f);
+  rejects(() => f.circle.attestIdentity(f.referent.account.root, f.referent.first.id,
+    f.subject.account.root, f.referent.first.key.private, f.accounts), /EvidenceRequired/);
+  rejects(() => f.delegation.delegate(f.subject.account.root), /ReferentReplacementOutsideProbe/);
+  const another = new IdentityDelegation(f.circle, f.accounts);
+  rejects(() => another.delegate(f.subject.account.root), /EvidenceRequired/);
+});
+
+test('a mere member or another directly verified admin cannot substitute for the selected referent', () => {
+  const f = delegatedSetup();
+  rejects(() => f.delegation.delegate(f.people[2].account.root), /RoleDenied/);
+  f.delegation.delegate(f.referent.account.root);
+  const owner = f.people[0];
+  const ownerProof = f.authorCircle.attestIdentity(owner.account.root, owner.first.id,
+    f.subject.account.root, owner.first.key.private, f.authorAccounts);
+  rejects(() => acceptIdentity(f, ownerProof), /ContextMismatch/);
+  rejects(() => f.delegation.delegate(owner.account.root), /ReferentReplacementOutsideProbe/);
+});
+
+test('attestation binds exact subject, incarnation, environment, circle root and direct assertion', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root);
+  for (const extra of [
+    { environment: 'another' }, { circle: 'another' }, { circleRoot: 'a'.repeat(64) },
+    { generation: 'two' }, { subjectAccount: 'another' }, { subjectIncarnation: 'two' },
+    { subjectRoot: f.people[2].account.root }, { verification: 'attested' }, { role: 'admin' },
+  ]) {
+    rejects(() => acceptIdentity(f, issue(f.referent.first.key.private, 'identity-attestation', f.payload(extra))));
+    assert.equal(f.delegation.hasStoredProof('new-person'), false);
+  }
+  rejects(() => acceptIdentity(f, issue(keys().private, 'identity-attestation', f.payload({}))));
+  assert.equal(acceptIdentity(f).provenance, 'attested');
+});
+
+test('a conflicting direct identity cannot be overwritten by a valid referent signature', () => {
+  const f = delegatedSetup(); const impostor = person('new-person', 'two');
+  f.accounts.trust(impostor.account);
+  f.delegation.delegate(f.referent.account.root);
+  rejects(() => acceptIdentity(f), /DirectIdentityConflict/);
+  assert.equal(f.delegation.hasStoredProof('new-person'), false);
+  assert.equal(f.accounts.get(impostor.account.root), impostor.account);
+});
+
+test('a direct conflict learned after acceptance invalidates use but keeps the attestation evidence', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root); acceptIdentity(f);
+  f.accounts.trust(person('new-person', 'two').account);
+  rejects(() => f.delegation.status('new-person'), /DirectIdentityConflict/);
+  assert.equal(f.delegation.hasStoredProof('new-person'), true);
+});
+
+test('a directly verified account in another environment does not contaminate local trust', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root);
+  f.accounts.trust(person('new-person', 'one', 'other-environment').account);
+  assert.equal(acceptIdentity(f).provenance, 'attested');
+  assert.equal(f.delegation.status('new-person').root, f.subject.account.root);
+});
+
+test('a replaced attested root does not inherit earlier delegation without a new verification flow', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root); acceptIdentity(f);
+  const replacement = person('new-person', 'two');
+  const wire = issue(f.referent.first.key.private, 'identity-attestation', f.payload({
+    subjectRoot: replacement.account.root, subjectIncarnation: 'two',
+  }));
+  rejects(() => f.delegation.accept(wire, replacement.genesis, replacement.account.identity), /IdentityReplacementOutsideProbe/);
+  assert.equal(f.delegation.status('new-person').root, f.subject.account.root);
+});
+
+test('direct verification stays direct and does not depend on the later status of a referent', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root); acceptIdentity(f);
+  f.accounts.trust(f.subject.account); // Separate explicit OOB decision.
+  assert.equal(f.delegation.status('new-person').provenance, 'direct');
+  f.circle.changeRole(role(f, f.referent, 'member'), f.accounts);
+  assert.equal(f.delegation.status('new-person').provenance, 'direct');
+});
+
+test('known referent demotion refuses new attestations while preserving previously received evidence', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root); const wire = f.attest();
+  acceptIdentity(f, wire);
+  f.circle.changeRole(role(f, f.referent, 'member'), f.accounts);
+  rejects(() => acceptIdentity(f, wire), /RoleDenied/);
+  rejects(() => f.delegation.status('new-person'), /RoleDenied/);
+  assert.equal(f.delegation.hasStoredProof('new-person'), true);
+});
+
+test('known referent device revocation cannot be bypassed by an old attestation or historical key lookup', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root); const wire = f.attest();
+  acceptIdentity(f, wire);
+  const oldHead = f.referent.account.head;
+  const next = approval(f.referent); f.referent.account.apply(next.wire);
+  f.referent.account.apply(revoke(f.referent, f.referent.first, next.target));
+  assert.equal(f.referent.account.keyAtKnownState(oldHead, f.referent.first.id), f.referent.first.key.public);
+  rejects(() => acceptIdentity(f, wire), /DeviceNotActive/);
+  rejects(() => f.delegation.status('new-person'), /DeviceNotActive/);
+  assert.ok(f.delegation.hasStoredProof('new-person'));
+});
+
+test('counterexample: a compromised referent can lie about having personally verified someone', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root);
+  // Bypass the honest writer: signature proves the assertion, NOT a real QR scan.
+  const lie = issue(f.referent.first.key.private, 'identity-attestation', f.payload({}));
+  assert.equal(acceptIdentity(f, lie).provenance, 'attested');
+});
+
+test('an anchored historical genesis can be checked without restoring revoked operational rights', () => {
+  const f = setup(); const owner = f.people[0]; const firstHead = owner.account.head;
+  const next = approval(owner); owner.account.apply(next.wire);
+  owner.account.apply(revoke(owner, owner.first, next.target));
+  const currentHead = owner.account.head;
+  const reconstructed = new Circle(f.genesis, f.anchor, f.accounts);
+  assert.equal(owner.account.head, currentHead); // Historical read does not change current state.
+  rejects(() => reconstructed.authorizeRemoval(request(f, owner, { accountHead: firstHead }).wire, f.accounts), /DeviceNotActive/);
+  const activeOwner = { ...owner, first: next.target };
+  assert.ok(reconstructed.authorizeRemoval(request({ ...f, circle: reconstructed }, activeOwner).wire, f.accounts));
+  rejects(() => owner.account.keyAtKnownState('a'.repeat(64), owner.first.id), /EvidenceRequired/);
+});
+
+test('known device history permits delayed role events after a benign addition, never after issuer revocation', () => {
+  const f = setup(); const oldRole = role(f, f.people[2], 'admin');
+  const owner = f.people[0]; owner.account.apply(approval(owner).wire);
+  f.circle.changeRole(oldRole, f.accounts);
+  assert.equal(f.circle.quarantined, false);
+  assert.ok(f.circle.authorizeRemoval(request(f, f.people[2]).wire, f.accounts));
+  const later = role(f, f.people[1], 'member');
+  const next = approval(owner, keyDevice('next')); owner.account.apply(next.wire);
+  owner.account.apply(revoke(owner, owner.first, next.target));
+  const head = f.circle.head;
+  rejects(() => f.circle.changeRole(later, f.accounts), /DeviceNotActive/);
+  assert.equal(f.circle.head, head);
+});
+
+test('a device approved later cannot claim authority from a parent where it did not exist', () => {
+  const f = setup(); const admin = f.people[1]; const beforeApproval = admin.account.head;
+  const next = approval(admin); admin.account.apply(next.wire);
+  const asNext = { ...admin, first: next.target };
+  rejects(() => f.circle.authorizeRemoval(request(f, asNext, { accountHead: beforeApproval }).wire, f.accounts), /DeviceNotActive/);
+  assert.ok(f.circle.authorizeRemoval(request(f, asNext).wire, f.accounts));
+  rejects(() => f.circle.authorizeRemoval(request(f, asNext, { accountHead: 'a'.repeat(64) }).wire, f.accounts), /EvidenceRequired/);
+});
+
+test('benign changes to other devices preserve a cached attestation, without bypassing signer revocation', () => {
+  const f = delegatedSetup(); f.delegation.delegate(f.referent.account.root); acceptIdentity(f);
+  const next = approval(f.referent); f.referent.account.apply(next.wire);
+  assert.equal(f.delegation.status('new-person').provenance, 'attested');
+  f.referent.account.apply(revoke(f.referent, next.target));
+  assert.equal(f.delegation.status('new-person').provenance, 'attested');
+});
+
+test('only an authorized signed sibling of a known parent installs the memory divergence guard', () => {
+  const f = setup(); const parent = f.circle.head;
+  const validSibling = role(f, f.people[1], 'member');
+  f.circle.changeRole(role(f, f.people[2], 'admin'), f.accounts);
+  for (const wire of [
+    role(f, f.people[1], 'member', { parent, sequence: 1 }, f.people[2]),
+    role(f, f.people[1], 'member', { parent: 'a'.repeat(64) }),
+    role(f, f.people[1], 'member', { parent, sequence: 99 }),
+    role(f, f.people[0], 'member', { parent, sequence: 1 }),
+  ]) {
+    rejects(() => f.circle.changeRole(wire, f.accounts));
+    assert.equal(f.circle.quarantined, false);
+  }
+  rejects(() => f.circle.changeRole(validSibling, f.accounts), /DivergenceDetected/);
+  rejects(() => new IdentityDelegation(f.circle, f.accounts).delegate(f.people[0].account.root), /DivergenceDetected/);
+  rejects(() => f.circle.authorizeRemoval(request(f).wire, f.accounts), /DivergenceDetected/);
+});
+
+test('A2: an old removal stays non-executable; a fresh authorized proof does not magically clear a hold', () => {
+  const f = setup(); const old = request(f);
+  const obligation = f.circle.authorizeRemoval(old.wire, f.accounts);
+  f.circle.changeRole(role(f, f.people[1], 'member'), f.accounts);
+  rejects(() => f.circle.authorizeRemoval(old.wire, f.accounts));
+  const confirmed = f.circle.authorizeRemoval(request(f, f.people[0]).wire, f.accounts);
+  assert.equal(confirmed.targetRoot, obligation.targetRoot);
+  assert.notEqual(confirmed.proof, obligation.proof);
+  // No obligation/confirmation link or hold resolver yet; both remain future work.
+  assert.equal(obligation.targetRoot, f.people[3].account.root);
 });
 
 test('bindings include circle genesis, not just reusable names and generation labels', () => {

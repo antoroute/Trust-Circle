@@ -1,7 +1,7 @@
 # Contexte du projet
 
 Statut : référence de travail
-Dernière mise à jour : 2026-11-04
+Dernière mise à jour : 2026-11-05
 Instantané fonctionnel documenté : branche `main`, Phases 1 et 2 terminées sur staging
 
 ## Mission
@@ -175,8 +175,20 @@ accepté ni d'intégration native. Révocations cachées, branches sans quaranta
 et perte de mémoire restent des contre-exemples. Voir
 `quality/TC-302-AUTHORITY_PROOFS.md`. Suite **C1g-2b.2 : référent, dépendances
 historiques et fraîcheur locale**, avant registre/obligations/reprise.
-Question produit posée : sort d'une demande acceptée lorsque son auteur perd
-ses droits ; ne pas confondre recommandation et décision reçue. Gel inchangé.
+Question produit posée sur la perte de droits de l'auteur ; réponse reçue le
+5 novembre : **nouvelle confirmation, attente maintenue**, C1g-A2 dans ADR-0012.
+
+Le 5 novembre, **C1g-2b.2** éprouve le référent : candidat extérieur réellement
+inconnu, délégation explicite et provenance distincte, aucun droit de membre
+ou d'appareil accordé. Historique public local + clé toujours active évitent
+de refaire les preuves après un changement bénin d'un autre appareil ; une
+révocation connue reste bloquante. Garde mémoire sur divergence de rôles,
+pas quarantaine globale. **47 tests Node**, 82 moteur et 3 pont Rust réussis.
+Voir `quality/TC-302-DELEGATED_AUTHORITY.md`. Ancres/consentements simulés,
+aucun stockage durable, intégration MLS ou unlock ; tous les constats ouverts.
+Suite **C1g-2c : contrat puis réception durable des preuves et obligations**,
+en précisant la frontière de validation native avant tout raccordement.
+Gel, manifestes/lockfiles et infrastructure inchangés ; A2 n'est pas à redemander.
 
 Réponse produit du 12 octobre : le propriétaire demande un partage facultatif
 d'historique vers un nouvel appareil **et une nouvelle personne**, sous réserve

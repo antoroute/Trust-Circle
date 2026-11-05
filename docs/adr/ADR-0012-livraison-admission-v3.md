@@ -1,8 +1,8 @@
 # ADR-0012 — Livraison ordonnée, admission et attente de révocation V3
 
-Statut : Proposée — Q3 et C1f-A1 produit décidées ; contrat technique à compléter et faire accepter
+Statut : Proposée — Q3, C1f-A1 et C1g-A2 produit décidées ; contrat technique à compléter et faire accepter
 Date : 2026-10-18
-Actualisation : 2026-11-04 — banc candidat C1g-2b.1 ; autorité complète et reprise toujours ouvertes
+Actualisation : 2026-11-05 — confirmation après perte de droits décidée ; contrat technique ouvert
 Complète si acceptée : ADR-0003, sans changer MLS 1.0 ni la suite 0x0001
 Suivi : TC-302 R02/R03, Q3 ; détails TC-304/310
 
@@ -201,11 +201,34 @@ Ni format V3 final ni délégation positive au référent implémentés ; modèl
 sans raccordement MLS, registre durable, garde de divergence ou unlock.
 
 Un ordre référençant un ancien rôle ne prouve pas qu'il a été signé avant le
-déclassement. Le sort d'une demande déjà validée puis suivie d'une perte de droits
-est demandé au propriétaire le 4 novembre. En attendant réponse, maintenir
-le refus conservateur et le hold ; ne pas déduire l'irrévocabilité d'une demande
-de la permission limitée C1f-A1. Révocations cachées et rattrapage historique
-restent ouverts. Le banc ne modifie aucune décision produit déjà reçue.
+déclassement. Révocations cachées et rattrapage historique restent ouverts.
+
+### C1g-A2 — perte de droits avant exécution, acceptée le 5 novembre
+
+Le propriétaire choisit **« Nouvelle confirmation, attente maintenue »** : si
+un administrateur a demandé un retrait puis perd ses droits avant son exécution,
+la conversation reste en attente et un administrateur encore habilité doit
+confirmer le retrait. La demande ancienne n'est ni exécutée aveuglément ni
+effacée comme si le risque avait disparu. Lecture/brouillons et autres
+conversations restent dans le périmètre Q3 déjà accepté.
+
+La confirmation devra viser la même cible/portée et l'obligation connue,
+être authentifiée depuis les droits actuels et persister avant exécution.
+C1f-A1 autorise ensuite un participant habilité à exécuter cette nouvelle
+autorisation ; il ne devient pas lui-même décideur du retrait. Aucun délai
+maximal n'est promis en l'absence d'administrateur disponible.
+
+Ce choix ne décide ni le remplacement du référent, ni la durée de validité de
+ses anciennes attestations, ni le transfert de propriété. Il ne valide pas
+le format de confirmation ou l'ensemble de cette ADR. Ne pas redemander A2.
+
+Le [banc C1g-2b.2](../quality/TC-302-DELEGATED_AUTHORITY.md) confirme le refus
+de l'ancien ordre et vérifie une nouvelle demande de même cible par une autorité
+actuelle. Le lien à une obligation durable reste absent : pas de reprise
+automatique ni de suppression du hold. Il éprouve aussi le référent et l'usage
+de preuves de compte déjà connues avec recontrôle de la même clé encore active.
+Une divergence autorisée de rôles arrête les autorisations du cercle en mémoire,
+pas les messages du moteur MLS ni toutes les autres catégories de preuves.
 
 ## Alternatives et coûts
 

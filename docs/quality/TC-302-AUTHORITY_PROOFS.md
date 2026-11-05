@@ -4,6 +4,12 @@ Date : 2026-11-04 — base `5ed5e46`
 Statut : preuve locale réalisée ; **C1g-2b reste ouverte**
 Suite de [C1g-2a](TC-302-REQUEST_ORIGIN.md), aucun format produit accepté
 
+Instantané du 4 novembre : voir [C1g-2b.2 du 5 novembre](TC-302-DELEGATED_AUTHORITY.md)
+pour le parcours positif du référent, l'historique local et le garde de divergence
+ajoutés ensuite. La question de confirmation a depuis reçu la réponse C1g-A2
+dans ADR-0012 ; ne pas interpréter ses mentions « en attente » ci-dessous comme
+l'état courant. Les validations et limites suivantes décrivent bien C1g-2b.1.
+
 ## Résultat
 
 Le [banc isolé](../../prototypes/mls/authority/model.mjs) ne reçoit plus un
